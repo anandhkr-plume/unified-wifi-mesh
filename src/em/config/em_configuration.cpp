@@ -3543,6 +3543,7 @@ bool em_configuration_t::send_autoconf_search_ext_chirp(em_dpp_chirp_value_t *ch
     int len = 0;
 
     len = create_autoconfig_search_msg(buff, chirp, hash_len);
+	em_printfout("%s:%d called create_autoconfig_search len:%d \n", __func__, __LINE__, len);
     if (len < 0) {
         em_printfout("Failed to create autoconf search ext chirp msg");
         return false;
@@ -3593,11 +3594,13 @@ int em_configuration_t::create_autoconfig_search_msg(unsigned char *buff, em_dpp
     uint8_t profile = static_cast<uint8_t>(get_profile_type());
     tmp = em_msg_t::add_tlv(tmp, &len, em_tlv_type_profile, &profile, sizeof(profile));
 
+	em_printfout("%s:%d Inside create_autoconfig_search band:%d service:%d searched_service:%d profile:%d \n", __func__, __LINE__, band, service, searched_service, profile);
     // Zero or One DPP Chirp TLV (section 17.2.83)
     if (chirp) {
         tmp = em_msg_t::add_tlv(tmp, &len, em_tlv_type_dpp_chirp_value, reinterpret_cast<uint8_t*>(chirp), static_cast<unsigned int>(sizeof(em_dpp_chirp_value_t) + hash_len));
     }
 
+	util::print_hex_dump(len, buff);
     // OEM
     tmp = em_msg_t::add_eom_tlv(tmp, &len);
     return static_cast<int>(len);
