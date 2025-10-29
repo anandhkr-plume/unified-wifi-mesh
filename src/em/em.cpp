@@ -1954,7 +1954,7 @@ em_t::em_t(em_interface_t *ruid, em_freq_band_t band, dm_easy_mesh_t *dm, em_mgr
 	m_orch_state = em_orch_state_idle;
     m_cmd = NULL;
 
-    em_printfout("%s:%d AUTOCONFIG_DEBUG MAC:"MACSTRFMT" name:%s media:%d \n", __func__, __LINE__, ruid->mac, ruid->name, ruid->em_media_type_t);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG MAC:"MACSTRFMT" name:%s media:%d \n", __func__, __LINE__, ruid->mac, ruid->name, ruid->media);
     RAND_bytes(get_crypto_info()->e_nonce, sizeof(em_nonce_t));
     RAND_bytes(get_crypto_info()->r_nonce, sizeof(em_nonce_t));
     m_data_model = dm;
