@@ -3594,7 +3594,7 @@ int em_configuration_t::create_autoconfig_search_msg(unsigned char *buff, em_dpp
     uint8_t profile = static_cast<uint8_t>(get_profile_type());
     tmp = em_msg_t::add_tlv(tmp, &len, em_tlv_type_profile, &profile, sizeof(profile));
 
-	em_printfout("%s:%d Inside create_autoconfig_search band:%d service:%d searched_service:%d profile:%d \n", __func__, __LINE__, band, service, searched_service, profile);
+	em_printfout("%s:%d Inside create_autoconfig_search band:%d service:%d profile:%d \n", __func__, __LINE__, band, service[1], profile);
     // Zero or One DPP Chirp TLV (section 17.2.83)
     if (chirp) {
         tmp = em_msg_t::add_tlv(tmp, &len, em_tlv_type_dpp_chirp_value, reinterpret_cast<uint8_t*>(chirp), static_cast<unsigned int>(sizeof(em_dpp_chirp_value_t) + hash_len));
@@ -5039,7 +5039,7 @@ int em_configuration_t::handle_autoconfig_resp(unsigned char *buff, unsigned int
     char *errors[EM_MAX_TLV_MEMBERS] = {0};
     em_raw_hdr_t *hdr = reinterpret_cast<em_raw_hdr_t *> (buff);
 
-    em_printfout("Received autoconfig resp from " MACSTRFMT, MAC2STR(hdr->src));
+    em_printfout("AUTOCONFIG_DEBUG Received autoconfig resp with profile:%s from " MACSTRFMT, m_peer_profile, MAC2STR(hdr->src));
 
     if (em_msg_t(buff + (sizeof(em_raw_hdr_t) + sizeof(em_cmdu_t)),
                 len - static_cast<unsigned int>(sizeof(em_raw_hdr_t) + sizeof(em_cmdu_t))).get_profile_type(&m_peer_profile) == false) {
@@ -5190,6 +5190,7 @@ void em_configuration_t::process_msg(unsigned char *data, unsigned int len)
     em_raw_hdr_t *hdr = reinterpret_cast<em_raw_hdr_t *>(data);
     uint8_t *src_al_mac = hdr->src;
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG cmdu_type:%d service_type:%d state:%d " MACSTRFMT" \n", __func__, __LINE__, htons(cmdu->type), get_service_type(), get_state(), MAC2STR(hdr->src));
     switch (htons(cmdu->type)) {
         case em_msg_type_autoconf_search:
             if (get_service_type() == em_service_type_ctrl) {
@@ -5202,6 +5203,7 @@ void em_configuration_t::process_msg(unsigned char *data, unsigned int len)
             break;
 
         case em_msg_type_autoconf_resp:
+            em_printfout("%s:%d AUTOCONFIG_DEBUG service_type:%d state:%d \n", __func__, __LINE__, get_service_type(), get_state());
             if (((get_service_type() == em_service_type_agent &&
                     get_state() == em_state_agent_autoconfig_rsp_pending) ||
                 (get_service_type() == em_service_type_agent && get_is_dpp_onboarding())) && get_state() != em_state_agent_1905_securing) {
