@@ -143,6 +143,7 @@ void em_mgr_t::proto_process(unsigned char *data, unsigned int len, em_t *al_em)
     evt->u.fevt.frame = static_cast<unsigned char *>(malloc(len));
     memcpy(evt->u.fevt.frame, data, len);
     evt->u.fevt.frame_len = len;
+    em_printfout("%s:%d AUTOCONFIG_DEBUG data:%s len:%d \n", __func__, __LINE__, data, len);
     em->push_to_queue(evt);
 }
 
@@ -388,6 +389,7 @@ void em_mgr_t::nodes_listener()
 
         em = static_cast<em_t *>(hash_map_get_first(m_em_map));
         while (em != NULL) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG is_al_mac:%d \n", __func__, __LINE__, em->is_al_interface_em());
             if (em->is_al_interface_em() == true) {
 #ifdef AL_SAP
                 try{
@@ -411,6 +413,8 @@ void em_mgr_t::nodes_listener()
                     em_printfout("RECONSTRUCTED_ETH_FRAME: \t");
                     util::print_hex_dump(reconstructed_eth_frame);
 #endif
+                    em_printfout("%s:%d AUTOCONFIG_DEBUG first_mac: "MACSTRFMT" second_mac: "MACSTRFMT"\n", __func__, __LINE__, MAC2STR(first_mac), MAC2STR(second_mac));
+                    util::print_hex_dump(reconstructed_eth_frame);
                     proto_process(reconstructed_eth_frame.data(), static_cast<unsigned int>(reconstructed_eth_frame.size()), em);
                 } catch (const AlServiceException& e) {
                     if (e.getPrimitiveError() == PrimitiveError::InvalidMessage) {
@@ -430,6 +434,7 @@ void em_mgr_t::nodes_listener()
                     // receive data from this interface
                     memset(buff, 0, MAX_EM_BUFF_SZ*EM_MAX_BANDS);
                     ssize_t len = read(em->get_fd(), buff, MAX_EM_BUFF_SZ*EM_MAX_BANDS);
+                    em_printfout("%s:%d AUTOCONFIG_DEBUG len:%d \n", __func__, __LINE__, len);
                     if (len) {
                         proto_process(buff, static_cast<unsigned int>(len), em);
                     }

@@ -273,8 +273,8 @@ void em_t::proto_process(unsigned char *data, unsigned int len)
 
     cmdu = reinterpret_cast<em_cmdu_t *>(data + sizeof(em_raw_hdr_t));
 
-
     dm_easy_mesh_t::macbytes_to_string(get_radio_interface_mac(), mac_str);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG CMDU_Type:%d " MACSTRFMT" \n", __func__, __LINE__, htons(cmdu->type), MAC2STR(mac_str));
     switch (htons(cmdu->type)) {
         case em_msg_type_autoconf_search:
         case em_msg_type_autoconf_resp:
@@ -1954,6 +1954,7 @@ em_t::em_t(em_interface_t *ruid, em_freq_band_t band, dm_easy_mesh_t *dm, em_mgr
 	m_orch_state = em_orch_state_idle;
     m_cmd = NULL;
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG MAC:"MACSTRFMT" name:%s media:%d \n", __func__, __LINE__, ruid->mac, ruid->name, ruid->em_media_type_t);
     RAND_bytes(get_crypto_info()->e_nonce, sizeof(em_nonce_t));
     RAND_bytes(get_crypto_info()->r_nonce, sizeof(em_nonce_t));
     m_data_model = dm;
