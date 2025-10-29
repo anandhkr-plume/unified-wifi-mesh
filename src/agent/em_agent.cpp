@@ -1402,6 +1402,7 @@ em_t *em_agent_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em
    
     cmdu = (em_cmdu_t *)(data + sizeof(em_raw_hdr_t));
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG CMDU_TYPE:%d \n", __func__, __LINE__, htons(cmdu->type));
     switch (htons(cmdu->type)) {
 	case em_msg_type_autoconf_resp:
 		found = false;
@@ -1417,6 +1418,7 @@ em_t *em_agent_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em
 
 		em = (em_t *)hash_map_get_first(m_em_map);
 		while (em != NULL) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG interface_em:%d state:%d \n", __func__, __LINE__, em->is_al_interface_em(), em->get_state());
 			if (!(em->is_al_interface_em())) {
 				if (em->is_matching_freq_band(&band) == true) {
 					if ((em->get_state() != em_state_agent_autoconfig_renew_pending) && (em->get_state() !=em_state_agent_wsc_m2_pending) && 
@@ -1425,6 +1427,7 @@ em_t *em_agent_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em
 						break;
 					} else {
 						printf("%s:%d: Found matching band%d but incorrect em state %d\n", __func__, __LINE__, band, em->get_state());
+                        em_printfout("%s:%d AUTOCONFIG_DEBUG Found matching band%d but incorrect em state %d\n", __func__, __LINE__, band, em->get_state());
 					}
 				}
 			}
@@ -1432,6 +1435,7 @@ em_t *em_agent_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em
 		}
 		if (found == false) {
 			printf("%s:%d: Could not find em with matching band%d and expected state \n", __func__, __LINE__, band);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG Could not find em with matching band%d and expected state \n", __func__, __LINE__, band);
 			return NULL;
 		}
 
