@@ -1396,6 +1396,7 @@ em_t *em_agent_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em
     }
    
     hdr = (em_raw_hdr_t *)data;
+    em_printfout("%s:%d AUTOCONFIG_DEBUG is_ETH_P_1905:%d \n", __func__, __LINE__, htons(ETH_P_1905));
 
     if (hdr->type != htons(ETH_P_1905)) {
         return NULL;
