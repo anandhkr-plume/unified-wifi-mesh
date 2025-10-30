@@ -1101,6 +1101,7 @@ void em_agent_t::input_listener()
         }
     }
     printf("%s:%d recv data:\r\n%s\r\n", __func__, __LINE__, (char *)data.raw_data.bytes);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG recv data:%s \n", __func__, __LINE__, (char *)data.raw_data.bytes);
 
     g_agent.io_process(em_bus_event_type_dev_init, (unsigned char *)data.raw_data.bytes, data.raw_data_len);
     free(data.raw_data.bytes);

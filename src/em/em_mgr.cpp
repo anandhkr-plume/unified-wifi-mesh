@@ -378,7 +378,9 @@ void em_mgr_t::nodes_listener()
     tm.tv_usec = m_timeout * 1000;
     highest_fd = reset_listeners();
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG highest_fd:%d \n", __func__, __LINE__, highest_fd);
     while ((rc = select(highest_fd + 1, &m_rset, NULL, NULL, &tm)) >= 0) {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG highest_fd:%d rc:%d \n", __func__, __LINE__, highest_fd, rc);
         if (rc == 0) {
             tm.tv_sec = 0;
             tm.tv_usec = m_timeout * 1000;
@@ -388,6 +390,7 @@ void em_mgr_t::nodes_listener()
         }
 
         em = static_cast<em_t *>(hash_map_get_first(m_em_map));
+        em_printfout("%s:%d AUTOCONFIG_DEBUG m_em_map:%p em:%p\n", __func__, __LINE__, m_em_map, em);
         while (em != NULL) {
             em_printfout("%s:%d AUTOCONFIG_DEBUG is_al_mac:%d \n", __func__, __LINE__, em->is_al_interface_em());
             if (em->is_al_interface_em() == true) {
