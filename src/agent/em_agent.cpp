@@ -1118,9 +1118,6 @@ void em_agent_t::input_listener()
     if (desc->bus_event_subs_fn(&m_bus_hdl, WIFI_WEBCONFIG_GET_ASSOC, (void *)&em_agent_t::sta_cb, NULL, 0) != 0) {
         printf("%s:%d bus get failed\n", __func__, __LINE__);
         return;
-    } else {
-        printf("%s:%d component_name:%s dbus_path:%s \n", __func__, __LINE__, m_bus_hdl.component_name, m_bus_hdl.dbus_path);
-        em_printfout("%s:%d component_name:%s dbus_path:%s \n", __func__, __LINE__, m_bus_hdl.component_name, m_bus_hdl.dbus_path);
     }
 
     if (desc->bus_event_subs_fn(&m_bus_hdl, "Device.WiFi.EM.STALinkMetricsReport", (void *)&em_agent_t::assoc_stats_cb, NULL, 0) != 0) {
@@ -1141,9 +1138,6 @@ void em_agent_t::input_listener()
     if (desc->bus_event_subs_fn(&m_bus_hdl, "Device.WiFi.EM.AssociationStatus", reinterpret_cast<void *>(&em_agent_t::association_status_cb), nullptr, 0) != 0) {
         em_printfout("Failed to subscribe to 'Device.WiFi.EM.AssociationStatus'");
         return;
-    } else {
-        printf("%s:%d component_name:%s dbus_path:%s \n", __func__, __LINE__, m_bus_hdl.component_name, m_bus_hdl.dbus_path);
-        em_printfout("%s:%d component_name:%s dbus_path:%s \n", __func__, __LINE__, m_bus_hdl.component_name, m_bus_hdl.dbus_path);
     }
 
     if (desc->bus_event_subs_fn(&m_bus_hdl, "Device.WiFi.EC.BSSInfo", reinterpret_cast<void *>(&em_agent_t::bss_info_cb), nullptr, 0) != 0) {
@@ -1154,9 +1148,6 @@ void em_agent_t::input_listener()
     if (desc->bus_event_subs_fn(&m_bus_hdl, "Device.WiFi.EM.APMetricsReport", (void *)&em_agent_t::ap_metrics_report_cb, NULL, 0) != 0) {
         printf("%s:%d bus get failed\n", __func__, __LINE__);
         return;
-    } else {
-        printf("%s:%d component_name:%s dbus_path:%s \n", __func__, __LINE__, m_bus_hdl.component_name, m_bus_hdl.dbus_path);
-        em_printfout("%s:%d component_name:%s dbus_path:%s \n", __func__, __LINE__, m_bus_hdl.component_name, m_bus_hdl.dbus_path);
     }
 
    if(desc->bus_event_subs_fn(&m_bus_hdl, "Device.WiFi.CSABeaconFrameRecieved", (void *)&em_agent_t::mgmt_csa_beacon_frame_cb, NULL, 0) != 0) {

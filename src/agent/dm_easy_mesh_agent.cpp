@@ -90,8 +90,8 @@ int dm_easy_mesh_agent_t::analyze_dev_init(em_bus_event_t *evt, em_cmd_t *pcmd[]
     //TODO: Check for multiple radios
     pcmd[num] = new em_cmd_dev_init_t(evt->params, dm);
     tmp = pcmd[num];
-    printf("%s:%d pcmd[%d]:%d \n", __func__, __LINE__, num, pcmd[num].em_cmd_type_t);
-    em_printfout("%s:%d pcmd[%d]:%d \n", __func__, __LINE__, num, pcmd[num].em_cmd_type_t);
+    printf("%s:%d pcmd[%d]:%d \n", __func__, __LINE__, num, pcmd[num]->m_type);
+    em_printfout("%s:%d pcmd[%d]:%d \n", __func__, __LINE__, num, pcmd[num]->m_type);
     num++;
 
     while ((pcmd[num] = tmp->clone_for_next()) != NULL) {
@@ -172,11 +172,11 @@ int dm_easy_mesh_agent_t::analyze_sta_list(em_bus_event_t *evt, em_cmd_t *pcmd[]
         }
 
         tmp = pcmd[num];
-        printf("%s:%d pcmd[%d]:%d \n", __func__, __LINE__, num, pcmd[num].em_cmd_type_t);
+        printf("%s:%d pcmd[%d]:%d \n", __func__, __LINE__, num, pcmd[num]->m_type);
         num++;
 
         while ((pcmd[num] = tmp->clone_for_next()) != NULL) {
-            printf("%s:%d pcmd[%d]:%d \n", __func__, __LINE__, num, pcmd[num].em_cmd_type_t);
+            printf("%s:%d pcmd[%d]:%d \n", __func__, __LINE__, num, pcmd[num]->m_type);
             dm.clone_hash_maps(*pcmd[num]->get_data_model());
             tmp = pcmd[num];
             num++;
@@ -208,7 +208,7 @@ int dm_easy_mesh_agent_t::analyze_autoconfig_renew(em_bus_event_t *evt, em_cmd_t
 
     while ((pcmd[num] = tmp->clone_for_next()) != NULL) {
         tmp = pcmd[num];
-        printf("%s:%d pcmd[%d]:%d mac:%s\n", __func__, __LINE__, num, pcmd[num].m_type, mac_str);
+        printf("%s:%d pcmd[%d]:%d mac:%s\n", __func__, __LINE__, num, pcmd[num]->m_type, mac_str);
         num++;
     }
     return num;
@@ -349,13 +349,13 @@ int dm_easy_mesh_agent_t::analyze_onewifi_vap_cb(em_bus_event_t *evt, em_cmd_t *
 	em_printfout("%s in owconfig", mac_str);
 	pcmd[num] = new em_cmd_ow_cb_t(evt->params, dm);
 	tmp = pcmd[num];
-    em_printfout("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num].m_type);
-    printf("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num].m_type);
+    em_printfout("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num]->m_type);
+    printf("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num]->m_type);
 	num++;
 	while ((pcmd[num] = tmp->clone_for_next()) != NULL) {
 		tmp = pcmd[num];
-        em_printfout("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num].m_type);
-        printf("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num].m_type);
+        em_printfout("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num]->m_type);
+        printf("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num]->m_type);
 		num++;
 	}
     return num;
@@ -677,6 +677,7 @@ int dm_easy_mesh_agent_t::analyze_sta_link_metrics(em_bus_event_t *evt, em_cmd_t
     num++;
 
     while ((pcmd[num] = tmp->clone_for_next()) != NULL) {
+        printf("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num]->m_type);
         tmp = pcmd[num];
         num++;
     }
@@ -816,7 +817,7 @@ int dm_easy_mesh_agent_t::analyze_scan_result(em_bus_event_t *evt, em_cmd_t *pcm
     }
 
     if ((webconfig_easymesh_decode(&config, (char *)evt->u.raw_buff, &ext, &type)) == webconfig_error_none) {
-        em_printfout("%s:%d scanner_mac:%s raw_bufff:%s type:%d \n", __func__, __LINE__, scanner_mac_obj->valuestring, evt->u.raw_buff, type);
+        em_printfout("%s:%d scanner_mac:%s raw_bufff:%s type:%d \n", __func__, __LINE__, scanner_mac_obj->valuestring, (const char *)evt->u.raw_buff, type);
         printf("%s:%d scanner mac: %s - analyze_scan_result subdoc decode success\n",__func__, __LINE__, scanner_mac_obj->valuestring);
     } else {
         printf("%s:%d scanner mac: %s - analyze_scan_result subdoc decode fail\n",__func__, __LINE__, scanner_mac_obj->valuestring);
@@ -842,8 +843,8 @@ int dm_easy_mesh_agent_t::analyze_set_policy(em_bus_event_t *evt, wifi_bus_desc_
 {
     em_policy_cfg_params_t *policy_cfg = (em_policy_cfg_params_t *)evt->u.raw_buff;
 
-    em_printfout("%s:%d calling refresh_onewifi_subdoc with webconfig_subdoc_type_em_config raw_buff:%s \n", __func__, __LINE__, evt->u.raw_buff);
-    printf("%s:%d calling refresh_onewifi_subdoc with webconfig_subdoc_type_em_config raw_buff:%s \n", __func__, __LINE__, evt->u.raw_buff);
+    em_printfout("%s:%d calling refresh_onewifi_subdoc with webconfig_subdoc_type_em_config raw_buff:%s \n", __func__, __LINE__, (const char *)evt->u.raw_buff);
+    printf("%s:%d calling refresh_onewifi_subdoc with webconfig_subdoc_type_em_config raw_buff:%s \n", __func__, __LINE__, (const char *)evt->u.raw_buff);
     return refresh_onewifi_subdoc(desc, bus_hdl, "Policy", webconfig_subdoc_type_em_config, NULL, policy_cfg);
 }
 
@@ -928,8 +929,8 @@ int dm_easy_mesh_agent_t::analyze_ap_metrics_report(em_bus_event_t *evt, em_cmd_
     dm_easy_mesh_t::macbytes_to_string(get_radio_by_ref(radio_index).get_radio_interface_mac(), macstr);
     memcpy(evt_param->u.ap_metrics_params.ruid, get_radio_by_ref(radio_index).get_radio_interface_mac(), sizeof(mac_addr_t));
     //printf("%s:%d: Radio Index: %d and mac: %s\n", __func__, __LINE__, radio_index, macstr);
-    em_printfout("%s:%d: Radio Index: %d and mac: %s buff:%s \n", __func__, __LINE__, radio_index, macstr, evt->u.raw_buff);
-    printf("%s:%d: Radio Index: %d and mac: %s buff:%s \n", __func__, __LINE__, radio_index, macstr, evt->u.raw_buff);
+    em_printfout("%s:%d: Radio Index: %d and mac: %s buff:%s \n", __func__, __LINE__, radio_index, macstr, (const char *)evt->u.raw_buff);
+    printf("%s:%d: Radio Index: %d and mac: %s buff:%s \n", __func__, __LINE__, radio_index, macstr, (const char *)evt->u.raw_buff);
 
     if (strstr((const char *)evt->u.raw_buff, "Associated STA Traffic Stats") != NULL) {
         //printf("Associated STA Traffic Stats found in JSON.\n");
@@ -960,6 +961,7 @@ int dm_easy_mesh_agent_t::analyze_ap_metrics_report(em_bus_event_t *evt, em_cmd_
     num++;
 
     while ((pcmd[num] = tmp->clone_for_next()) != NULL) {
+        printf("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num]->m_type);
         tmp = pcmd[num];
         num++;
     }
