@@ -137,11 +137,14 @@ void em_agent_t::handle_dev_init(em_bus_event_t *evt)
     em_cmd_t *pcmd[EM_MAX_CMD] = {NULL};
     unsigned int num;
 
+    em_printfout("%s:%d \n", __func__, __LINE__);
     if (m_orch->is_cmd_type_in_progress(evt)) {
         m_agent_cmd->send_result(em_cmd_out_status_prev_cmd_in_progress);
         return;
     }
+    em_printfout("%s:%d calling analyze_dev_init \n", __func__, __LINE__);
     if ((num = m_data_model.analyze_dev_init(evt, pcmd)) == 0) {
+        em_printfout("%s:%d calling send_result \n", __func__, __LINE__);
         m_agent_cmd->send_result(em_cmd_out_status_no_change);
         return;
     }
@@ -192,6 +195,7 @@ void em_agent_t::handle_dev_init(em_bus_event_t *evt)
         // TODO: check if dpp onboarding is successful and manage result
     }
     
+    em_printfout("%s:%d calling send_result em_cmd_out_status_success\n", __func__, __LINE__);
     m_agent_cmd->send_result(em_cmd_out_status_success);
 }
 
@@ -1114,6 +1118,9 @@ void em_agent_t::input_listener()
     if (desc->bus_event_subs_fn(&m_bus_hdl, WIFI_WEBCONFIG_GET_ASSOC, (void *)&em_agent_t::sta_cb, NULL, 0) != 0) {
         printf("%s:%d bus get failed\n", __func__, __LINE__);
         return;
+    } else {
+        printf("%s:%d component_name:%s dbus_path:%s \n", __func__, __LINE__, m_bus_hdl.component_name, m_bus_hdl.dbus_path);
+        em_printfout("%s:%d component_name:%s dbus_path:%s \n", __func__, __LINE__, m_bus_hdl.component_name, m_bus_hdl.dbus_path);
     }
 
     if (desc->bus_event_subs_fn(&m_bus_hdl, "Device.WiFi.EM.STALinkMetricsReport", (void *)&em_agent_t::assoc_stats_cb, NULL, 0) != 0) {
@@ -1134,6 +1141,9 @@ void em_agent_t::input_listener()
     if (desc->bus_event_subs_fn(&m_bus_hdl, "Device.WiFi.EM.AssociationStatus", reinterpret_cast<void *>(&em_agent_t::association_status_cb), nullptr, 0) != 0) {
         em_printfout("Failed to subscribe to 'Device.WiFi.EM.AssociationStatus'");
         return;
+    } else {
+        printf("%s:%d component_name:%s dbus_path:%s \n", __func__, __LINE__, m_bus_hdl.component_name, m_bus_hdl.dbus_path);
+        em_printfout("%s:%d component_name:%s dbus_path:%s \n", __func__, __LINE__, m_bus_hdl.component_name, m_bus_hdl.dbus_path);
     }
 
     if (desc->bus_event_subs_fn(&m_bus_hdl, "Device.WiFi.EC.BSSInfo", reinterpret_cast<void *>(&em_agent_t::bss_info_cb), nullptr, 0) != 0) {
@@ -1144,6 +1154,9 @@ void em_agent_t::input_listener()
     if (desc->bus_event_subs_fn(&m_bus_hdl, "Device.WiFi.EM.APMetricsReport", (void *)&em_agent_t::ap_metrics_report_cb, NULL, 0) != 0) {
         printf("%s:%d bus get failed\n", __func__, __LINE__);
         return;
+    } else {
+        printf("%s:%d component_name:%s dbus_path:%s \n", __func__, __LINE__, m_bus_hdl.component_name, m_bus_hdl.dbus_path);
+        em_printfout("%s:%d component_name:%s dbus_path:%s \n", __func__, __LINE__, m_bus_hdl.component_name, m_bus_hdl.dbus_path);
     }
 
    if(desc->bus_event_subs_fn(&m_bus_hdl, "Device.WiFi.CSABeaconFrameRecieved", (void *)&em_agent_t::mgmt_csa_beacon_frame_cb, NULL, 0) != 0) {
@@ -1397,6 +1410,7 @@ em_t *em_agent_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em
    
     hdr = (em_raw_hdr_t *)data;
     em_printfout("%s:%d AUTOCONFIG_DEBUG is_ETH_P_1905:%d \n", __func__, __LINE__, htons(ETH_P_1905));
+    printf("%s:%d AUTOCONFIG_DEBUG is_ETH_P_1905:%d \n", __func__, __LINE__, htons(ETH_P_1905));
 
     if (hdr->type != htons(ETH_P_1905)) {
         return NULL;
