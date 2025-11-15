@@ -90,11 +90,10 @@ int dm_easy_mesh_agent_t::analyze_dev_init(em_bus_event_t *evt, em_cmd_t *pcmd[]
     //TODO: Check for multiple radios
     pcmd[num] = new em_cmd_dev_init_t(evt->params, dm);
     tmp = pcmd[num];
-    printf("%s:%d pcmd[%d]:%d \n", __func__, __LINE__, num, pcmd[num]->m_type);
-    em_printfout("%s:%d pcmd[%d]:%d \n", __func__, __LINE__, num, pcmd[num]->m_type);
     num++;
 
     while ((pcmd[num] = tmp->clone_for_next()) != NULL) {
+        em_printfout("%s:%d num:%d pcmd_type:%d \n", __func__, __LINE__, num, tmp->m_type);
         tmp = pcmd[num];
         num++;
     }
@@ -172,11 +171,10 @@ int dm_easy_mesh_agent_t::analyze_sta_list(em_bus_event_t *evt, em_cmd_t *pcmd[]
         }
 
         tmp = pcmd[num];
-        printf("%s:%d pcmd[%d]:%d \n", __func__, __LINE__, num, pcmd[num]->m_type);
         num++;
 
         while ((pcmd[num] = tmp->clone_for_next()) != NULL) {
-            printf("%s:%d pcmd[%d]:%d \n", __func__, __LINE__, num, pcmd[num]->m_type);
+            em_printfout("%s:%d num:%d pcmd_type:%d \n", __func__, __LINE__, num, tmp->m_type);
             dm.clone_hash_maps(*pcmd[num]->get_data_model());
             tmp = pcmd[num];
             num++;
@@ -208,7 +206,7 @@ int dm_easy_mesh_agent_t::analyze_autoconfig_renew(em_bus_event_t *evt, em_cmd_t
 
     while ((pcmd[num] = tmp->clone_for_next()) != NULL) {
         tmp = pcmd[num];
-        printf("%s:%d pcmd[%d]:%d mac:%s\n", __func__, __LINE__, num, pcmd[num]->m_type, mac_str);
+        em_printfout("%s:%d num:%d pcmd_type:%d mac_str:%s \n", __func__, __LINE__, num, tmp->m_type, mac_str);
         num++;
     }
     return num;
@@ -350,13 +348,11 @@ int dm_easy_mesh_agent_t::analyze_onewifi_vap_cb(em_bus_event_t *evt, em_cmd_t *
 	dm_easy_mesh_t::macbytes_to_string(dm.get_bss(index)->get_bss_info()->ruid.mac, mac_str);
 	pcmd[num] = new em_cmd_ow_cb_t(evt->params, dm);
 	tmp = pcmd[num];
-    em_printfout("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num]->m_type);
-    printf("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num]->m_type);
 	num++;
 	while ((pcmd[num] = tmp->clone_for_next()) != NULL) {
 		tmp = pcmd[num];
-        em_printfout("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num]->m_type);
-        printf("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num]->m_type);
+        em_printfout("%s:%d num:%d pcmd_type:%d \n", __func__, __LINE__, num, tmp->m_type);
+        printf("%s:%d pcmd_num:%d \n", __func__, __LINE__, tmp->m_type);
 		num++;
 	}
     return num;
@@ -678,8 +674,8 @@ int dm_easy_mesh_agent_t::analyze_sta_link_metrics(em_bus_event_t *evt, em_cmd_t
     num++;
 
     while ((pcmd[num] = tmp->clone_for_next()) != NULL) {
-        printf("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num]->m_type);
         tmp = pcmd[num];
+        em_printfout("%s:%d num:%d pcmd_type:%d \n", __func__, __LINE__, num, tmp->m_type);
         num++;
     }
 
@@ -962,7 +958,7 @@ int dm_easy_mesh_agent_t::analyze_ap_metrics_report(em_bus_event_t *evt, em_cmd_
     num++;
 
     while ((pcmd[num] = tmp->clone_for_next()) != NULL) {
-        printf("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num]->m_type);
+        em_printfout("%s:%d num:%d pcmd_type:%d \n", __func__, __LINE__, num, tmp->m_type);
         tmp = pcmd[num];
         num++;
     }
