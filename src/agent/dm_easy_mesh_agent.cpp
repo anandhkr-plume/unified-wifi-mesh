@@ -348,7 +348,6 @@ int dm_easy_mesh_agent_t::analyze_onewifi_vap_cb(em_bus_event_t *evt, em_cmd_t *
 		}
 	}
 	dm_easy_mesh_t::macbytes_to_string(dm.get_bss(index)->get_bss_info()->ruid.mac, mac_str);
-	em_printfout("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num]->m_type);
 	pcmd[num] = new em_cmd_ow_cb_t(evt->params, dm);
 	tmp = pcmd[num];
     em_printfout("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num]->m_type);
