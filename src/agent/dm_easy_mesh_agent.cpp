@@ -315,7 +315,7 @@ int dm_easy_mesh_agent_t::analyze_onewifi_vap_cb(em_bus_event_t *evt, em_cmd_t *
 		dm_easy_mesh_t::macbytes_to_string(dm.get_bss(index)->get_bss_info()->ruid.mac, mac_str);
 		snprintf(reinterpret_cast<char *> (cm_config.params), sizeof(cm_config.params), "%s", mac_str);
 		cm_config.type = em_commit_target_bss;
-        em_printfout("%s:%d mac_str:%d \n", __func__, __LINE__, mac_str);
+        em_printfout("%s:%d mac_str:%s \n", __func__, __LINE__, mac_str);
 		commit_config(dm, cm_config);
 	} else {
 		cJSON *json = cJSON_Parse(json_data);
@@ -324,7 +324,9 @@ int dm_easy_mesh_agent_t::analyze_onewifi_vap_cb(em_bus_event_t *evt, em_cmd_t *
 			return 0;
 		}
 		cJSON *subdoc_name = cJSON_GetObjectItemCaseSensitive(json, "SubDocName");
-        em_printfout("%s:%d subdoc_name:%d \n", __func__, __LINE__, subdoc_name->valuestring);
+        if (subdoc_name && cJSON_IsString(subdoc_name) && (subdoc_name->valuestring != NULL)) {
+            em_printfout("%s:%d subdoc_name:%s \n", __func__, __LINE__, subdoc_name->valuestring);
+        }
 		if (cJSON_IsString(subdoc_name) && (subdoc_name->valuestring != NULL)) {
 			if (strcmp(subdoc_name->valuestring, "Vap_5G") == 0) {
 				freq_band = em_freq_band_5 ;
@@ -346,7 +348,7 @@ int dm_easy_mesh_agent_t::analyze_onewifi_vap_cb(em_bus_event_t *evt, em_cmd_t *
 		}
 	}
 	dm_easy_mesh_t::macbytes_to_string(dm.get_bss(index)->get_bss_info()->ruid.mac, mac_str);
-	em_printfout("%s in owconfig", mac_str);
+	em_printfout("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num]->m_type);
 	pcmd[num] = new em_cmd_ow_cb_t(evt->params, dm);
 	tmp = pcmd[num];
     em_printfout("%s:%d pcmd_num:%d \n", __func__, __LINE__, pcmd[num]->m_type);

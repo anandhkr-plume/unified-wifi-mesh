@@ -78,7 +78,7 @@ unsigned short em_configuration_t::create_client_assoc_event_tlv(unsigned char *
 
     for (i = 0; i < dm->get_num_assoc_sta_mld(); i++) {
         em_assoc_sta_mld_info_t& assoc_sta_mld_info = dm->m_assoc_sta_mld[i].m_assoc_sta_mld_info;
-        if (memcmp(assoc_sta_mld_info.mac_addr, sta, sizeof(mac_address_t) == 0)) {
+        if (memcmp(assoc_sta_mld_info.mac_addr, sta, sizeof(mac_address_t)) == 0) {
             found_assoc_sta_mld = true;
             memcpy(tmp, assoc_sta_mld_info.mac_addr, sizeof(mac_address_t));
             memcpy(tmp + sizeof(mac_address_t), assoc_sta_mld_info.ap_mld_mac_addr, sizeof(mac_address_t));
@@ -543,7 +543,7 @@ int em_configuration_t::create_device_info_type_tlv(unsigned char *buff)
 				continue;
             }
 			no_of_bss++;
-			memcpy(local_intf->mac_addr, dm->m_bss[i].m_bss_info.bssid.mac, sizeof(mac_address_t));
+			memcpy(local_intf->mac_addr, dm->m_bss[j].m_bss_info.bssid.mac, sizeof(mac_address_t));
 			// fill test data
 			fill_media_data(&dm->m_radio[i].m_radio_info.media_data);
 			memcpy(&local_intf->media_data, &dm->m_radio[i].m_radio_info.media_data, sizeof(em_media_spec_data_t));
@@ -5046,7 +5046,7 @@ int em_configuration_t::handle_autoconfig_resp(unsigned char *buff, unsigned int
     char *errors[EM_MAX_TLV_MEMBERS] = {0};
     em_raw_hdr_t *hdr = reinterpret_cast<em_raw_hdr_t *> (buff);
 
-    em_printfout("AUTOCONFIG_DEBUG Received autoconfig resp with profile:%s from " MACSTRFMT, m_peer_profile, MAC2STR(hdr->src));
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Received autoconfig resp with from " MACSTRFMT, __func__, __LINE__, MAC2STR(hdr->src));
 
     if (em_msg_t(buff + (sizeof(em_raw_hdr_t) + sizeof(em_cmdu_t)),
                 len - static_cast<unsigned int>(sizeof(em_raw_hdr_t) + sizeof(em_cmdu_t))).get_profile_type(&m_peer_profile) == false) {
@@ -5086,6 +5086,7 @@ int em_configuration_t::handle_autoconfig_resp(unsigned char *buff, unsigned int
         return -1;
     }
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Sending M1 Frame to " MACSTRFMT " msg:%s sz:%d", __func__, __LINE__, MAC2STR(hdr->src), msg, sz);
     if (send_frame(msg, sz)  < 0) {
         printf("%s:%d: autoconfig wsc m1 send failed, error:%d\n", __func__, __LINE__, errno);
 
