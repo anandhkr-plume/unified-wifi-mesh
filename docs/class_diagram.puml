@@ -1,0 +1,313 @@
+@startuml Unified WiFi Mesh - Class Diagram (EM Agent & Controller)
+
+!define HIGHLIGHT_COLOR #FFD700
+!define AGENT_COLOR #90EE90
+!define CTRL_COLOR #87CEEB
+
+skinparam class {
+    BackgroundColor<<highlight>> HIGHLIGHT_COLOR
+    BackgroundColor<<agent>> AGENT_COLOR
+    BackgroundColor<<ctrl>> CTRL_COLOR
+    BorderColor Black
+    ArrowColor Black
+}
+
+' Core Base Classes
+abstract class em_mgr_t <<highlight>> {
+    - pthread_t m_tid
+    - bool m_exit
+    - em_queue_t m_queue
+    - hash_map_t* m_em_map
+    + init(data_model_path)
+    + start()
+    + push_to_queue(evt)
+    + pop_from_queue()
+    + nodes_listen()
+    + input_listen()
+    + proto_process(data, len, em)
+    + create_node(...)
+    + delete_node(ruid)
+    + get_node_by_freq_band(band)
+    + get_al_node()
+    + handle_timeout()
+    + io_process(evt)
+    + {abstract} is_data_model_initialized()
+    + {abstract} data_model_init(path)
+    + {abstract} orch_init()
+    + {abstract} input_listener()
+    + {abstract} start_complete()
+    + {abstract} handle_event(evt)
+    + {abstract} get_data_model(net_id, al_mac)
+    + {abstract} get_first_dm()
+    + {abstract} get_next_dm(dm)
+}
+
+' EM Base Class
+class em_t <<highlight>> {
+    - dm_easy_mesh_t* m_data_model
+    - em_mgr_t* m_mgr
+    - em_orch_state_t m_orch_state
+    - em_cmd_t* m_cmd
+    - em_sm_t m_sm
+    - em_service_type_t m_service_type
+    - em_interface_t m_ruid
+    - em_freq_band_t m_band
+    + init()
+    + deinit()
+    + proto_run()
+    + proto_exit()
+    + proto_process(data, len)
+    + send_frame(buff, len, multicast)
+    + push_event(evt)
+    + get_data_model()
+    + get_mgr()
+    + get_state()
+    + set_state(state)
+    + get_service_type()
+    + get_radio_interface()
+    + get_al_interface_mac()
+}
+
+' EM Agent
+class em_agent_t <<agent>> {
+    - em_orch_agent_t* m_orch
+    - dm_easy_mesh_agent_t m_data_model
+    - em_cmd_agent_t* m_agent_cmd
+    - em_simulator_t m_simulator
+    - bus_handle_t m_bus_hdl
+    + start_complete()
+    + io_run(buff)
+    + handle_bus_event(evt)
+    + handle_action_frame(frame)
+    + handle_onewifi_private_cb(evt)
+    + handle_onewifi_radio_cb(evt)
+    + handle_vap_config(evt)
+    + handle_radio_config(evt)
+    + handle_sta_list(evt)
+    + handle_dev_init(evt)
+    + data_model_init(path)
+    + orch_init()
+    + input_listener()
+    + get_data_model(net_id, al_mac)
+    + get_service_type()
+    + send_action_frame(...)
+    + send_scan_request(...)
+    + onewifi_cb(event_name, data, userData)
+    + sta_cb(event_name, data, userData)
+}
+
+' EM Controller
+class em_ctrl_t <<ctrl>> {
+    - dm_easy_mesh_ctrl_t m_data_model
+    - em_cmd_ctrl_t* m_ctrl_cmd
+    - em_orch_ctrl_t* m_orch
+    - bus_handle_t m_bus_hdl
+    - em_dev_test_t dev_test
+    + start_complete()
+    + handle_bus_event(evt)
+    + handle_set_ssid_list(evt)
+    + handle_set_channel_list(evt)
+    + handle_set_radio(evt)
+    + handle_client_steer(evt)
+    + handle_remove_device(evt)
+    + handle_reset(evt)
+    + data_model_init(path)
+    + orch_init()
+    + input_listener()
+    + get_data_model(net_id, al_mac)
+    + get_first_dm()
+    + get_next_dm(dm)
+    + create_data_model(...)
+    + delete_data_model(...)
+    + update_network_topology()
+    + init_network_topology()
+    + get_service_type()
+}
+
+' Data Model Classes
+abstract class dm_easy_mesh_t <<highlight>> {
+    - dm_device_t m_device
+    - dm_network_t m_network
+    - dm_network_ssid_list_t m_network_ssid_list
+    - dm_radio_list_t m_radio_list
+    - dm_bss_list_t m_bss_list
+    - dm_sta_list_t m_sta_list
+    - dm_op_class_list_t m_op_class_list
+    + get_device()
+    + get_network()
+    + get_network_ssid_list()
+    + get_radio_list()
+    + get_op_class_info(index)
+    + set_cmd_ctx(ctx)
+    + decode_config(subdoc, name)
+    + encode_config(buff, len, name)
+}
+
+class dm_easy_mesh_agent_t <<agent>> {
+    + get_agent_al_interface_mac()
+    + get_agent_al_interface_name()
+    + translate_and_decode_onewifi_subdoc(...)
+}
+
+class dm_easy_mesh_ctrl_t <<ctrl>> {
+    - dm_easy_mesh_list_t m_data_model_list
+    + get_first_dm()
+    + get_next_dm(dm)
+    + create_data_model(...)
+    + delete_data_model(...)
+    + analyze_set_ssid(evt, pcmd)
+    + analyze_set_channel(evt, pcmd)
+    + update_tables(dm)
+    + load_net_ssid_table()
+    + init_network_topology()
+    + update_network_topology()
+}
+
+' Orchestration Classes
+abstract class em_orch_t <<highlight>> {
+    + execute(cmd)
+    + handle_cmd_complete(cmd)
+}
+
+class em_orch_agent_t <<agent>> {
+    + execute(cmd)
+    + handle_cmd_complete(cmd)
+}
+
+class em_orch_ctrl_t <<ctrl>> {
+    + execute(cmd)
+    + handle_cmd_complete(cmd)
+    + handle_dm_update(dm)
+}
+
+' Command Execution Classes
+abstract class em_cmd_exec_t <<highlight>> {
+    + init()
+    + validate()
+    + execute(result)
+    + deinit()
+}
+
+class em_cmd_agent_t <<agent>> {
+    - em_agent_t* m_agent
+    + init()
+    + validate()
+    + execute(result)
+    + handle_bus_event(evt)
+}
+
+class em_cmd_ctrl_t <<ctrl>> {
+    - em_ctrl_t* m_ctrl
+    + init()
+    + validate()
+    + execute(result)
+    + analyze_bus_event(evt)
+    + analyze_set_ssid(evt)
+    + analyze_set_channel(evt)
+}
+
+' Command Classes
+abstract class em_cmd_t <<highlight>> {
+    - em_cmd_type_t m_type
+    - em_cmd_params_t m_param
+    - dm_easy_mesh_t m_data_model
+    - em_orch_desc_t m_orch_desc[]
+    + init(dm)
+    + validate()
+    + execute()
+    + clone_for_next()
+}
+
+class em_cmd_set_ssid_t {
+    + init(dm)
+    + execute()
+    + clone_for_next()
+}
+
+class em_cmd_set_channel_t {
+    + init(dm)
+    + execute()
+    + clone_for_next()
+}
+
+class em_cmd_get_ssid_t {
+    + execute()
+}
+
+class em_cmd_get_channel_t {
+    + execute()
+}
+
+' CLI Classes
+class em_cli_t <<highlight>> {
+    - em_cli_params_t m_params
+    + exec(in, in_len, node)
+    + get_command(in, in_len, node)
+    + set_remote_addr(ip, port, valid)
+    + is_remote_addr_valid()
+}
+
+class em_cmd_cli_t {
+    - em_cmd_t m_cmd
+    - em_network_node_t* m_param.net_node
+    + init()
+    + validate()
+    + execute(result)
+    + get_edited_node(node, key, buff)
+}
+
+' Relationships
+em_agent_t --|> em_mgr_t
+em_ctrl_t --|> em_mgr_t
+em_mgr_t "1" *-- "many" em_t : manages
+em_agent_t "1" *-- "1" dm_easy_mesh_agent_t : contains
+em_ctrl_t "1" *-- "1" dm_easy_mesh_ctrl_t : contains
+dm_easy_mesh_agent_t --|> dm_easy_mesh_t
+dm_easy_mesh_ctrl_t --|> dm_easy_mesh_t
+dm_easy_mesh_ctrl_t "1" *-- "many" dm_easy_mesh_t : manages
+em_agent_t "1" *-- "1" em_orch_agent_t : contains
+em_ctrl_t "1" *-- "1" em_orch_ctrl_t : contains
+em_orch_agent_t --|> em_orch_t
+em_orch_ctrl_t --|> em_orch_t
+em_agent_t "1" *-- "1" em_cmd_agent_t : contains
+em_ctrl_t "1" *-- "1" em_cmd_ctrl_t : contains
+em_cmd_agent_t --|> em_cmd_exec_t
+em_cmd_ctrl_t --|> em_cmd_exec_t
+em_cmd_set_ssid_t --|> em_cmd_t
+em_cmd_set_channel_t --|> em_cmd_t
+em_cmd_get_ssid_t --|> em_cmd_t
+em_cmd_get_channel_t --|> em_cmd_t
+em_cmd_cli_t --|> em_cmd_exec_t
+em_cmd_cli_t "1" *-- "1" em_cmd_t : contains
+em_cli_t "1" *-- "1" em_cmd_cli_t : uses
+em_t "1" *-- "1" dm_easy_mesh_t : contains
+em_cmd_t "1" *-- "1" dm_easy_mesh_t : uses
+
+note right of em_agent_t
+  **EM Agent Key Responsibilities:**
+  - Handles OneWifi callbacks
+  - Processes bus events
+  - Manages single data model
+  - Executes agent-specific commands
+  - Handles action frames
+end note
+
+note right of em_ctrl_t
+  **EM Controller Key Responsibilities:**
+  - Manages multiple data models
+  - Orchestrates network topology
+  - Handles SSID/channel updates
+  - Manages device onboarding
+  - Coordinates agent operations
+end note
+
+note right of em_cli_t
+  **CLI Key Responsibilities:**
+  - Parses user commands
+  - Creates command objects
+  - Executes commands via CGO
+  - Returns network tree results
+end note
+
+@enduml
+

@@ -395,7 +395,9 @@ void em_mgr_t::nodes_listener()
             em_printfout("%s:%d AUTOCONFIG_DEBUG is_al_mac:%d \n", __func__, __LINE__, em->is_al_interface_em());
             if (em->is_al_interface_em() == true) {
 #ifdef AL_SAP
+                em_printfout("%s:%d Inside AL_SAP\n", __func__, __LINE__);
                 try{
+                    em_printfout("%s:%d calling serviceAccessPointDataIndication \n", __func__, __LINE__);
                     AlServiceDataUnit sdu = g_sap->serviceAccessPointDataIndication();
                     std::vector<unsigned char> payload = sdu.getPayload();
                     // Original implementation expects whole ethernet frame
@@ -416,7 +418,7 @@ void em_mgr_t::nodes_listener()
                     em_printfout("RECONSTRUCTED_ETH_FRAME: \t");
                     util::print_hex_dump(reconstructed_eth_frame);
 #endif
-                    em_printfout("%s:%d AUTOCONFIG_DEBUG first_mac: "MACSTRFMT" second_mac: "MACSTRFMT"\n", __func__, __LINE__, MAC2STR(first_mac), MAC2STR(second_mac));
+                    em_printfout("%s:%d AUTOCONFIG_DEBUG first_mac: "MACSTRFMT" second_mac: "MACSTRFMT" payload:%s \n", __func__, __LINE__, MAC2STR(first_mac), MAC2STR(second_mac), sdu.payload);
                     util::print_hex_dump(reconstructed_eth_frame);
                     proto_process(reconstructed_eth_frame.data(), static_cast<unsigned int>(reconstructed_eth_frame.size()), em);
                 } catch (const AlServiceException& e) {

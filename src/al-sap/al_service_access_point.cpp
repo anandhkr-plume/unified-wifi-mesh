@@ -97,6 +97,8 @@ void AlServiceAccessPoint::serviceAccessPointRegistrationRequest(AlServiceRegist
     printByteStream(serializedData);
     std::cout << "Registration request sent with " << bytesSent << " bytes." << std::endl;
     #endif
+    em_printfout("%s:%d AUTOCONFIG_DEBUG alControlSocketDescriptor:%u \n", __func__, __LINE__, alControlSocketDescriptor);
+    util::print_hex_dump(serializedData);
 }
 
 // Executes service registration indication (receive a registration indication message)
@@ -178,10 +180,12 @@ void AlServiceAccessPoint::serviceAccessPointDataRequest(AlServiceDataUnit& mess
             #endif
             // Serialize and send the current fragment
             std::vector<unsigned char> serializedData = message.serialize();
+            em_printfout("%s:%d AUTOCONFIG_DEBUG calling send for alDataSocketDescriptor:%d \n", __func__, __LINE__, alDataSocketDescriptor);
             ssize_t bytesSent = send(alDataSocketDescriptor, serializedData.data(), serializedData.size(), 0);
             if (bytesSent == -1) {
                 throw AlServiceException("Failed to send message fragment through Unix socket", PrimitiveError::RequestFailed);
             }
+            util::print_hex_dump(serializedData);
             #ifdef DEBUG_MODE
             std::cout << "Fragment " << i << " sent successfully with size " << bytesSent << " bytes." << std::endl;
             #endif
@@ -216,7 +220,9 @@ AlServiceDataUnit AlServiceAccessPoint::serviceAccessPointDataIndication() {
         std::vector<unsigned char> buffer(SOCKET_MTU, 0x00);
 
         // Receive data from the socket
+        em_printfout("%s:%d AUTOCONFIG_DEBUG calling recv for alDataSocketDescriptor:%d \n", __func__, __LINE__, alDataSocketDescriptor);
         ssize_t bytesRead = recv(alDataSocketDescriptor, buffer.data(), buffer.size(), 0);
+        util::print_hex_dump(serializedData);
         if (bytesRead <= 0) {
             if (errno == EBADF || errno == ECONNRESET) {
                 throw AlServiceException("Socket closed or connection reset", PrimitiveError::SocketClosed);
