@@ -418,7 +418,7 @@ void em_mgr_t::nodes_listener()
                     em_printfout("RECONSTRUCTED_ETH_FRAME: \t");
                     util::print_hex_dump(reconstructed_eth_frame);
 #endif
-                    em_printfout("%s:%d AUTOCONFIG_DEBUG first_mac: "MACSTRFMT" second_mac: "MACSTRFMT" payload:%s \n", __func__, __LINE__, MAC2STR(first_mac), MAC2STR(second_mac), sdu.payload);
+                    em_printfout("%s:%d AUTOCONFIG_DEBUG first_mac: "MACSTRFMT" second_mac: "MACSTRFMT" payload:%s \n", __func__, __LINE__, MAC2STR(first_mac), MAC2STR(second_mac), payload);
                     util::print_hex_dump(reconstructed_eth_frame);
                     proto_process(reconstructed_eth_frame.data(), static_cast<unsigned int>(reconstructed_eth_frame.size()), em);
                 } catch (const AlServiceException& e) {
