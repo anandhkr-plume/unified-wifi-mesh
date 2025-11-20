@@ -303,10 +303,7 @@ int dm_easy_mesh_ctrl_t::analyze_sta_steer(em_cmd_steer_params_t &params, em_cmd
     int num = 0;
     em_cmd_t *tmp;
 
-    em_printfout("%s:%d AUTOCONFIG_DEBUG Analyze Steering Request for sta %s, source %s, target %s, request_mode %d, disassoc_imminent %d,"
-        " btm_abridged %d, link_removal_imminent %d, steer_opportunity_win %d, btm_disassociation_timer %d, target_op_class %d, target_channel %d\n", __func__, __LINE__,
-        dm_easy_mesh_t::macbytes_to_string(params.sta_mac).c_str(), dm_easy_mesh_t::macbytes_to_string(params.source).c_str(), 
-        dm_easy_mesh_t::macbytes_to_string(params.target).c_str(), params.request_mode, params.disassoc_imminent, params.btm_abridged, params.link_removal_imminent, params.steer_opportunity_win, params.btm_disassociation_timer, params.target_op_class, params.target_channel);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Analyze Steering Request \n", __func__, __LINE__);
 
     pcmd[num] = new em_cmd_sta_steer_t(params);
     tmp = pcmd[num];
