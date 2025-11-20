@@ -113,7 +113,6 @@ AlServiceRegistrationResponse AlServiceAccessPoint::serviceAccessPointRegistrati
     printByteStream(buffer);
     #endif
     em_printfout("%s:%d AUTOCONFIG_DEBUG alControlSocketDescriptor:%ubuffer:%s\n", __func__, __LINE__, alControlSocketDescriptor, buffer);
-    util::print_hex_dump(buffer);
     registrationResponse.deserializeRegistrationResponse(buffer);
     #ifdef DEBUG_MODE
     std::cout << "Registration indication received with " << bytesRead << " bytes." << std::endl;
@@ -218,9 +217,8 @@ AlServiceDataUnit AlServiceAccessPoint::serviceAccessPointDataIndication() {
         std::vector<unsigned char> buffer(SOCKET_MTU, 0x00);
 
         // Receive data from the socket
-        em_printfout("%s:%d AUTOCONFIG_DEBUG calling recv for alDataSocketDescriptor:%d \n", __func__, __LINE__, alDataSocketDescriptor);
         ssize_t bytesRead = recv(alDataSocketDescriptor, buffer.data(), buffer.size(), 0);
-        util::print_hex_dump(serializedData);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG calling recv for alDataSocketDescriptor:%d Buffer:%s \n", __func__, __LINE__, alDataSocketDescriptor, buffer);
         if (bytesRead <= 0) {
             if (errno == EBADF || errno == ECONNRESET) {
                 throw AlServiceException("Socket closed or connection reset", PrimitiveError::SocketClosed);
