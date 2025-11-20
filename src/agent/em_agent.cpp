@@ -1940,13 +1940,17 @@ int main(int argc, const char *argv[])
     }
 
     if (!data_model_path.empty()) {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Using data model path: %s\n", __func__, __LINE__, data_model_path.c_str());
         printf("Using data model path: %s\n", data_model_path.c_str());
     }
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Initializing agent is_data:%d \n", __func__, __LINE__, data_model_path.empty());
     if (g_agent.init(data_model_path.empty() ? NULL : data_model_path.c_str()) == 0) {
 #ifdef AL_SAP
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Registering AL SAP\n", __func__, __LINE__);
     g_sap = g_agent.al_sap_register();
 #endif
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Starting agent\n", __func__, __LINE__);
         g_agent.start();
     }
 

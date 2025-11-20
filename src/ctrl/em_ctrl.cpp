@@ -80,13 +80,18 @@ void em_ctrl_t::handle_client_steer(em_bus_event_t *evt)
     em_cmd_t *pcmd[EM_MAX_CMD] = {NULL};
     int num;
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Client Steering Request event received\n", __func__, __LINE__);
     if (m_orch->is_cmd_type_in_progress(evt) == true) {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Client Steering Request in progress\n", __func__, __LINE__);
         m_ctrl_cmd->send_result(em_cmd_out_status_prev_cmd_in_progress);
     } else if ((num = m_data_model.analyze_command_steer(evt, pcmd)) == 0) {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Client Steering Request no change\n", __func__, __LINE__);
         m_ctrl_cmd->send_result(em_cmd_out_status_no_change);
     } else if (m_orch->submit_commands(pcmd, static_cast<unsigned int> (num)) > 0) {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Client Steering Request success\n", __func__, __LINE__);
         m_ctrl_cmd->send_result(em_cmd_out_status_success);
     } else {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Client Steering Request not ready\n", __func__, __LINE__);
         m_ctrl_cmd->send_result(em_cmd_out_status_not_ready);
     }
 }
@@ -428,6 +433,7 @@ void em_ctrl_t::input_listener()
 
 void em_ctrl_t::handle_bus_event(em_bus_event_t *evt)
 {
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Bus event received: %d\n", __func__, __LINE__, evt->type);
     switch (evt->type) {
         case em_bus_event_type_reset:
             handle_reset(evt);
@@ -909,6 +915,7 @@ void em_ctrl_t::start_complete()
 
    	if (desc->bus_set_fn(&m_bus_hdl, "Device.WiFi.Ctrl.CollocateAgentID", &raw)== 0) {
        	printf("%s:%d Collocated Agent ID: %s publish successfull\n",__func__, __LINE__, al_mac_str);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Collocated Agent ID: %s publish successfull\n", __func__, __LINE__, al_mac_str);
    	} else {
        	printf("%s:%d Collocated agent ID: %s publish  fail\n",__func__, __LINE__, al_mac_str);
    	}
@@ -987,6 +994,7 @@ AlServiceAccessPoint* em_ctrl_t::al_sap_register(const std::string& data_socket_
 int main(int argc, const char *argv[])
 {
 #ifdef AL_SAP
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Registering AL SAP with Data:al_em_ctrl_data_socket Ctrl:al_em_ctrl_control_socket \n", __func__, __LINE__);
     g_sap = g_ctrl.al_sap_register("/tmp/al_em_ctrl_data_socket", "/tmp/al_em_ctrl_control_socket");
 #endif
 

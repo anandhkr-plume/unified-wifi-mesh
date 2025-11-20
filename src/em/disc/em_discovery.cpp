@@ -49,6 +49,7 @@ unsigned int em_discovery_t::create_topo_query_msg(unsigned char *buff)
     unsigned char *tmp = buff;
     unsigned short type = htons(ETH_P_1905);
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Creating topology query message\n", __func__, __LINE__);
     memcpy(tmp, const_cast<unsigned char *> (get_radio_interface_mac()), sizeof(mac_address_t));
     tmp += sizeof(mac_address_t);
     len += sizeof(mac_address_t);
@@ -86,6 +87,7 @@ unsigned int em_discovery_t::create_topo_query_msg(unsigned char *buff)
 
     tmp += (sizeof (em_tlv_t));
     len += (sizeof (em_tlv_t));
+    em_printfout("%s:%d AUTCONFIG_DEBUG buff:%s \n", __func__, __LINE__, buff);
 
     return len;
 }
@@ -100,6 +102,7 @@ unsigned int em_discovery_t::create_topo_discovery_msg(unsigned char *buff)
     unsigned short type = htons(ETH_P_1905);
     mac_address_t   multi_addr = {0x01, 0x80, 0xc2, 0x00, 0x00, 0x13};
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Creating Topology Discovery message\n", __func__, __LINE__);
     memcpy(tmp, const_cast<unsigned char *> (multi_addr), sizeof(mac_address_t));
     tmp += sizeof(mac_address_t);
     len += sizeof(mac_address_t);
@@ -155,6 +158,7 @@ unsigned int em_discovery_t::create_topo_discovery_msg(unsigned char *buff)
 
     tmp += (sizeof (em_tlv_t));
     len += (sizeof (em_tlv_t));
+    em_printfout("%s:%d AUTCONFIG_DEBUG buff:%s \n", __func__, __LINE__, buff);
 
     return len;
 }

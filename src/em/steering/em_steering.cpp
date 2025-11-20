@@ -458,6 +458,7 @@ int em_steering_t::handle_client_steering_report(unsigned char *buff, unsigned i
     char *errors[EM_MAX_TLV_MEMBERS] = {0};
     em_steering_btm_rprt_t *btm_rprt;
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Received Client BTM Report buff:%s \n", __func__, __LINE__, buff);
     if (em_msg_t(em_msg_type_client_steering_btm_rprt, em_profile_type_2, buff, len).validate(errors) == 0) {
         printf("%s:%d:Client Steering Request message validation failed\n",__func__,__LINE__);
         return -1;
@@ -469,6 +470,7 @@ int em_steering_t::handle_client_steering_report(unsigned char *buff, unsigned i
 
     mac_addr_str_t mac_str;
     dm_easy_mesh_t::macbytes_to_string(btm_rprt->sta_mac_addr, mac_str);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Client BTM Report for sta %s, status %d\n", __func__, __LINE__, mac_str, btm_rprt->btm_status_code);
     printf("%s:%d Client BTM Report for sta %s, status %d\n", __func__, __LINE__, mac_str, btm_rprt->btm_status_code);
 
     set_state(em_state_ctrl_configured);
