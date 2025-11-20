@@ -97,8 +97,7 @@ void AlServiceAccessPoint::serviceAccessPointRegistrationRequest(AlServiceRegist
     printByteStream(serializedData);
     std::cout << "Registration request sent with " << bytesSent << " bytes." << std::endl;
     #endif
-    em_printfout("%s:%d AUTOCONFIG_DEBUG alControlSocketDescriptor:%u \n", __func__, __LINE__, alControlSocketDescriptor);
-    util::print_hex_dump(serializedData);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG alControlSocketDescriptor:%u serializedData:%s\n", __func__, __LINE__, alControlSocketDescriptor, serializedData);
 }
 
 // Executes service registration indication (receive a registration indication message)
@@ -113,7 +112,7 @@ AlServiceRegistrationResponse AlServiceAccessPoint::serviceAccessPointRegistrati
     #ifdef DEBUG_MODE
     printByteStream(buffer);
     #endif
-    em_printfout("%s:%d AUTOCONFIG_DEBUG alControlSocketDescriptor:%u \n", __func__, __LINE__, alControlSocketDescriptor);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG alControlSocketDescriptor:%ubuffer:%s\n", __func__, __LINE__, alControlSocketDescriptor, buffer);
     util::print_hex_dump(buffer);
     registrationResponse.deserializeRegistrationResponse(buffer);
     #ifdef DEBUG_MODE
@@ -180,12 +179,11 @@ void AlServiceAccessPoint::serviceAccessPointDataRequest(AlServiceDataUnit& mess
             #endif
             // Serialize and send the current fragment
             std::vector<unsigned char> serializedData = message.serialize();
-            em_printfout("%s:%d AUTOCONFIG_DEBUG calling send for alDataSocketDescriptor:%d \n", __func__, __LINE__, alDataSocketDescriptor);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG calling send for alDataSocketDescriptor:%d serializedData:%s \n", __func__, __LINE__, alDataSocketDescriptor, serializedData);
             ssize_t bytesSent = send(alDataSocketDescriptor, serializedData.data(), serializedData.size(), 0);
             if (bytesSent == -1) {
                 throw AlServiceException("Failed to send message fragment through Unix socket", PrimitiveError::RequestFailed);
             }
-            util::print_hex_dump(serializedData);
             #ifdef DEBUG_MODE
             std::cout << "Fragment " << i << " sent successfully with size " << bytesSent << " bytes." << std::endl;
             #endif
