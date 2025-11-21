@@ -31,11 +31,37 @@ This directory contains comprehensive detailed analyses for each major EasyMesh 
 
 ---
 
+### 2. ⚠️ WPS and DPP Onboarding
+**File:** [WPS_DPP_ONBOARDING_ANALYSIS.md](./WPS_DPP_ONBOARDING_ANALYSIS.md)
+
+**Status:** DPP Substantially Implemented, WPS Limited to Autoconfiguration
+
+**Coverage:**
+- DPP protocol implementation (EasyConnect v2)
+- WPS M1/M2 autoconfiguration messages
+- Cryptographic operations analysis
+- Security context management
+- Onboarding flow analysis
+- Implementation gaps identification
+- Testing recommendations
+
+**Key Findings:**
+- ✅ DPP core protocol fully implemented
+- ✅ 1905 layer encryption complete
+- ✅ Chirping mechanism functional
+- ⚠️ PKEX protocol missing
+- ⚠️ HSM/TPM integration needed
+- ⚠️ WPS limited to EasyMesh autoconfiguration only
+- ❌ CSR support not implemented
+
+---
+
 ## Analyses Summary
 
 | Feature | Status | Document | Controller | Agent | Priority |
 |---------|--------|----------|------------|-------|----------|
 | **Channel Management** | ✅ Complete | [View](./DETAILED_ANALYSIS_CHANNEL_MANAGEMENT.md) | ✅ Full | ✅ Full | N/A |
+| **WPS/DPP Onboarding** | ⚠️ Partial | [View](./WPS_DPP_ONBOARDING_ANALYSIS.md) | ✅ DPP Full | ✅ DPP Full | MEDIUM |
 | **Metric Collection** | ✅ Complete | [Summary](./TELEMETRY_IMPLEMENTATION_ANALYSIS.md) | ✅ Full | ✅ Full | N/A |
 | **Client Association Control** | ⚠️ Partial | [Summary](./CONTROLLER_AGENT_IMPLEMENTATION_SUMMARY.md#2-client-association-control) | ✅ Full | ❌ Missing | HIGH |
 | **VBSS / Traffic Separation** | ❌ Non-Functional | [Full Analysis](./VBSS_IMPLEMENTATION_ANALYSIS.md) | ❌ Stub | ❌ Missing | HIGH |
@@ -128,6 +154,18 @@ This directory contains comprehensive detailed analyses for each major EasyMesh 
 - **Good** data model integration
 
 **Minor Issue:** TODO for non-existent STA error handling
+
+---
+
+### WPS/DPP Onboarding ⚠️
+- **DPP Protocol:** ✅ Substantially implemented (EasyConnect v2)
+- **1905 Encryption:** ✅ Complete with PTK/GTK management
+- **Chirping:** ✅ Fully functional
+- **WPS:** ⚠️ Limited to M1/M2 autoconfiguration only
+- **PKEX:** ❌ Missing (password-based onboarding)
+- **HSM Integration:** ❌ Missing (security concern)
+
+**Critical Need:** HSM/TPM integration for production security
 
 ---
 
@@ -273,7 +311,6 @@ If you need detailed analyses for other features, they can be created following 
 - Client Steering (BTM)
 - Topology Discovery
 - Auto-Configuration
-- DPP Provisioning
 - Policy Configuration
 - CAC Management
 - Spatial Reuse
