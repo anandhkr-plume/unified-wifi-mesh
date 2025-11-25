@@ -1073,10 +1073,12 @@ AlServiceAccessPoint* em_ctrl_t::al_sap_register(const std::string& data_socket_
 
         m_data_model.set_colocated_agent_interface_mac(al_mac_bytes);
         m_data_model.set_dev_interface_mac(al_mac_bytes);
+        em_printfout("al_mac set for colocated agent and dev intertface mac\n");
     } else {
         std::cout << "Registration failed with error: " << static_cast<int>(result) << std::endl;
     }
 
+    em_printfout("Returning sap\n");
     return sap;
 }
 #endif
@@ -1090,7 +1092,9 @@ int main(int argc, const char *argv[])
     g_sap = g_ctrl.al_sap_register("/tmp/al_em_ctrl_data_socket", "/tmp/al_em_ctrl_control_socket");
 #endif
 
+    em_printfout("Calling init with argv[1]:%s\n", argv[1]);
     if (g_ctrl.init(argv[1]) == 0) {
+        em_printfout("Init Successful. Calling start \n");
         g_ctrl.start();
     }
 

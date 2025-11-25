@@ -536,6 +536,7 @@ int em_mgr_t::start()
     struct timespec time_to_wait;
     struct timeval tm;
 	bool started = false;
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Starting em mgr\n", __func__, __LINE__);
     input_listen();
     nodes_listen();
     pthread_mutex_lock(&m_queue.lock);
