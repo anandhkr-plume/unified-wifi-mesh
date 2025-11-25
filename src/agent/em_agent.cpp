@@ -137,11 +137,14 @@ void em_agent_t::handle_dev_init(em_bus_event_t *evt)
     em_cmd_t *pcmd[EM_MAX_CMD] = {NULL};
     unsigned int num;
 
+    em_printfout("%s:%d \n", __func__, __LINE__);
     if (m_orch->is_cmd_type_in_progress(evt)) {
         m_agent_cmd->send_result(em_cmd_out_status_prev_cmd_in_progress);
         return;
     }
+    em_printfout("%s:%d calling analyze_dev_init \n", __func__, __LINE__);
     if ((num = m_data_model.analyze_dev_init(evt, pcmd)) == 0) {
+        em_printfout("%s:%d calling send_result \n", __func__, __LINE__);
         m_agent_cmd->send_result(em_cmd_out_status_no_change);
         return;
     }
@@ -192,6 +195,7 @@ void em_agent_t::handle_dev_init(em_bus_event_t *evt)
         // TODO: check if dpp onboarding is successful and manage result
     }
     
+    em_printfout("%s:%d calling send_result em_cmd_out_status_success\n", __func__, __LINE__);
     m_agent_cmd->send_result(em_cmd_out_status_success);
 }
 
@@ -562,11 +566,11 @@ void em_agent_t::handle_recv_wfa_action_frame(em_bus_event_t *evt)
 
     // The frequency (and other wifi data) is prepended to the action frame data
     auto* frame_info = reinterpret_cast<wifi_frame_t*>(evt->u.raw_buff);
-    em_printfout("Received WFA action frame at frequency %d MHz", frame_info->recv_freq);
+    //em_printfout("Received WFA action frame at frequency %d MHz", frame_info->recv_freq);
 
     mgmt_frame_buff += sizeof(wifi_frame_t);
     frame_len       -= sizeof(wifi_frame_t);
-    recv_freq        = frame_info->recv_freq;
+    //recv_freq        = frame_info->recv_freq;
 
     const size_t mgmt_hdr_len = offsetof(struct ieee80211_mgmt, u);
     const size_t fixed_full_header_len = 
@@ -1101,6 +1105,7 @@ void em_agent_t::input_listener()
         }
     }
     printf("%s:%d recv data:\r\n%s\r\n", __func__, __LINE__, (char *)data.raw_data.bytes);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG recv data:%s \n", __func__, __LINE__, (char *)data.raw_data.bytes);
 
     g_agent.io_process(em_bus_event_type_dev_init, (unsigned char *)data.raw_data.bytes, data.raw_data_len);
     free(data.raw_data.bytes);
@@ -1395,6 +1400,8 @@ em_t *em_agent_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em
     }
    
     hdr = (em_raw_hdr_t *)data;
+    em_printfout("%s:%d AUTOCONFIG_DEBUG is_ETH_P_1905:%d \n", __func__, __LINE__, htons(ETH_P_1905));
+    printf("%s:%d AUTOCONFIG_DEBUG is_ETH_P_1905:%d \n", __func__, __LINE__, htons(ETH_P_1905));
 
     if (hdr->type != htons(ETH_P_1905)) {
         return NULL;
@@ -1402,6 +1409,7 @@ em_t *em_agent_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em
    
     cmdu = (em_cmdu_t *)(data + sizeof(em_raw_hdr_t));
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG CMDU_TYPE:%d \n", __func__, __LINE__, htons(cmdu->type));
     switch (htons(cmdu->type)) {
 	case em_msg_type_autoconf_resp:
 		found = false;
@@ -1417,6 +1425,7 @@ em_t *em_agent_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em
 
 		em = (em_t *)hash_map_get_first(m_em_map);
 		while (em != NULL) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG interface_em:%d state:%d \n", __func__, __LINE__, em->is_al_interface_em(), em->get_state());
 			if (!(em->is_al_interface_em())) {
 				if (em->is_matching_freq_band(&band) == true) {
 					if ((em->get_state() != em_state_agent_autoconfig_renew_pending) && (em->get_state() !=em_state_agent_wsc_m2_pending) && 
@@ -1425,6 +1434,7 @@ em_t *em_agent_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em
 						break;
 					} else {
 						printf("%s:%d: Found matching band%d but incorrect em state %d\n", __func__, __LINE__, band, em->get_state());
+                        em_printfout("%s:%d AUTOCONFIG_DEBUG Found matching band%d but incorrect em state %d\n", __func__, __LINE__, band, em->get_state());
 					}
 				}
 			}
@@ -1432,6 +1442,7 @@ em_t *em_agent_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em
 		}
 		if (found == false) {
 			printf("%s:%d: Could not find em with matching band%d and expected state \n", __func__, __LINE__, band);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG Could not find em with matching band%d and expected state \n", __func__, __LINE__, band);
 			return NULL;
 		}
 
@@ -1910,13 +1921,17 @@ int main(int argc, const char *argv[])
     }
 
     if (!data_model_path.empty()) {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Using data model path: %s\n", __func__, __LINE__, data_model_path.c_str());
         printf("Using data model path: %s\n", data_model_path.c_str());
     }
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Initializing agent is_data:%d \n", __func__, __LINE__, data_model_path.empty());
     if (g_agent.init(data_model_path.empty() ? NULL : data_model_path.c_str()) == 0) {
 #ifdef AL_SAP
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Registering AL SAP\n", __func__, __LINE__);
     g_sap = g_agent.al_sap_register();
 #endif
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Starting agent\n", __func__, __LINE__);
         g_agent.start();
     }
 

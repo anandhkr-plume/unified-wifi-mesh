@@ -275,8 +275,8 @@ void em_t::proto_process(unsigned char *data, unsigned int len)
 
     cmdu = reinterpret_cast<em_cmdu_t *>(data + sizeof(em_raw_hdr_t));
 
-
     dm_easy_mesh_t::macbytes_to_string(get_radio_interface_mac(), mac_str);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG CMDU_Type:%d " MACSTRFMT" \n", __func__, __LINE__, htons(cmdu->type), MAC2STR(mac_str));
     switch (htons(cmdu->type)) {
         case em_msg_type_autoconf_search:
         case em_msg_type_autoconf_resp:
@@ -345,7 +345,7 @@ void em_t::proto_process(unsigned char *data, unsigned int len)
 
         case em_msg_type_bh_sta_cap_query:
         case em_msg_type_bh_sta_cap_rprt:
-            em_printfout("  proto_process, type rcvd: %d", htons(cmdu->type));
+            em_printfout("%s:%d AUTOCONFIG_DEBUG process_msg, type rcvd: %d \n", __func__, __LINE__, htons(cmdu->type));
             em_capability_t::process_msg(data, len);
             break;
 
@@ -546,6 +546,7 @@ void em_t::proto_run()
                 }
                 pthread_mutex_unlock(&m_iq.lock);
                 assert(evt->type == em_event_type_frame);
+                em_printfout(" %s:%d AUTOCONFIG_DEBUG proto_process, type:%d frame:%s \n", __func__, __LINE__, evt->type, evt->u.fevt.frame);
                 proto_process(evt->u.fevt.frame, evt->u.fevt.frame_len);
                 free(evt);
                 pthread_mutex_lock(&m_iq.lock);
@@ -681,10 +682,9 @@ int em_t::send_frame(unsigned char *buff, unsigned int len, bool multicast)
     sdu.setDestinationAlMacAddress(dest_mac);
     sdu.setSourceAlMacAddress(src_mac);
 
-#ifdef DEBUG_MODE
     em_printfout("Destination MAC Address: " MACSTRFMT, MAC2STR(buff));
     em_printfout("Source MAC Address: " MACSTRFMT, MAC2STR(buff+ETH_ALEN));
-#endif
+
     // Copy over the payload, excluding the header
     sdu.setPayload({buff + sizeof(em_raw_hdr_t), buff + len});
     g_sap->serviceAccessPointDataRequest(sdu);
@@ -704,9 +704,15 @@ int em_t::send_frame(unsigned char *buff, unsigned int len, bool multicast)
 
     sadr_ll.sll_ifindex = static_cast<int>(if_nametoindex(ifname));
     sadr_ll.sll_halen = ETH_ALEN; // length of destination mac address
+
     sadr_ll.sll_protocol = htons(ETH_P_ALL);
     memcpy(sadr_ll.sll_addr, (multicast == true) ? multi_addr:hdr->dst, sizeof(mac_address_t));
 
+    em_printfout("AUTOCONFIG_DEBUG if_index:%d addr:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X sock:%d \n", sadr_ll.sll_ifindex, sadr_ll.sll_addr[0]. sadr_ll.sll_addr[1], sadr_ll.sll_addr[2], sadr_ll.sll_addr[3], sadr_ll.sll_addr[4], sadr_ll.sll_addr[5], sadr_ll.sll_addr[6], sadr_ll.sll_addr[7], sock);
+    printf("AUTOCONFIG_DEBUG_printf if_index:%d addr:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X sock:%d \n", sadr_ll.sll_ifindex, sadr_ll.sll_addr[0]. sadr_ll.sll_addr[1], sadr_ll.sll_addr[2], sadr_ll.sll_addr[3], sadr_ll.sll_addr[4], sadr_ll.sll_addr[5], sadr_ll.sll_addr[6], sadr_ll.sll_addr[7], sock);
+
+    em_printfout("%s:%d AUTOCONFIG_DEBUG buff:%s \n", __func__, __LINE__, buff);
+    printf("%s:%d AUTOCONFIG_DEBUG_printf buff:%s \n", __func__, __LINE__, buff);
     ret = static_cast<int>(sendto(sock, buff, len, 0, reinterpret_cast<const struct sockaddr*>(&sadr_ll), sizeof(struct sockaddr_ll)));
     close(sock);
 #endif
@@ -1957,6 +1963,7 @@ em_t::em_t(em_interface_t *ruid, em_freq_band_t band, dm_easy_mesh_t *dm, em_mgr
 	m_orch_state = em_orch_state_idle;
     m_cmd = NULL;
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG MAC:%02X:%02X:%02X:%02X:%02X:%02X name:%s media:%x profile:%d type:%d is_al_em:%d \n", __func__, __LINE__, ruid->mac[0], ruid->mac[1], ruid->mac[2], ruid->mac[3], ruid->mac[4], ruid->mac[5], ruid->mac[6], ruid->name, ruid->media, profile, type, is_al_em);
     RAND_bytes(get_crypto_info()->e_nonce, sizeof(em_nonce_t));
     RAND_bytes(get_crypto_info()->r_nonce, sizeof(em_nonce_t));
     m_data_model = dm;

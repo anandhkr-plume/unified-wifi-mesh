@@ -450,10 +450,12 @@ void em_msg_t::autoconfig_search()
     m_tlv_member[m_num_tlv++] = em_tlv_member_t(em_tlv_type_al_mac_address, mandatory, "table 6-8 of IEEE-1905-1", 9);
     m_tlv_member[m_num_tlv++] = em_tlv_member_t(em_tlv_type_searched_role, mandatory, "table 6-22 of IEEE-1905-1", 4);
     m_tlv_member[m_num_tlv++] = em_tlv_member_t(em_tlv_type_autoconf_freq_band, mandatory, "table 6-23 of IEEE-1905-1", 4);
-    m_tlv_member[m_num_tlv++] = em_tlv_member_t(em_tlv_type_supported_service, optional, "17.2.1 of Wi-Fi Easy Mesh 5.0", 5);
-    m_tlv_member[m_num_tlv++] = em_tlv_member_t(em_tlv_type_searched_service, optional, "17.2.2 of Wi-Fi Easy Mesh 5.0", 5);
-    m_tlv_member[m_num_tlv++] = em_tlv_member_t(em_tlv_type_profile, (m_profile > em_profile_type_1) ? mandatory:bad, "17.2.47 of Wi-Fi Easy Mesh 5.0", 4);
+    m_tlv_member[m_num_tlv++] = em_tlv_member_t(em_tlv_type_supported_service, mandatory, "17.2.1 of Wi-Fi Easy Mesh 5.0", 5);
+    m_tlv_member[m_num_tlv++] = em_tlv_member_t(em_tlv_type_searched_service, mandatory, "17.2.2 of Wi-Fi Easy Mesh 5.0", 5);
+    m_tlv_member[m_num_tlv++] = em_tlv_member_t(em_tlv_type_profile, mandatory, "17.2.47 of Wi-Fi Easy Mesh 5.0", 4);
     m_tlv_member[m_num_tlv++] = em_tlv_member_t(em_tlv_type_dpp_chirp_value, (m_profile > em_profile_type_2) ? optional:bad, "17.2.83 of Wi-Fi Easy Mesh 5.0", 4); 
+
+	em_printfout("%s:%d m_profile:%d \n", __func__, __LINE__, m_profile);
 }
 
 void em_msg_t::autoconfig_resp()

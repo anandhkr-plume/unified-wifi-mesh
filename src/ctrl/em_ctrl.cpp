@@ -81,13 +81,18 @@ void em_ctrl_t::handle_client_steer(em_bus_event_t *evt)
     em_cmd_t *pcmd[EM_MAX_CMD] = {NULL};
     int num;
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Client Steering Request event received\n", __func__, __LINE__);
     if (m_orch->is_cmd_type_in_progress(evt) == true) {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Client Steering Request in progress\n", __func__, __LINE__);
         m_ctrl_cmd->send_result(em_cmd_out_status_prev_cmd_in_progress);
     } else if ((num = m_data_model.analyze_command_steer(evt, pcmd)) == 0) {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Client Steering Request no change\n", __func__, __LINE__);
         m_ctrl_cmd->send_result(em_cmd_out_status_no_change);
     } else if (m_orch->submit_commands(pcmd, static_cast<unsigned int> (num)) > 0) {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Client Steering Request success\n", __func__, __LINE__);
         m_ctrl_cmd->send_result(em_cmd_out_status_success);
     } else {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Client Steering Request not ready\n", __func__, __LINE__);
         m_ctrl_cmd->send_result(em_cmd_out_status_not_ready);
     }
 }
@@ -462,6 +467,7 @@ void em_ctrl_t::handle_nb_event(em_nb_event_t *evt)
 
 void em_ctrl_t::handle_bus_event(em_bus_event_t *evt)
 {
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Bus event received: %d\n", __func__, __LINE__, evt->type);
     switch (evt->type) {
         case em_bus_event_type_reset:
             handle_reset(evt);
@@ -638,6 +644,7 @@ int em_ctrl_t::data_model_init(const char *data_model_path)
         //printf("%s:%s:%d: Data model found, creating node for mac:%s\n", __FILE__, __func__, __LINE__, mac_str);
             //dm->print_config();
 
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Creating Node \n", __func__, __LINE__);
         if ((em = create_node(intf, em_freq_band_unknown, dm, true, em_profile_type_3, em_service_type_ctrl)) == NULL) {
             printf("%s:%d: Could not create and start abstraction layer interface\n", __func__, __LINE__);
         }
@@ -683,6 +690,7 @@ em_t *em_ctrl_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em_
     
     cmdu = reinterpret_cast<em_cmdu_t *> (data + sizeof(em_raw_hdr_t));
 
+    em_printfout("%s:%d: AUTOCONFIG_DEBUG For case:%d \n", __func__, __LINE__, htons(cmdu->type));
     switch (htons(cmdu->type)) {
         case em_msg_type_autoconf_search:
             if (em_msg_t(data + (sizeof(em_raw_hdr_t) + sizeof(em_cmdu_t)), len - static_cast<unsigned int> (sizeof(em_raw_hdr_t) + sizeof(em_cmdu_t))).get_freq_band(&band) == false) {
@@ -695,15 +703,18 @@ em_t *em_ctrl_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em_
 
             dm_easy_mesh_t::macbytes_to_string(intf.mac, mac_str1);
             printf("%s:%d: Received autoconfig search from agent al mac: %s\n", __func__, __LINE__, mac_str1);
+            em_printfout("%s:%d: AUTOCONFIG_DEBUG Received autoconfig search from agent al mac: %s\n", __func__, __LINE__, mac_str1);
             if ((dm = get_data_model(GLOBAL_NET_ID, const_cast<const unsigned char *> (intf.mac))) == NULL) {
                 if (em_msg_t(data + (sizeof(em_raw_hdr_t) + sizeof(em_cmdu_t)), len - static_cast<unsigned int> (sizeof(em_raw_hdr_t) + sizeof(em_cmdu_t))).get_profile(&profile) == false) {
                     profile = em_profile_type_1;
                 }
                 dm = create_data_model(GLOBAL_NET_ID, const_cast<const em_interface_t *> (&intf), profile);
                 printf("%s:%d: Created data model for mac: %s net: %s\n", __func__, __LINE__, mac_str1, GLOBAL_NET_ID);
+                em_printfout("%s:%d: AUTOCONFIG_DEBUG Created data model for mac: %s net: %s\n", __func__, __LINE__, mac_str1, GLOBAL_NET_ID);
             } else {
                 dm_easy_mesh_t::macbytes_to_string(dm->get_agent_al_interface_mac(), mac_str1);
                 printf("%s:%d: Found existing data model for mac: %s net: %s\n", __func__, __LINE__, mac_str1, GLOBAL_NET_ID);
+                em_printfout("%s:%d: AUTOCONFIG_DEBUG Found existing data model for mac: %s net: %s\n", __func__, __LINE__, mac_str1, GLOBAL_NET_ID);
             }
             em = al_em;
             break;
@@ -817,6 +828,7 @@ em_t *em_ctrl_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em_
         case em_msg_type_map_policy_config_req:
         case em_msg_type_channel_scan_req:
         case em_msg_type_ap_mld_config_req:
+            em_printfout("%s:%d: AUTOCONFIG_DEBUG For case:%d \n", __func__, __LINE__, htons(cmdu->type));
 			break;
 
 		case em_msg_type_channel_scan_rprt:
@@ -976,6 +988,7 @@ void em_ctrl_t::start_complete()
 
    	if (desc->bus_set_fn(&m_bus_hdl, "Device.WiFi.Ctrl.CollocateAgentID", &raw)== 0) {
        	printf("%s:%d Collocated Agent ID: %s publish successfull\n",__func__, __LINE__, al_mac_str);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Collocated Agent ID: %s publish successfull\n", __func__, __LINE__, al_mac_str);
    	} else {
        	printf("%s:%d Collocated agent ID: %s publish  fail\n",__func__, __LINE__, al_mac_str);
    	}
@@ -1073,6 +1086,7 @@ AlServiceAccessPoint* em_ctrl_t::al_sap_register(const std::string& data_socket_
 int main(int argc, const char *argv[])
 {
 #ifdef AL_SAP
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Registering AL SAP with Data:al_em_ctrl_data_socket Ctrl:al_em_ctrl_control_socket \n", __func__, __LINE__);
     g_sap = g_ctrl.al_sap_register("/tmp/al_em_ctrl_data_socket", "/tmp/al_em_ctrl_control_socket");
 #endif
 

@@ -1,10 +1,13 @@
 #include "al_service_access_point.h"
 #include "al_service_utils.h"
 
+#include "util.h"
+
 // Constructor: Connects to the Unix domain socket using the provided path --> moved from hardcoded to check in the unit test for socket creation
 AlServiceAccessPoint::AlServiceAccessPoint(const std::string &dataSocketPath, const std::string &controlSocketPath) : alDataSocketpath(dataSocketPath),
                                                                                                                       alControlSocketpath(controlSocketPath)
 {
+    em_printfout("%s:%d AUTOCONFIG_DEBUG SOCK_STREAM:%d \n", __func__, __LINE__, SOCK_STREAM);
     alControlSocketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0);
     if (alControlSocketDescriptor == -1)
     {
@@ -16,6 +19,7 @@ AlServiceAccessPoint::AlServiceAccessPoint(const std::string &dataSocketPath, co
         close(alControlSocketDescriptor);
         throw AlServiceException("Failed to connect to Unix socket for control", PrimitiveError::ConnectionFailed);
     }
+    em_printfout("%s:%d AUTOCONFIG_DEBUG alControlSocketDescriptor:%d CTRLAddr_path:%s CTRL_Fam:%d \n", __func__, __LINE__, alControlSocketDescriptor, controlAddr.sun_path, controlAddr.sun_family);
 #ifdef DEBUG_MODE
     std::cout << "Connected to Unix control socket: " << controlSocketPath << std::endl;
 #endif
@@ -31,6 +35,7 @@ AlServiceAccessPoint::AlServiceAccessPoint(const std::string &dataSocketPath, co
         close(alDataSocketDescriptor);
         throw AlServiceException("Failed to connect to Unix socket for data", PrimitiveError::ConnectionFailed);
     }
+    em_printfout("%s:%d AUTOCONFIG_DEBUG alDataSocketDescriptor:%d dataAddr_path:%s data_Fam:%d \n", __func__, __LINE__, alDataSocketDescriptor, dataAddr.sun_path, dataAddr.sun_family);
 #ifdef DEBUG_MODE
     std::cout << "Connected to Unix data socket: " << dataSocketPath << std::endl;
 #endif
@@ -64,6 +69,7 @@ int AlServiceAccessPoint::getDataSocketDescriptor() const
 // Setter for the socket descriptor
 void AlServiceAccessPoint::setDataSocketDescriptor(int descriptor)
 {
+    em_printfout("%s:%d AUTOCONFIG_DEBUG descriptor:%d \n", __func__, __LINE__, descriptor);
     alDataSocketDescriptor = descriptor;
 }
 
@@ -75,6 +81,7 @@ int AlServiceAccessPoint::getControlSocketDescriptor() const
 // Setter for the socket descriptor
 void AlServiceAccessPoint::setControlSocketDescriptor(int descriptor)
 {
+    em_printfout("%s:%d AUTOCONFIG_DEBUG descriptor:%d \n", __func__, __LINE__, descriptor);
     alControlSocketDescriptor = descriptor;
 }
 
@@ -90,6 +97,10 @@ void AlServiceAccessPoint::serviceAccessPointRegistrationRequest(AlServiceRegist
     printByteStream(serializedData);
     std::cout << "Registration request sent with " << bytesSent << " bytes." << std::endl;
     #endif
+    em_printfout("%s:%d AUTOCONFIG_DEBUG alControlSocketDescriptor:%u buffer:\n", __func__, __LINE__, alControlSocketDescriptor);
+    for (unsigned char byte : serializedData) {
+        em_printfout("%02x ", static_cast<uint8_t>(byte));
+    }
 }
 
 // Executes service registration indication (receive a registration indication message)
@@ -104,6 +115,11 @@ AlServiceRegistrationResponse AlServiceAccessPoint::serviceAccessPointRegistrati
     #ifdef DEBUG_MODE
     printByteStream(buffer);
     #endif
+    em_printfout("%s:%d AUTOCONFIG_DEBUG alControlSocketDescriptor:%u buffer:\n", __func__, __LINE__, alControlSocketDescriptor);
+    for (unsigned char byte : buffer) {
+        em_printfout("%02x \n", static_cast<uint8_t>(byte));
+    }
+
     registrationResponse.deserializeRegistrationResponse(buffer);
     #ifdef DEBUG_MODE
     std::cout << "Registration indication received with " << bytesRead << " bytes." << std::endl;
@@ -169,6 +185,7 @@ void AlServiceAccessPoint::serviceAccessPointDataRequest(AlServiceDataUnit& mess
             #endif
             // Serialize and send the current fragment
             std::vector<unsigned char> serializedData = message.serialize();
+            em_printfout("%s:%d AUTOCONFIG_DEBUG calling send for alDataSocketDescriptor:%d serializedData:%s \n", __func__, __LINE__, alDataSocketDescriptor, serializedData);
             ssize_t bytesSent = send(alDataSocketDescriptor, serializedData.data(), serializedData.size(), 0);
             if (bytesSent == -1) {
                 throw AlServiceException("Failed to send message fragment through Unix socket", PrimitiveError::RequestFailed);
@@ -208,6 +225,7 @@ AlServiceDataUnit AlServiceAccessPoint::serviceAccessPointDataIndication() {
 
         // Receive data from the socket
         ssize_t bytesRead = recv(alDataSocketDescriptor, buffer.data(), buffer.size(), 0);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG calling recv for alDataSocketDescriptor:%d Buffer:%s \n", __func__, __LINE__, alDataSocketDescriptor, buffer);
         if (bytesRead <= 0) {
             if (errno == EBADF || errno == ECONNRESET) {
                 throw AlServiceException("Socket closed or connection reset", PrimitiveError::SocketClosed);

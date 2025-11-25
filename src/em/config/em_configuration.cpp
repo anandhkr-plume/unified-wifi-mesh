@@ -78,7 +78,7 @@ unsigned short em_configuration_t::create_client_assoc_event_tlv(unsigned char *
 
     for (i = 0; i < dm->get_num_assoc_sta_mld(); i++) {
         em_assoc_sta_mld_info_t& assoc_sta_mld_info = dm->m_assoc_sta_mld[i].m_assoc_sta_mld_info;
-        if (memcmp(assoc_sta_mld_info.mac_addr, sta, sizeof(mac_address_t) == 0)) {
+        if (memcmp(assoc_sta_mld_info.mac_addr, sta, sizeof(mac_address_t)) == 0) {
             found_assoc_sta_mld = true;
             memcpy(tmp, assoc_sta_mld_info.mac_addr, sizeof(mac_address_t));
             memcpy(tmp + sizeof(mac_address_t), assoc_sta_mld_info.ap_mld_mac_addr, sizeof(mac_address_t));
@@ -923,6 +923,7 @@ int em_configuration_t::send_topology_response_msg(unsigned char *dst, unsigned 
     dm = get_data_model();
     printf("%s:%d: Number of radios: %d, bss: %d\n", __func__, __LINE__,
                         dm->get_num_radios(), dm->get_num_bss());
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Number of radios: %d, bss: %d \n", __func__, __LINE__, dm->get_num_radios(), dm->get_num_bss());
 
     memcpy(tmp, reinterpret_cast<unsigned char *> (hdr->src), sizeof(mac_address_t));
     tmp += sizeof(mac_address_t);
@@ -1045,11 +1046,13 @@ int em_configuration_t::send_topology_response_msg(unsigned char *dst, unsigned 
     }
 
     em_printfout("frame length: %d", len);
+    printf("frame length: %d", len);
     if (send_frame(buff, len)  < 0) {
         printf("%s:%d: Topology Response send failed, error:%d\n", __func__, __LINE__, errno);
         return -1;
     }
     printf("setting state to em_state_agent_topo_synchronized\n");
+    em_printfout("setting state to em_state_agent_topo_synchronized \n");
     set_state(em_state_agent_topo_synchronized);
     return static_cast<int> (len);
 }
@@ -3528,6 +3531,7 @@ bool em_configuration_t::send_autoconf_search_ext_chirp(em_dpp_chirp_value_t *ch
     int len = 0;
 
     len = create_autoconfig_search_msg(buff, chirp, hash_len);
+	em_printfout("%s:%d called create_autoconfig_search len:%d \n", __func__, __LINE__, len);
     if (len < 0) {
         em_printfout("Failed to create autoconf search ext chirp msg");
         return false;
@@ -3578,11 +3582,13 @@ int em_configuration_t::create_autoconfig_search_msg(unsigned char *buff, em_dpp
     uint8_t profile = static_cast<uint8_t>(get_profile_type());
     tmp = em_msg_t::add_tlv(tmp, &len, em_tlv_type_profile, &profile, sizeof(profile));
 
+	em_printfout("%s:%d Inside create_autoconfig_search band:%d service:%d profile:%d \n", __func__, __LINE__, band, service[1], profile);
     // Zero or One DPP Chirp TLV (section 17.2.83)
     if (chirp) {
         tmp = em_msg_t::add_tlv(tmp, &len, em_tlv_type_dpp_chirp_value, reinterpret_cast<uint8_t*>(chirp), static_cast<unsigned int>(sizeof(em_dpp_chirp_value_t) + hash_len));
     }
 
+	util::print_hex_dump(len, buff);
     // OEM
     tmp = em_msg_t::add_eom_tlv(tmp, &len);
     return static_cast<int>(len);
@@ -3855,8 +3861,12 @@ int em_configuration_t::handle_autoconfig_wsc_m2(unsigned char *buff, unsigned i
         if (al_node != NULL) {
             get_ec_mgr().upgrade_to_onboarded_proxy_agent(hdr->src);
 #ifdef ENABLE_COLOCATED_1905_SECURE
+            em_printfout("%s:%d AUTOCONFIG_DEBUG get_peer_1905_security_status MAC:%02x:%02x:%02x:%02x:%02x:%02x \n", __func__, __LINE__, hdr->src[0], hdr->src[1], hdr->src[2], hdr->src[3], hdr->src[4], hdr->src[5]);
+            printf("%s:%d AUTOCONFIG_DEBUG get_peer_1905_security_status MAC:%02x:%02x:%02x:%02x:%02x:%02x \n", __func__, __LINE__, hdr->src[0], hdr->src[1], hdr->src[2], hdr->src[3], hdr->src[4], hdr->src[5]);
             if (al_node->get_peer_1905_security_status(hdr->src) == peer_1905_security_status::PEER_1905_SECURITY_NOT_STARTED) {
                 al_node->set_peer_1905_security_status(hdr->src, peer_1905_security_status::PEER_1905_SECURITY_IN_PROGRESS);
+                em_printfout("%s:%d AUTOCONFIG_DEBUG start_secure_1905_layer \n", __func__, __LINE__);
+                printf("%s:%d AUTOCONFIG_DEBUG start_secure_1905_layer \n", __func__, __LINE__);
                 get_ec_mgr().start_secure_1905_layer(hdr->src);
             }
 #endif
@@ -5017,7 +5027,7 @@ int em_configuration_t::handle_autoconfig_resp(unsigned char *buff, unsigned int
     char *errors[EM_MAX_TLV_MEMBERS] = {0};
     em_raw_hdr_t *hdr = reinterpret_cast<em_raw_hdr_t *> (buff);
 
-    em_printfout("Received autoconfig resp from " MACSTRFMT, MAC2STR(hdr->src));
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Received autoconfig resp with from " MACSTRFMT, __func__, __LINE__, MAC2STR(hdr->src));
 
     if (em_msg_t(buff + (sizeof(em_raw_hdr_t) + sizeof(em_cmdu_t)),
                 len - static_cast<unsigned int>(sizeof(em_raw_hdr_t) + sizeof(em_cmdu_t))).get_profile_type(&m_peer_profile) == false) {
@@ -5057,6 +5067,7 @@ int em_configuration_t::handle_autoconfig_resp(unsigned char *buff, unsigned int
         return -1;
     }
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Sending M1 Frame to " MACSTRFMT " msg:%s sz:%d", __func__, __LINE__, MAC2STR(hdr->src), msg, sz);
     if (send_frame(msg, sz)  < 0) {
         printf("%s:%d: autoconfig wsc m1 send failed, error:%d\n", __func__, __LINE__, errno);
 
@@ -5168,6 +5179,8 @@ void em_configuration_t::process_msg(unsigned char *data, unsigned int len)
     em_raw_hdr_t *hdr = reinterpret_cast<em_raw_hdr_t *>(data);
     uint8_t *src_al_mac = hdr->src;
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG cmdu_type:%d service_type:%d state:%d " MACSTRFMT" \n", __func__, __LINE__, htons(cmdu->type), get_service_type(), get_state(), MAC2STR(hdr->src));
+    printf("%s:%d AUTOCONFIG_DEBUG cmdu_type:%d service_type:%d state:%d " MACSTRFMT" \n", __func__, __LINE__, htons(cmdu->type), get_service_type(), get_state(), MAC2STR(hdr->src));
     switch (htons(cmdu->type)) {
         case em_msg_type_autoconf_search:
             if (get_service_type() == em_service_type_ctrl) {
@@ -5180,6 +5193,8 @@ void em_configuration_t::process_msg(unsigned char *data, unsigned int len)
             break;
 
         case em_msg_type_autoconf_resp:
+            em_printfout("%s:%d AUTOCONFIG_DEBUG service_type:%d state:%d \n", __func__, __LINE__, get_service_type(), get_state());
+            printf("%s:%d AUTOCONFIG_DEBUG service_type:%d state:%d \n", __func__, __LINE__, get_service_type(), get_state());
             if (((get_service_type() == em_service_type_agent &&
                     get_state() == em_state_agent_autoconfig_rsp_pending) ||
                 (get_service_type() == em_service_type_agent && get_is_dpp_onboarding())) && get_state() != em_state_agent_1905_securing) {
@@ -5190,11 +5205,12 @@ void em_configuration_t::process_msg(unsigned char *data, unsigned int len)
         case em_msg_type_autoconf_wsc:
             if ((get_wsc_msg_type(tlvs, tlvs_len) == em_wsc_msg_type_m2) &&
                     (get_service_type() == em_service_type_agent) && (get_state() == em_state_agent_wsc_m2_pending)) {
-                        printf("%s:%d: received wsc_m2 len:%d\n", __func__, __LINE__, len);
+                        printf("%s:%d: AUTOCONFIG_DEBUG_printf received wsc_m2 data:%s len:%d\n", __func__, __LINE__, data, len);
+                        em_printfout("%s:%d: AUTOCONFIG_DEBUG received wsc_m2 data:%s len:%d\n", __func__, __LINE__, data, len);
                         handle_autoconfig_wsc_m2(data, len);
             } else if ((get_wsc_msg_type(tlvs, tlvs_len) == em_wsc_msg_type_m1) &&
                     (get_service_type() == em_service_type_ctrl) && (get_state() == em_state_ctrl_wsc_m1_pending))  {
-                        printf("%s:%d: received wsc_m1 len:%d\n", __func__, __LINE__, len);
+                        printf("%s:%d: AUTOCONFIG_DEBUG_printf received wsc_m1 len:%d\n", __func__, __LINE__, len);
                         handle_autoconfig_wsc_m1(data, len);
             }
 
@@ -5202,6 +5218,8 @@ void em_configuration_t::process_msg(unsigned char *data, unsigned int len)
 
         case em_msg_type_autoconf_renew:
             if (get_service_type() == em_service_type_agent) {
+                em_printfout("%s:%d: AUTOCONFIG_DEBUG handle_autoconfig_renew \n", __func__, __LINE__);
+                printf("%s:%d: AUTOCONFIG_DEBUG_printf handle_autoconfig_renew \n", __func__, __LINE__);
                 handle_autoconfig_renew(data, len);
             }
             break;
@@ -5213,17 +5231,18 @@ void em_configuration_t::process_msg(unsigned char *data, unsigned int len)
                 get_mgr()->get_all_em_for_al_mac(hdr->dst, em_radios);
                 for (auto &em : em_radios) {
                     if ((em->get_service_type() == em_service_type_agent) && (em->get_state() < em_state_agent_onewifi_bssconfig_ind)) {
-                        em_printfout("radio %s is not configured, ignoring", util::mac_to_string(em->get_radio_interface_mac()).c_str());
+                        em_printfout("AUTOCONFIG_DEBUG radio %s is not configured, ignoring", util::mac_to_string(em->get_radio_interface_mac()).c_str());
                         return;
                     }
                 }
-                em_printfout("All radios are configured for al_mac:%s, sending topology response", util::mac_to_string(hdr->dst).c_str());
+                em_printfout("AUTOCONFIG_DEBUG All radios are configured for al_mac:%s, sending topology response data:%s \n", util::mac_to_string(hdr->dst).c_str(), data);
+                printf("AUTOCONFIG_DEBUG All radios are configured for al_mac:%s, sending topology response data:%s \n", util::mac_to_string(hdr->dst).c_str(), data);
                 len = send_topology_response_msg(data, ntohs(cmdu->id));
                 if(len) {
                     for(auto &em : em_radios) {
                             em->set_state(em_state_agent_topo_synchronized);
                     }
-                    em_printfout("Sent topology response message, set state to em_state_agent_topo_synchronized");
+                    em_printfout("AUTOCONFIG_DEBUG Sent topology response message, set state to em_state_agent_topo_synchronized");
                 }
                 em_radios.clear();
             }
@@ -5238,7 +5257,10 @@ void em_configuration_t::process_msg(unsigned char *data, unsigned int len)
                     em_printfout("Topology response handled successfully by em radio:%s agent al_mac:%s src_mac:%s",
                         util::mac_to_string(get_radio_interface_mac()).c_str(), util::mac_to_string(dm->get_agent_al_interface_mac()).c_str(),
                         util::mac_to_string(hdr->src).c_str());
-                    get_mgr()->get_all_em_for_al_mac(hdr->src, em_radios);
+                    printf("Topology response handled successfully by em radio:%s agent al_mac:%s src_mac:%s",
+                        util::mac_to_string(get_radio_interface_mac()).c_str(), util::mac_to_string(dm->get_agent_al_interface_mac()).c_str(),
+                        util::mac_to_string(hdr->src).c_str());
+                        get_mgr()->get_all_em_for_al_mac(hdr->src, em_radios);
                     for (auto &em : em_radios) {
                         em->set_state(em_state_ctrl_topo_synchronized);
                         printf("%s:%d em_msg_type_topo_resp handle success, state: %s\n", __func__, __LINE__, em_t::state_2_str(em->get_state()));
@@ -5361,6 +5383,7 @@ void em_configuration_t::handle_state_autoconfig_renew()
         return ;
     }
 
+    printf("%s:%d: calling send_frame msg:%s sz:%d \n", __func__, __LINE__, msg, sz);
     if (send_frame(msg, sz)  < 0) {
         printf("%s:%d: autoconfig wsc m1 send failed, error:%d\n", __func__, __LINE__, errno);
         return ;

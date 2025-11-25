@@ -805,10 +805,19 @@ func (m *MeshViews) execSelectedCommand(cmdStr string, cmdType int) {
 		}
 		m.currentNetNode = C.exec(C.CString(value.GetCommand), C.strlen(C.CString(value.GetCommand)), nil)
 		if m.currentNetNode == nil {
+			// Handle error case: set empty tree nodes to prevent UI crash
+			m.tree.SetNodes([]etree.Node{})
+			spew.Fprintf(m.dump, "Error: Command '%s' returned no data\n", value.GetCommand)
 			return
 		}
 		treeNode := make([]etree.Node, 1)
 		m.displayedNetNode = C.clone_network_tree_for_display(m.currentNetNode, nil, 0xffff, false)
+		if m.displayedNetNode == nil {
+			// Handle error case: set empty tree nodes to prevent UI crash
+			m.tree.SetNodes([]etree.Node{})
+			spew.Fprintf(m.dump, "Error: Failed to clone network tree for display\n")
+			return
+		}
 		m.nodesToTree(m.displayedNetNode, &treeNode[0])
 		m.tree.SetNodes(treeNode)
 		//str := C.get_network_tree_string(m.displayedNetNode)
@@ -818,8 +827,20 @@ func (m *MeshViews) execSelectedCommand(cmdStr string, cmdType int) {
 		if value.GetCommandEx != "" {
 			m.currentNetNode = C.exec(C.CString(value.GetCommandEx), C.strlen(C.CString(value.GetCommandEx)), nil)
 			//spew.Fdump(m.dump, value.GetCommandEx)
+			if m.currentNetNode == nil {
+				// Handle error case: set empty tree nodes to prevent UI crash
+				m.tree.SetNodes([]etree.Node{})
+				spew.Fprintf(m.dump, "Error: Command '%s' returned no data\n", value.GetCommandEx)
+				return
+			}
 			treeNode := make([]etree.Node, 1)
 			m.displayedNetNode = C.clone_network_tree_for_display(m.currentNetNode, nil, 0xffff, false)
+			if m.displayedNetNode == nil {
+				// Handle error case: set empty tree nodes to prevent UI crash
+				m.tree.SetNodes([]etree.Node{})
+				spew.Fprintf(m.dump, "Error: Failed to clone network tree for display\n")
+				return
+			}
 			m.nodesToTree(m.displayedNetNode, &treeNode[0])
 			m.tree.SetNodes(treeNode)
 		} else {

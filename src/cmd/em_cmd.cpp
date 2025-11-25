@@ -34,6 +34,7 @@
 #include <pthread.h>
 #include <cjson/cJSON.h>
 #include "em_cmd.h"
+#include "util.h"
 
 bool em_cmd_t::validate()
 {
@@ -640,7 +641,8 @@ const char *em_cmd_t::get_cmd_type_str(em_cmd_type_t type)
 em_cmd_type_t em_cmd_t::bus_2_cmd_type(em_bus_event_type_t etype)
 {
     em_cmd_type_t type = em_cmd_type_none;
-
+    
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Bus event received: %d\n", __func__, __LINE__, etype);
     switch (etype) {
         case em_bus_event_type_reset:
             type = em_cmd_type_reset;

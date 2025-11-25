@@ -303,11 +303,14 @@ int dm_easy_mesh_ctrl_t::analyze_sta_steer(em_cmd_steer_params_t &params, em_cmd
     int num = 0;
     em_cmd_t *tmp;
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Analyze Steering Request \n", __func__, __LINE__);
+
     pcmd[num] = new em_cmd_sta_steer_t(params);
     tmp = pcmd[num];
     num++;
 
     while ((pcmd[num] = tmp->clone_for_next()) != NULL) {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG num:%d pcmd_type:%d \n", __func__, __LINE__, num, tmp->m_type);
         tmp = pcmd[num];
         num++;
     }
@@ -329,6 +332,7 @@ int dm_easy_mesh_ctrl_t::analyze_command_steer(em_bus_event_t *evt, em_cmd_t *cm
     em_cmd_steer_params_t	steer_param;
 
     subdoc = &evt->u.subdoc;
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Analyze Steering Request buff:%s \n", __func__, __LINE__, subdoc->buff);
     obj = cJSON_Parse(subdoc->buff);
     if (obj == NULL) {
         printf("%s:%d: Failed to parse: %s\n", __func__, __LINE__, subdoc->buff);
@@ -395,7 +399,10 @@ int dm_easy_mesh_ctrl_t::analyze_command_steer(em_bus_event_t *evt, em_cmd_t *cm
                     dm_easy_mesh_t::string_to_macbytes(cJSON_GetStringValue(bss_id_obj), steer_param.source);
                     target_obj = cJSON_GetObjectItem(steer_obj, "TargetBSSID");
                     dm_easy_mesh_t::string_to_macbytes(cJSON_GetStringValue(target_obj), steer_param.target);
+                    em_printfout("%s:%d AUTOCONFIG_DEBUG STA_MAC:%s SRC_BSS:%s Target_BSS: %s \n", __func__, __LINE__, cJSON_GetStringValue(sta_mac_obj),
+                                 cJSON_GetStringValue(bss_id_obj), cJSON_GetStringValue(target_obj));
                     request_mode_obj = cJSON_GetObjectItem(steer_obj, "RequestMode");
+                    em_printfout("%s:%d AUTOCONFIG_DEBUG Request Mode Object: %s \n", __func__, __LINE__, cJSON_Print(request_mode_obj));
                     // Check for "Steering_Opportunity"
                     if (cJSON_GetObjectItem(request_mode_obj, "Steering_Opportunity") != NULL) {
                         cJSON *steer_opp = cJSON_GetObjectItem(request_mode_obj, "Steering_Opportunity");
@@ -421,6 +428,8 @@ int dm_easy_mesh_ctrl_t::analyze_command_steer(em_bus_event_t *evt, em_cmd_t *cm
                     steer_param.target_op_class = static_cast<unsigned int> (cJSON_GetNumberValue(op_class_obj));
                     channel_obj = cJSON_GetObjectItem(steer_obj, "TargetBSSChannel");
                     steer_param.target_channel = static_cast<unsigned int> (cJSON_GetNumberValue(channel_obj));
+                    em_printfout("%s:%d AUTOCONFIG_DEBUG Req_Mode:%d Link_Removal_Imminent:%d Target_Channel:%d \n", __func__,
+                            __LINE__, steer_param.request_mode, steer_param.link_removal_imminent, steer_param.target_channel);
 
                     num += analyze_sta_steer(steer_param, cmd);
                 }
