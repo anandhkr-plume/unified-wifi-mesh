@@ -589,19 +589,23 @@ bus_error_t network_get_inner(char *event_name, raw_data_t *p_data, bus_user_dat
     }
     ++param;
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG param:%s \n", __func__, __LINE__, param);
     em_string_t str_val = { 0 };
     if (strcmp(param, "ID") == 0) {
         strncpy(str_val, GLOBAL_NET_ID, sizeof(str_val) - 1);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG str_val:%s \n", __func__, __LINE__, str_val);
         rc = raw_data_set(p_data, str_val);
     } else if (strcmp(param, "ControllerID") == 0) {
         dm_easy_mesh_t *dm = g_ctrl.get_first_dm();
         dm_easy_mesh_t::macbytes_to_string(dm->get_controller_interface_mac(), str_val);
         //dm_easy_mesh_t::macbytes_to_string(dm->get_network_info()->ctrl_id.mac, str_val);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG str_val:%s \n", __func__, __LINE__, str_val);
         rc = raw_data_set(p_data, str_val);
     } else if (strcmp(param, "ColocatedAgentID") == 0) {
         dm_easy_mesh_t *dm = g_ctrl.get_first_dm();
         dm_easy_mesh_t::macbytes_to_string(dm->get_ctrl_al_interface_mac(), str_val);
         //dm_easy_mesh_t::macbytes_to_string(dm->get_network_info()->ctrl_id.mac, str_val);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG str_val:%s \n", __func__, __LINE__, str_val);
         rc = raw_data_set(p_data, str_val);
     } else if (strcmp(param, "DeviceNumberOfEntries") == 0) {
         unsigned int dev_cnt = 0;
@@ -616,6 +620,7 @@ bus_error_t network_get_inner(char *event_name, raw_data_t *p_data, bus_user_dat
             }
             dm = g_ctrl.get_next_dm(dm);
         }
+        em_printfout("%s:%d AUTOCONFIG_DEBUG dev_cnt:%s \n", __func__, __LINE__, dev_cnt);
         rc = raw_data_set(p_data, dev_cnt);
     } else {
         rc = bus_error_invalid_input;
@@ -1802,6 +1807,7 @@ bus_error_t bus_get_cb_fwd(char *event_name, raw_data_t *p_data, bus_user_data_t
 
 bus_error_t network_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Calling network_get_inner event_name:%s \n", __func__, __LINE__, event_name);
     return bus_get_cb_fwd(event_name, p_data, user_data, network_get_inner);
 }
 
@@ -2136,9 +2142,17 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
     }
 
     count = sizeof(elements) / sizeof(bus_data_element_t);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG count:%s \n", __func__, __LINE__, count);
+    if(count > 5) {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG element[5].full_name:%s \n", __func__, __LINE__, elements[5].full_name);
+    } else {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG count is less than 5 count:%s \n", __func__, __LINE__, count);
+    }
+
     rc = bus_desc->bus_reg_data_element_fn(bus_handle, elements, count);
     if (rc != bus_error_success) {
         printf("Bus register elements failed: %d\n", rc);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Bus register elements failed: %d \n", __func__, __LINE__, rc);
         return -1;
     }
 

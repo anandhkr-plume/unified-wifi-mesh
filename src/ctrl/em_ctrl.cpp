@@ -433,6 +433,7 @@ void em_ctrl_t::handle_nb_event(em_nb_event_t *evt)
     assert(resp != NULL);
     resp->id = evt->id;
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Handling nb event id:%d type:%d \n", __func__, __LINE__, evt->id, evt->type);
     switch (evt->type) {
         case NB_REQTYPE_GET: {
             char *name = evt->u.get.name;
@@ -462,6 +463,7 @@ void em_ctrl_t::handle_nb_event(em_nb_event_t *evt)
 
 void em_ctrl_t::handle_bus_event(em_bus_event_t *evt)
 {
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Handling bus event type:%d \n", __func__, __LINE__, evt->type);
     switch (evt->type) {
         case em_bus_event_type_reset:
             handle_reset(evt);
@@ -560,6 +562,7 @@ void em_ctrl_t::handle_bus_event(em_bus_event_t *evt)
 
 void em_ctrl_t::handle_event(em_event_t *evt)
 {
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Handling event type:%d \n", __func__, __LINE__, evt->type);
     switch(evt->type) {
         case em_event_type_bus:
             handle_bus_event(&evt->u.bevt);
@@ -978,6 +981,7 @@ void em_ctrl_t::start_complete()
        	printf("%s:%d Collocated Agent ID: %s publish successfull\n",__func__, __LINE__, al_mac_str);
    	} else {
        	printf("%s:%d Collocated agent ID: %s publish  fail\n",__func__, __LINE__, al_mac_str);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Collocated agent ID: %s publish  fail\n", __func__, __LINE__, al_mac_str);
    	}
 
 	int pipefd[2];

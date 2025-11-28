@@ -538,6 +538,7 @@ int em_mgr_t::start()
 		util::add_milliseconds(&time_to_wait, m_queue.timeout);
 
         if (queue_count(m_queue.queue) == 0) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG Queue is empty\n", __func__, __LINE__);
             rc = pthread_cond_timedwait(&m_queue.cond, &m_queue.lock, &time_to_wait);
         }
         if ((rc == 0) || (queue_count(m_queue.queue) != 0)) {
@@ -564,6 +565,7 @@ int em_mgr_t::start()
             //printf("%s:%d: Timeout secs: %d\n", __func__, __LINE__, time_to_wait.tv_sec);
             if (is_data_model_initialized() == true) {
 				if (started == false) {
+                    em_printfout("%s:%d AUTOCONFIG_DEBUG Calling start_complete \n", __func__, __LINE__);
 					start_complete();
 					started = true;
 				}
