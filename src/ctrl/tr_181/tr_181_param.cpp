@@ -1807,7 +1807,7 @@ bus_error_t bus_get_cb_fwd(char *event_name, raw_data_t *p_data, bus_user_data_t
 
 bus_error_t network_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
-    em_printfout("%s:%d AUTOCONFIG_DEBUG Calling network_get_inner event_name:%s \n", __func__, __LINE__, event_name);
+    if(event_name != NULL) em_printfout("%s:%d AUTOCONFIG_DEBUG Calling network_get_inner event_name:%s \n", __func__, __LINE__, event_name);
     return bus_get_cb_fwd(event_name, p_data, user_data, network_get_inner);
 }
 
@@ -2142,11 +2142,11 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
     }
 
     count = sizeof(elements) / sizeof(bus_data_element_t);
-    em_printfout("%s:%d AUTOCONFIG_DEBUG count:%s \n", __func__, __LINE__, count);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG count:%d \n", __func__, __LINE__, count);
     if(count > 5) {
         em_printfout("%s:%d AUTOCONFIG_DEBUG element[5].full_name:%s \n", __func__, __LINE__, elements[5].full_name);
     } else {
-        em_printfout("%s:%d AUTOCONFIG_DEBUG count is less than 5 count:%s \n", __func__, __LINE__, count);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG count is less than 5 count:%d \n", __func__, __LINE__, count);
     }
 
     rc = bus_desc->bus_reg_data_element_fn(bus_handle, elements, count);
