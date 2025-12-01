@@ -2059,8 +2059,8 @@ bus_error_t sta_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user
 #define ELEMENT_METHOD(n, f, t)     {n, bus_element_type_method, CALLBACK_METHOD(f), ELEMENT_DEFAULTS(t)}
 #define ELEMENT_TABLE(n, f, t)      {n, bus_element_type_table, CALLBACK_GETTER(f), ELEMENT_DEFAULTS(t)}
 
-#define ADDROW(f) f + "_table_addRowhandler"
-#define TABLE_GET(f) f + "_tget"
+#define ADDROW(f) (f + "_table_addRowhandler")
+#define TABLE_GET(f) (f + "_tget")
 #define TABLE_ELEMENT_DEFAULTS(d, t) slow_speed, d, {t, false, 0L, 0L, 0U, NULL}
 
 #define BUS_TABLE_CALLBACK(f) {TABLE_GET(f), NULL, ADDROW(f), NULL, NULL, NULL}
