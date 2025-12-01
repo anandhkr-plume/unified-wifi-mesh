@@ -31,6 +31,7 @@
 #define MAX_INSTANCE_LEN        32
 #define MAX_CAPS_STR_LEN        32
 #define ARRAY_SIZE(a)           (sizeof(a) / sizeof(a[0]))
+#define NUM_OF_VAPS             24
 
 extern em_ctrl_t g_ctrl;
 
@@ -2082,7 +2083,7 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         ELEMENT_PROPERTY(DE_NETWORK_COLAGTID,  network_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_NETWORK_DEVNOE,    network_get, bus_data_type_uint32),
         //ELEMENT_TABLE(DE_SSID_TABLE,         ssid_tget, bus_data_type_string),
-        ELEMENT_TABLE_TEST(DE_SSID_TABLE,      ssid, num_of_vaps, bus_data_type_object),
+        ELEMENT_TABLE_TEST(DE_SSID_TABLE,      "ssid", NUM_OF_VAPS, bus_data_type_object),
         ELEMENT_PROPERTY(DE_SSID_SSID,         ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_BAND,         ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_ENABLE,       ssid_get, bus_data_type_boolean),
