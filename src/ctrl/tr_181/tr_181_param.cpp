@@ -800,6 +800,7 @@ bus_error_t ssid_table_addRowhandler(char const *tableName, char const *aliasNam
     return bus_error_success;
 }
 
+#if 0
 bus_error_t ssid_tget_inner(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     const char *root = event_name;
@@ -844,6 +845,7 @@ bus_error_t ssid_tget_inner(char *event_name, raw_data_t *p_data, bus_user_data_
 
     return bus_error_success;
 }
+#endif
 
 bus_error_t device_tget_inner(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
@@ -1829,16 +1831,17 @@ bus_error_t network_get(char *event_name, raw_data_t *p_data, bus_user_data_t *u
 bus_error_t ssid_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     if(event_name != NULL) em_printfout("%s:%d AUTOCONFIG_DEBUG Calling ssid_get_inner event_name:%s \n", __func__, __LINE__, event_name);
-    ssid_tget(event_name, p_data, user_data);
 
     return bus_get_cb_fwd(event_name, p_data, user_data, ssid_get_inner);
 }
 
+#if 0
 bus_error_t ssid_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     if(event_name != NULL) em_printfout("%s:%d AUTOCONFIG_DEBUG Calling ssid_get_inner event_name:%s \n", __func__, __LINE__, event_name);
     return bus_get_cb_fwd(event_name, p_data, user_data, ssid_tget_inner);
 }
+#endif
 
 bus_error_t device_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
