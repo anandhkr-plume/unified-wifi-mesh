@@ -439,8 +439,10 @@ void em_ctrl_t::handle_nb_event(em_nb_event_t *evt)
             char *name = evt->u.get.name;
             raw_data_t *property = static_cast<raw_data_t *> (evt->u.get.property);
             bus_get_handler_t cb = (bus_get_handler_t) evt->cb;
+            em_printfout("%s:%d AUTOCONFIG_DEBUG name:%s \n", __func__, __LINE__, name);
             /* TODO: sending property only for now */
             resp->rc = cb(name, property, NULL);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG id:%d \n", __func__, __LINE__, resp->id);
         } break;
 #if 0
         case NB_REQTYPE_METHOD: {
@@ -457,6 +459,7 @@ void em_ctrl_t::handle_nb_event(em_nb_event_t *evt)
     }
 
     uintptr_t buf = (uintptr_t)resp;
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Writing to pipe \n", __func__, __LINE__);
     ssize_t len = write(m_nb_pipe_wr, &buf, sizeof(buf));
     assert(len == sizeof(buf));
 }

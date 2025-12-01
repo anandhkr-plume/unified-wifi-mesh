@@ -561,6 +561,7 @@ template <typename T> void property_append_tail(bus_data_prop_t **property, cons
         tail = (bus_data_prop_t *)calloc(1, sizeof(bus_data_prop_t));
         snprintf(tail->name, sizeof(bus_name_string_t), "%s%d.%s", root, idx, param);
         raw_data_set(&tail->value, value);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG name:%s \n", __func__, __LINE__, tail->name);
         tail->name_len = static_cast<uint32_t>(strlen(tail->name));
         tail->is_data_set = true;
 
@@ -620,7 +621,7 @@ bus_error_t network_get_inner(char *event_name, raw_data_t *p_data, bus_user_dat
             }
             dm = g_ctrl.get_next_dm(dm);
         }
-        em_printfout("%s:%d AUTOCONFIG_DEBUG dev_cnt:%s \n", __func__, __LINE__, dev_cnt);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG dev_cnt:%d \n", __func__, __LINE__, dev_cnt);
         rc = raw_data_set(p_data, dev_cnt);
     } else {
         rc = bus_error_invalid_input;
@@ -731,6 +732,7 @@ bus_error_t ssid_get_inner(char *event_name, raw_data_t *p_data, bus_user_data_t
         return bus_error_invalid_input;
     }
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s \n", __func__, __LINE__, name);
     param = strrchr(name, '.');
     if (param == NULL) {
         return bus_error_invalid_input;
@@ -789,6 +791,14 @@ bus_error_t ssid_get_inner(char *event_name, raw_data_t *p_data, bus_user_data_t
     return rc;
 }
 
+bus_error_t ssid_table_addRowhandler(char const *tableName, char const *aliasName, uint32_t *instNum) {
+    em_printfout("%s:%d: AUTOCONFIG_DEBUG addRowHandler tableName=%s, aliasName=%s\n", __FUNCTION__, __LINE__, tableName, aliasName);
+
+    *instNum = *instNum + 1;
+    em_printfout("%s:%d: AUTOCONFIG_DEBUG addRowHandler instNum:%d\n", __FUNCTION__, __LINE__, *instNum);
+    return bus_error_success;
+}
+
 bus_error_t ssid_tget_inner(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     const char *root = event_name;
@@ -801,6 +811,7 @@ bus_error_t ssid_tget_inner(char *event_name, raw_data_t *p_data, bus_user_data_
         return bus_error_invalid_input;
     }
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s \n", __func__, __LINE__, event_name);
     for (unsigned int idx = 1; idx <= dm->get_num_network_ssid(); idx++) {
         dm_network_ssid_t *ssid = dm->get_network_ssid(idx - 1);
         if (ssid == NULL) {
@@ -1794,11 +1805,14 @@ bus_error_t bus_get_cb_fwd(char *event_name, raw_data_t *p_data, bus_user_data_t
 
         g_ctrl.push_to_queue(req);
 
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Reading from pipe \n", __func__, __LINE__);
         ssize_t len = read(g_ctrl.get_nb_pipe_rd(), &buf, sizeof(buf));
         assert(len == sizeof(buf));
         resp = (bus_resp_get_t *) buf;
+        em_printfout("%s:%d AUTOCONFIG_DEBUG resp->id:%d \n", __func__, __LINE__, resp->id);
         assert(resp->id == s_id);
         err = resp->rc;
+        em_printfout("%s:%d Reached End of Do \n", __func__, __LINE__);
     } while (0);
 
     free(resp);
@@ -1813,11 +1827,13 @@ bus_error_t network_get(char *event_name, raw_data_t *p_data, bus_user_data_t *u
 
 bus_error_t ssid_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
+    if(event_name != NULL) em_printfout("%s:%d AUTOCONFIG_DEBUG Calling ssid_get_inner event_name:%s \n", __func__, __LINE__, event_name);
     return bus_get_cb_fwd(event_name, p_data, user_data, ssid_get_inner);
 }
 
 bus_error_t ssid_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
+    if(event_name != NULL) em_printfout("%s:%d AUTOCONFIG_DEBUG Calling ssid_get_inner event_name:%s \n", __func__, __LINE__, event_name);
     return bus_get_cb_fwd(event_name, p_data, user_data, ssid_tget_inner);
 }
 
@@ -2042,6 +2058,19 @@ bus_error_t sta_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user
 #define ELEMENT_METHOD(n, f, t)     {n, bus_element_type_method, CALLBACK_METHOD(f), ELEMENT_DEFAULTS(t)}
 #define ELEMENT_TABLE(n, f, t)      {n, bus_element_type_table, CALLBACK_GETTER(f), ELEMENT_DEFAULTS(t)}
 
+#define ADDROW(f) f + "_table_addRowhandler"
+#define TABLE_GET(f) f + "_tget"
+#define TABLE_ELEMENT_DEFAULTS(d, t) slow_speed, d, {t, false, 0L, 0L, 0U, NULL}
+
+#define BUS_TABLE_CALLBACK(f) {TABLE_GET(f), NULL, ADDROW(f), NULL, NULL, NULL}
+#define ELEMENT_TABLE_TEST(n, f, d, t)      {n, bus_element_type_table, BUS_TABLE_CALLBACK(f), TABLE_ELEMENT_DEFAULTS(d, t)}
+
+/*{   DE_SSID_TABLE, bus_element_type_table,
+    {ssid_tget, NULL, ssid_table_addRowhandler, NULL, NULL, NULL}, slow_speed, num_of_vaps,
+    {bus_data_type_object, false, 0L, 0L, 0U, NULL}
+}*/
+
+
 int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
 {
     uint32_t count;
@@ -2052,7 +2081,8 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         ELEMENT_PROPERTY(DE_NETWORK_CTRLID,    network_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_NETWORK_COLAGTID,  network_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_NETWORK_DEVNOE,    network_get, bus_data_type_uint32),
-        ELEMENT_TABLE(DE_SSID_TABLE,           ssid_tget, bus_data_type_string),
+        //ELEMENT_TABLE(DE_SSID_TABLE,         ssid_tget, bus_data_type_string),
+        ELEMENT_TABLE_TEST(DE_SSID_TABLE,      ssid, num_of_vaps, bus_data_type_object),
         ELEMENT_PROPERTY(DE_SSID_SSID,         ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_BAND,         ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_ENABLE,       ssid_get, bus_data_type_boolean),
