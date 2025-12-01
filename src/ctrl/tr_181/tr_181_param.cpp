@@ -2060,11 +2060,11 @@ bus_error_t sta_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user
 #define ELEMENT_TABLE(n, f, t)      {n, bus_element_type_table, CALLBACK_GETTER(f), ELEMENT_DEFAULTS(t)}
 
 #define ADDROW(f) (std::string(f) + "_table_addRowhandler")
-#define TABLE_GET(f) (std::string(f) + "_tget")
+//#define TABLE_GET(f) (std::string(f) + "_tget")
 #define TABLE_ELEMENT_DEFAULTS(d, t) slow_speed, d, {t, false, 0L, 0L, 0U, NULL}
 
-#define BUS_TABLE_CALLBACK(f) {TABLE_GET(f), NULL, ADDROW(f), NULL, NULL, NULL}
-#define ELEMENT_TABLE_TEST(n, f, d, t)      {n, bus_element_type_table, BUS_TABLE_CALLBACK(f), TABLE_ELEMENT_DEFAULTS(d, t)}
+#define BUS_TABLE_CALLBACK(g, f) {g, NULL, ADDROW(f), NULL, NULL, NULL}
+#define ELEMENT_TABLE_TEST(n, g, f, d, t)      {n, bus_element_type_table, BUS_TABLE_CALLBACK(g,f), TABLE_ELEMENT_DEFAULTS(d, t)}
 
 /*{   DE_SSID_TABLE, bus_element_type_table,
     {ssid_tget, NULL, ssid_table_addRowhandler, NULL, NULL, NULL}, slow_speed, num_of_vaps,
@@ -2083,7 +2083,7 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         ELEMENT_PROPERTY(DE_NETWORK_COLAGTID,  network_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_NETWORK_DEVNOE,    network_get, bus_data_type_uint32),
         //ELEMENT_TABLE(DE_SSID_TABLE,         ssid_tget, bus_data_type_string),
-        ELEMENT_TABLE_TEST(DE_SSID_TABLE,      "ssid", NUM_OF_VAPS, bus_data_type_object),
+        ELEMENT_TABLE_TEST(DE_SSID_TABLE,      ssid_tget, "ssid", NUM_OF_VAPS, bus_data_type_object),
         ELEMENT_PROPERTY(DE_SSID_SSID,         ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_BAND,         ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_ENABLE,       ssid_get, bus_data_type_boolean),
