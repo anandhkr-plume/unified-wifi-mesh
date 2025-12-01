@@ -31,7 +31,7 @@
 #define MAX_INSTANCE_LEN        32
 #define MAX_CAPS_STR_LEN        32
 #define ARRAY_SIZE(a)           (sizeof(a) / sizeof(a[0]))
-#define NUM_OF_VAPS             24
+uint32_t num_of_vaps = 0;
 
 extern em_ctrl_t g_ctrl;
 
@@ -795,7 +795,7 @@ bus_error_t ssid_get_inner(char *event_name, raw_data_t *p_data, bus_user_data_t
 bus_error_t ssid_table_addRowhandler(char const *tableName, char const *aliasName, uint32_t *instNum) {
     em_printfout("%s:%d: AUTOCONFIG_DEBUG addRowHandler tableName=%s, aliasName=%s\n", __FUNCTION__, __LINE__, tableName, aliasName);
 
-    *instNum = *instNum + 1;
+    *instNum = ++num_of_vaps;
     em_printfout("%s:%d: AUTOCONFIG_DEBUG addRowHandler instNum:%d\n", __FUNCTION__, __LINE__, *instNum);
     return bus_error_success;
 }
@@ -2074,16 +2074,19 @@ bus_error_t sta_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user
 
 int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
 {
-    uint32_t count;
+    uint32_t count, max_num_of_vaps;
     bus_error_t rc;
     wifi_bus_desc_t *bus_desc;
+    dm_easy_mesh_t *dm = g_ctrl.get_first_dm();
+    max_num_of_vaps = dm->get_num_network_ssid();
+    em_printfout("%s:%d: AUTOCONFIG_DEBUG max_num_of_vaps:%d\n", __FUNCTION__, __LINE__, max_num_of_vaps);
     bus_data_element_t elements[] = {
         ELEMENT_PROPERTY(DE_NETWORK_ID,        network_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_NETWORK_CTRLID,    network_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_NETWORK_COLAGTID,  network_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_NETWORK_DEVNOE,    network_get, bus_data_type_uint32),
         //ELEMENT_TABLE(DE_SSID_TABLE,         ssid_tget, bus_data_type_string),
-        ELEMENT_TABLE_TEST(DE_SSID_TABLE,      ssid_tget, ssid_table_addRowhandler, NUM_OF_VAPS, bus_data_type_object),
+        ELEMENT_TABLE_TEST(DE_SSID_TABLE,      ssid_tget, ssid_table_addRowhandler, max_num_of_vaps, bus_data_type_object),
         ELEMENT_PROPERTY(DE_SSID_SSID,         ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_BAND,         ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_ENABLE,       ssid_get, bus_data_type_boolean),
