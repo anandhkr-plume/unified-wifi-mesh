@@ -1829,6 +1829,8 @@ bus_error_t network_get(char *event_name, raw_data_t *p_data, bus_user_data_t *u
 bus_error_t ssid_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     if(event_name != NULL) em_printfout("%s:%d AUTOCONFIG_DEBUG Calling ssid_get_inner event_name:%s \n", __func__, __LINE__, event_name);
+    ssid_tget(event_name, p_data, user_data);
+
     return bus_get_cb_fwd(event_name, p_data, user_data, ssid_get_inner);
 }
 
@@ -2063,8 +2065,8 @@ bus_error_t sta_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user
 //#define TABLE_GET(f) (std::string(f) + "_tget")
 #define TABLE_ELEMENT_DEFAULTS(d, t) slow_speed, d, {t, false, 0L, 0L, 0U, NULL}
 
-#define BUS_TABLE_CALLBACK(g, ar) {g, NULL, ar, NULL, NULL, NULL}
-#define ELEMENT_TABLE_TEST(n, g, ar, d, t)      {n, bus_element_type_table, BUS_TABLE_CALLBACK(g, ar), TABLE_ELEMENT_DEFAULTS(d, t)}
+#define BUS_TABLE_CALLBACK(ar) {NULL, NULL, ar, NULL, NULL, NULL}
+#define ELEMENT_TABLE_TEST(n, ar, d, t)      {n, bus_element_type_table, BUS_TABLE_CALLBACK(ar), TABLE_ELEMENT_DEFAULTS(d, t)}
 
 /*{   DE_SSID_TABLE, bus_element_type_table,
     {ssid_tget, NULL, ssid_table_addRowhandler, NULL, NULL, NULL}, slow_speed, num_of_vaps,
@@ -2086,7 +2088,7 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         ELEMENT_PROPERTY(DE_NETWORK_COLAGTID,  network_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_NETWORK_DEVNOE,    network_get, bus_data_type_uint32),
         //ELEMENT_TABLE(DE_SSID_TABLE,         ssid_tget, bus_data_type_string),
-        ELEMENT_TABLE_TEST(DE_SSID_TABLE,      ssid_tget, ssid_table_addRowhandler, max_num_of_vaps, bus_data_type_object),
+        ELEMENT_TABLE_TEST(DE_SSID_TABLE,      ssid_table_addRowhandler, max_num_of_vaps, bus_data_type_object),
         ELEMENT_PROPERTY(DE_SSID_SSID,         ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_BAND,         ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_ENABLE,       ssid_get, bus_data_type_boolean),
