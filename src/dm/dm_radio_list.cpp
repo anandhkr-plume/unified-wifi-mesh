@@ -148,7 +148,7 @@ void dm_radio_list_t::update_list(const dm_radio_t& radio, dm_orch_type_t op)
 
     switch (op) {
         case dm_orch_type_db_insert:
-            em_printfout("%s:%d AUTOCONFIG_DEBUG calling put_radio \n", __func__, __LINE__);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG calling put_radio mac_str:%s \n", __func__, __LINE__, mac_str);
             put_radio(mac_str, &radio);
             break;
 
