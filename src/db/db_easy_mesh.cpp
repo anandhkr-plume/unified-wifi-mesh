@@ -357,6 +357,7 @@ int db_easy_mesh_t::load_table(db_client_t& db_client)
     memset(query, 0, sizeof(db_query_t));
     snprintf(query, sizeof(db_query_t), "show tables");
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG query:%s \n", __func__, __LINE__, query);
     ctx = db_client.execute(query);
 
     while (db_client.next_result(ctx)) {
@@ -369,8 +370,10 @@ int db_easy_mesh_t::load_table(db_client_t& db_client)
     //printf("%s:%d: Table: %s %s\n", __func__, __LINE__, m_table_name, (present == true) ? "present":"not present");
 
     if (present == true) {
+        em_printfout("%s:%d: AUTOCONFIG_DEBUG Table: %s present, syncing table\n", __func__, __LINE__, m_table_name);
         sync_table(db_client);
     } else {
+        em_printfout("%s:%d: AUTOCONFIG_DEBUG Table: %s not present, creating table\n", __func__, __LINE__, m_table_name);
         create_table(db_client);
     }
 

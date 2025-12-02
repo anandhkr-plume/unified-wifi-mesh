@@ -148,6 +148,7 @@ void dm_radio_list_t::update_list(const dm_radio_t& radio, dm_orch_type_t op)
 
     switch (op) {
         case dm_orch_type_db_insert:
+            em_printfout("%s:%d AUTOCONFIG_DEBUG calling put_radio \n", __func__, __LINE__);
             put_radio(mac_str, &radio);
             break;
 
@@ -285,6 +286,7 @@ int dm_radio_list_t::sync_db(db_client_t& db_client, void *ctx)
 
         db_client.get_string(ctx, info.chip_vendor, 22);
 
+        em_printfout("%s:%d AUTOCONFIG_DEBUG calling update_list \n", __func__, __LINE__);
         update_list(dm_radio_t(&info), dm_orch_type_db_insert);
     }
     return rc;

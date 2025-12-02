@@ -1608,9 +1608,11 @@ void dm_easy_mesh_ctrl_t::init_tables()
 {
     dm_network_list_t::init();
     dm_device_list_t::init();
+    em_printfout("%s:%d AUTOCONFIG_DEBUG calling dm_network_ssid_list_t::init \n", __func__, __LINE__);
     dm_network_ssid_list_t::init();
     dm_ieee_1905_security_list_t::init();
     dm_radio_cap_list_t::init();
+    em_printfout("%s:%d AUTOCONFIG_DEBUG calling dm_radio_list_t::init \n", __func__, __LINE__);
     dm_radio_list_t::init();
     dm_op_class_list_t::init();
     dm_bss_list_t::init();
@@ -1628,6 +1630,7 @@ int dm_easy_mesh_ctrl_t::load_tables()
 {
     db_cfg_type_t type = db_cfg_type_none;
     
+    em_printfout("%s:%d AUTOCONFIG_DEBUG calling load_tables for ssid, Radio etc \n", __func__, __LINE__);
     if (dm_network_list_t::load_table(m_db_client) != 0) {
         type = db_cfg_type_network_list_update;
     } else if (dm_device_list_t::load_table(m_db_client) != 0) {
@@ -2051,7 +2054,9 @@ int dm_easy_mesh_ctrl_t::init(const char *data_model_path, em_mgr_t *mgr)
 {
     int rc;
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG calling m_data_model_list.init(mgr) \n", __func__, __LINE__);
     m_data_model_list.init(mgr);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG calling init_tables() \n", __func__, __LINE__);
     init_tables();
 
     if (m_db_client.init(data_model_path) != 0) {
@@ -2059,6 +2064,7 @@ int dm_easy_mesh_ctrl_t::init(const char *data_model_path, em_mgr_t *mgr)
         return -1;
     }
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG calling load_tables() \n", __func__, __LINE__);
     rc = load_tables();
 
     //Database is empty and need to fill it, then load tables with data again

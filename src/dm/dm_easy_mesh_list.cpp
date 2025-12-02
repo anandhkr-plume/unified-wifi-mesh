@@ -338,6 +338,7 @@ void dm_easy_mesh_list_t::put_radio(const char *key, const dm_radio_t *radio)
 
     //printf("%s:%d: Radio: %s\n", __func__, __LINE__, key);
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG  \n", __func__, __LINE__);
     if ((pradio = get_radio(key)) == NULL) {
         dm = get_data_model(radio->m_radio_info.id.net_id, radio->m_radio_info.id.dev_mac);
         dm_easy_mesh_t::macbytes_to_string(const_cast<unsigned char *> (radio->m_radio_info.id.dev_mac), dev_mac);
@@ -348,6 +349,7 @@ void dm_easy_mesh_list_t::put_radio(const char *key, const dm_radio_t *radio)
 
         //printf("%s:%d: Current Number of Radios: %d\n", __func__, __LINE__, dm->get_num_radios());
         dm->set_num_radios(dm->get_num_radios() + 1);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Number of Radios: %d\n", __func__, __LINE__, dm->get_num_radios());
         pradio = dm->get_radio(dm->get_num_radios() - 1);
     }
     *pradio = *radio;
@@ -826,6 +828,7 @@ void dm_easy_mesh_list_t::put_network_ssid(const char *key, const dm_network_ssi
             pnet_ssid = dm->get_network_ssid(dm->get_num_network_ssid());
             *pnet_ssid = *net_ssid;
             dm->set_num_network_ssid(dm->get_num_network_ssid() + 1);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG Number of SSIDs:%d \n", __func__, __LINE__, dm->get_num_network_ssid());
         }
         dm = static_cast<dm_easy_mesh_t *> (hash_map_get_next(m_list, dm));
     }
