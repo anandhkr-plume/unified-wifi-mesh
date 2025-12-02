@@ -339,7 +339,7 @@ void dm_easy_mesh_list_t::put_radio(const char *key, const dm_radio_t *radio)
     //printf("%s:%d: Radio: %s\n", __func__, __LINE__, key);
 
     em_printfout("%s:%d AUTOCONFIG_DEBUG  \n", __func__, __LINE__);
-    if ((pradio = get_radio(key)) == NULL) {
+    if ((pradio = get_radio(key)) != NULL) {
         dm = get_data_model(radio->m_radio_info.id.net_id, radio->m_radio_info.id.dev_mac);
         dm_easy_mesh_t::macbytes_to_string(const_cast<unsigned char *> (radio->m_radio_info.id.dev_mac), dev_mac);
 		//printf("%s:%d: dm: %p net: %s device: %s\n", __func__, __LINE__, dm, radio->m_radio_info.id.net_id, dev_mac);
