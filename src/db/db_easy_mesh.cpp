@@ -24,6 +24,7 @@
 #include <assert.h>
 #include <signal.h>
 #include "db_easy_mesh.h"
+#include "util.h"
 
 char *db_easy_mesh_t::get_column_format(db_fmt_t fmt, unsigned int pos)
 {

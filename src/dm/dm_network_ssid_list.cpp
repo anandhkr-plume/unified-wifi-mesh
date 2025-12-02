@@ -38,6 +38,7 @@
 #include "dm_network_ssid_list.h"
 #include "dm_easy_mesh.h"
 #include "em_cmd.h"
+#include "util.h"
 
 int dm_network_ssid_list_t::get_config(cJSON *obj_arr, void *parent_id, bool summary)
 {
@@ -167,6 +168,7 @@ void dm_network_ssid_list_t::update_list(const dm_network_ssid_t& net_ssid, dm_o
 
 	switch (op) {
 		case dm_orch_type_db_insert:
+			em_printfout("%s:%d AUTOCONFIG_DEBUG calling put_network_ssid\n", __func__, __LINE__);
             put_network_ssid(net_ssid.m_network_ssid_info.id, &net_ssid);
             break;
 
@@ -433,7 +435,7 @@ int dm_network_ssid_list_t::sync_db(db_client_t& db_client, void *ctx)
 			//printf("%s:%d: Haul Type[%d]: %s\n", __func__, __LINE__, i, info.haul_type[i]);
 		}
 
-        
+        em_printfout("%s:%d AUTOCONFIG_DEBUG calling update_list\n", __func__, __LINE__);
 		update_list(dm_network_ssid_t(&info), dm_orch_type_db_insert);
     }
     return rc;
