@@ -358,7 +358,6 @@ int db_easy_mesh_t::load_table(db_client_t& db_client)
     memset(query, 0, sizeof(db_query_t));
     snprintf(query, sizeof(db_query_t), "show tables");
 
-    em_printfout("%s:%d AUTOCONFIG_DEBUG query:%s \n", __func__, __LINE__, query);
     ctx = db_client.execute(query);
 
     while (db_client.next_result(ctx)) {
