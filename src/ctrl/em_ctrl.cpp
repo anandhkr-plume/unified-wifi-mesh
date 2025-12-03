@@ -949,11 +949,11 @@ bus_error_t cmd_setssid(const char *event_name, raw_data_t *inParams, raw_data_t
             case bus_data_type_string:
                 em_printfout("%s:%d AUTOCONFIG_DEBUG string:%s \n", __func__, __LINE__, (char*)params->raw_data.bytes);
                 break;
-            case bus_data_type_property: | bus_data_type_object:
-                em_printfout("%s:%d AUTOCONFIG_DEBUG property or object: \n", __func__, __LINE__);
+            case bus_data_type_property | bus_data_type_object:
+                em_printfout("%s:%d AUTOCONFIG_DEBUG property or object \n", __func__, __LINE__);
                 break;
             default:
-                em_printfout("%s:%d AUTOCONFIG_DEBUG Other data type:%u \n", __func__, __LINE__, (unsigned int)(params->raw_data.bytes));
+                em_printfout("%s:%d AUTOCONFIG_DEBUG Other data type \n", __func__, __LINE__);
                 break;
         }
     }
