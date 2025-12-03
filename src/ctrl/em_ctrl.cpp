@@ -927,6 +927,47 @@ void em_ctrl_t::io(void *data, bool input)
     delete m_ctrl_cmd;
 }
 
+bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, raw_data_t *inParams, raw_data_t *outParams, void *user_data) {
+    (void)user_data;
+    raw_data_t *params = NULL;
+
+    em_printfout("%s:%d AUTOCONFIG_DEBUG  Received parameters in cmd_setssid\n", __func__, __LINE__);
+
+    if(!inParams || !event_name ) {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG inParams or Event Name is NULL\n", __func__, __LINE__);
+        return bus_error_invalid_input;
+    }
+    
+    params = (raw_data_t *)inParams;
+    em_printfout("%s:%d AUTOCONFIG_DEBUG type:%d len:%d \n", __func__, __LINE__, params->data_type, params->raw_data_len);
+    if(params->raw_data_len > 0) {
+        switch(params->data_type) {
+            case bus_data_type_bytes:
+                em_printfout("%s:%d AUTOCONFIG_DEBUG Bytes: \n", __func__, __LINE__);
+                util::print_hex_dump(params->raw_data_len, (unsigned char *)(params->raw_data.bytes));
+                break;
+            case bus_data_type_string:
+                em_printfout("%s:%d AUTOCONFIG_DEBUG string:%s \n", __func__, __LINE__, (char*)params->raw_data.bytes);
+                break;
+            case bus_data_type_property: | bus_data_type_object:
+                em_printfout("%s:%d AUTOCONFIG_DEBUG property or object: \n", __func__, __LINE__);
+                break;
+            default:
+                em_printfout("%s:%d AUTOCONFIG_DEBUG Other data type:%u \n", __func__, __LINE__, (unsigned int)(params->raw_data.bytes));
+                break;
+        }
+    }
+
+    return bus_error_success;
+}
+
+bus_error_t cmd_ssid_set(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
+    (void)user_data;
+    em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s data_type:%d \n", __func__, __LINE__, event_name, p_data->data_type);
+
+    return bus_error_success;
+}
+
 void em_ctrl_t::start_complete()
 {
 	dm_easy_mesh_t *dm;
