@@ -927,7 +927,7 @@ void em_ctrl_t::io(void *data, bool input)
     delete m_ctrl_cmd;
 }
 
-bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, raw_data_t *inParams, raw_data_t *outParams, void *user_data) {
+bus_error_t cmd_setssid(const char *event_name, raw_data_t *inParams, raw_data_t *outParams, void *user_data) {
     (void)user_data;
     raw_data_t *params = NULL;
 
