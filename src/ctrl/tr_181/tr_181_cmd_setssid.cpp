@@ -17,20 +17,29 @@
  */
 #include "em_ctrl.h"
 #include "tr_181.h"
+#include "util.h"
 
 extern em_ctrl_t g_ctrl;
 extern char *global_netid;
 
 #define MAX_PARAM_LEN 128
 
+bus_error_t em_ctrl_t::cmd_ssid_set(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
+    (void)user_data;
+    em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s data_type:%d \n", __func__, __LINE__, event_name, p_data->data_type);
+
+    return bus_error_success;
+}
 //TODO: Rbus abstraction needed for this async method call, it will be enabled once its ready
-bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, bus_data_prop_t const *input_data, bus_data_prop_t *output_data, void *user_data)
+//bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, bus_data_prop_t const *input_data, bus_data_prop_t *output_data, void *user_data)
+bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, raw_data_t *inParams, raw_data_t *outParams, void *user_data)
 {
     em_subdoc_info_t *subdoc = NULL;
     unsigned char buff[EM_IO_BUFF_SZ];
     cJSON *json = NULL, *root = NULL, *new_json = NULL, *ssid_list = NULL, *target = NULL, *item = NULL, *ssid_item = NULL, *child = NULL, *next = NULL, *band_arr = NULL, *akm_arr = NULL, *json_obj = NULL;
     char *jsonbuff = NULL, *updated_json = NULL, *new_json_str = NULL;
-    bus_data_prop_t const *prop = NULL;
+    //bus_data_prop_t const *prop = NULL;
+    raw_data_t *params = NULL;
     char ssid[MAX_PARAM_LEN] = {0};
     char passphrase[MAX_PARAM_LEN] = {0};
     char band[MAX_PARAM_LEN] = {0};
@@ -42,7 +51,31 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, bus_data_prop_t const
     em_printfout("Received parameters in cmd_setssid");
     em_printfout("%s:%d AUTOCONFIG_DEBUG  Received parameters in cmd_setssid\n", __func__, __LINE__);
 
-    prop = input_data;
+    if(!inParams || !event_name ) {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG inParams or Event Name is NULL\n", __func__, __LINE__);
+        return bus_error_invalid_input;
+    }
+    
+    params = (raw_data_t *)inParams;
+    em_printfout("%s:%d AUTOCONFIG_DEBUG type:%d len:%d \n", __func__, __LINE__, params->data_type, params->raw_data_len);
+    if(params->raw_data_len > 0) {
+        switch(params->data_type) {
+            case bus_data_type_bytes:
+                em_printfout("%s:%d AUTOCONFIG_DEBUG Bytes: \n", __func__, __LINE__);
+                util::print_hex_dump(params->raw_data_len, (unsigned char *)(params->raw_data.bytes));
+                break;
+            case bus_data_type_string:
+                em_printfout("%s:%d AUTOCONFIG_DEBUG string:%s \n", __func__, __LINE__, (char*)params->raw_data.bytes);
+                break;
+            case bus_data_type_property: | bus_data_type_object:
+                em_printfout("%s:%d AUTOCONFIG_DEBUG property or object: \n", __func__, __LINE__);
+                break;
+            default:
+                em_printfout("%s:%d AUTOCONFIG_DEBUG Other data type:%u \n", __func__, __LINE__, (unsigned int)(params->raw_data.bytes));
+                break;
+        }
+    }
+    /*prop = input_data;
     while (prop) {
         em_printfout("Param %d: name='%s', value='%s', len=%u", idx, prop->name, (char*)prop->value.raw_data.bytes, prop->value.raw_data_len);
         prop = prop->next_data;
@@ -197,7 +230,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, bus_data_prop_t const
 
     g_ctrl.io_process(em_bus_event_type_set_ssid, subdoc->buff, strlen(subdoc->buff));
     free(updated_json);
-    cJSON_Delete(json);
+    cJSON_Delete(json);*/
 
     return bus_error_success;
 }

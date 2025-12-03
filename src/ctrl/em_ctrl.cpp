@@ -949,7 +949,7 @@ void em_ctrl_t::start_complete()
 		//	{ get_device_wifi_dataelements_network_controllerid, NULL , NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
 		// 	{ bus_data_type_string, false, 0, 0, 0, NULL } },
 		{ DEVICE_WIFI_DATAELEMENTS_NETWORK_SETSSID_CMD, bus_element_type_method,
-			{ NULL, cmd_setssid, NULL, NULL, NULL, NULL}, slow_speed, ZERO_TABLE,
+			{ NULL, cmd_ssid_set, NULL, NULL, NULL, cmd_setssid}, slow_speed, ZERO_TABLE,
 			{ bus_data_type_string, true, 0, 0, 0, NULL } },
 		{ DEVICE_WIFI_DATAELEMENTS_NETWORK_TOPOLOGY, bus_element_type_method,
 			{ NULL, NULL , NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
