@@ -337,17 +337,11 @@ void dm_easy_mesh_list_t::put_radio(const char *key, const dm_radio_t *radio)
     em_t *em = NULL;
 
     //printf("%s:%d: Radio: %s\n", __func__, __LINE__, key);
-    *pradio = *radio;
-
-    dm_easy_mesh_t::macbytes_to_string(pradio->m_radio_info.id.dev_mac, dev_mac);
-    if ((em = m_mgr->create_node(&pradio->m_radio_info.intf, static_cast<em_freq_band_t> (pradio->m_radio_info.media_data.band), dm, false,
-            em_profile_type_3, em_service_type_ctrl)) != NULL) {
-        em_printfout("Node created successfully for radio:%s almac:%s", key, dev_mac);
-    }
-
+    em_printfout("%s:%d AUTOCONFIG_DEBUG  \n", __func__, __LINE__);
     if ((pradio = get_radio(key)) == NULL) {
         dm = get_data_model(radio->m_radio_info.id.net_id, radio->m_radio_info.id.dev_mac);
         dm_easy_mesh_t::macbytes_to_string(const_cast<unsigned char *> (radio->m_radio_info.id.dev_mac), dev_mac);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG dev_mac:%s \n", __func__, __LINE__, dev_mac);
 		//printf("%s:%d: dm: %p net: %s device: %s\n", __func__, __LINE__, dm, radio->m_radio_info.id.net_id, dev_mac);
         if (dm == NULL) {
             em_printfout("%s:%d AUTOCONFIG_DEBUG dm is NULL\n", __func__, __LINE__);
@@ -358,6 +352,15 @@ void dm_easy_mesh_list_t::put_radio(const char *key, const dm_radio_t *radio)
         dm->set_num_radios(dm->get_num_radios() + 1);
         em_printfout("%s:%d AUTOCONFIG_DEBUG Number of Radios: %d\n", __func__, __LINE__, dm->get_num_radios());
         pradio = dm->get_radio(dm->get_num_radios() - 1);
+    }
+    *pradio = *radio;
+
+    dm_easy_mesh_t::macbytes_to_string(pradio->m_radio_info.id.dev_mac, dev_mac);
+    if ((em = m_mgr->create_node(&pradio->m_radio_info.intf, static_cast<em_freq_band_t> (pradio->m_radio_info.media_data.band), dm, false,
+            em_profile_type_3, em_service_type_ctrl)) != NULL) {
+        em_printfout("Node created successfully for radio:%s almac:%s", key, dev_mac);
+        dm->set_num_radios(dm->get_num_radios() + 1);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Number of Radios: %d\n", __func__, __LINE__, dm->get_num_radios());
     }
 }
 
