@@ -2147,7 +2147,7 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         ELEMENT_PROPERTY(DE_DEVICE_CACSTATNOE, device_get, bus_data_type_uint32),
         ELEMENT_PROPERTY(DE_DEVICE_BHDOWNNOE,  device_get, bus_data_type_uint32),
         //ELEMENT_TABLE(DE_RADIO_TABLE,          radio_tget, bus_data_type_string),
-        ELEMENT_TABLE_HANDLE(DE_RADIO_TABLE,      radio_table_addRowhandler, max_num_of_radios, bus_data_type_object),
+        ELEMENT_TABLE_HANDLE(DE_RADIO_TABLE,      radio_table_addRowhandler, EM_MAX_BANDS, bus_data_type_object),
         ELEMENT_PROPERTY(DE_RADIO_ID,          radio_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_RADIO_ENABLED,     radio_get, bus_data_type_boolean),
         ELEMENT_PROPERTY(DE_RADIO_NOISE,       radio_get, bus_data_type_uint32),

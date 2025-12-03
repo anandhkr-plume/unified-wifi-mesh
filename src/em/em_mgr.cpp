@@ -222,13 +222,6 @@ em_t *em_mgr_t::create_node(em_interface_t *ruid, em_freq_band_t band, dm_easy_m
     hash_map_put(m_em_map, strdup(mac_str), em);
 	pthread_mutex_unlock(&m_mutex);
     printf("%s:%d: created entry for key:%s\n", __func__, __LINE__, mac_str);
-    dm = em->get_data_model();
-    if (dm != NULL) {
-        dm->set_num_radios(dm->get_num_radios() + 1);
-        em_printfout("%s:%d AUTOCONFIG_DEBUG Number of Radios: %d\n", __func__, __LINE__, dm->get_num_radios());
-    } else {
-        em_printfout("%s:%d AUTOCONFIG_DEBUG dm is NULL\n", __func__, __LINE__);
-    }
 
     return em;
 }
