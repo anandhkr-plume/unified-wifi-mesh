@@ -359,8 +359,27 @@ void dm_easy_mesh_list_t::put_radio(const char *key, const dm_radio_t *radio)
     if ((em = m_mgr->create_node(&pradio->m_radio_info.intf, static_cast<em_freq_band_t> (pradio->m_radio_info.media_data.band), dm, false,
             em_profile_type_3, em_service_type_ctrl)) != NULL) {
         em_printfout("Node created successfully for radio:%s almac:%s", key, dev_mac);
-        dm->set_num_radios(dm->get_num_radios() + 1);
-        em_printfout("%s:%d AUTOCONFIG_DEBUG Number of Radios: %d\n", __func__, __LINE__, dm->get_num_radios());
+        if ((pradio = get_radio(key)) == NULL) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG call get_data_model \n", __func__, __LINE__);
+            dm = get_data_model(radio->m_radio_info.id.net_id, radio->m_radio_info.id.dev_mac);
+            if (dm == NULL) {
+                em_printfout("%s:%d AUTOCONFIG_DEBUG dm is NULL\n", __func__, __LINE__);
+                return;
+            }
+            dm->set_num_radios(dm->get_num_radios() + 1);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG Number of Radios: %d\n", __func__, __LINE__, dm->get_num_radios());
+            pradio = dm->get_radio(dm->get_num_radios() - 1);
+        } else {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG get_radio is not NULL \n", __func__, __LINE__);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG call get_data_model \n", __func__, __LINE__);
+            dm = get_data_model(radio->m_radio_info.id.net_id, radio->m_radio_info.id.dev_mac);
+            if (dm == NULL) {
+                em_printfout("%s:%d AUTOCONFIG_DEBUG dm is NULL\n", __func__, __LINE__);
+                return;
+            }
+            dm->set_num_radios(dm->get_num_radios() + 1);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG Number of Radios: %d\n", __func__, __LINE__, dm->get_num_radios());
+        }
     }
 }
 
