@@ -444,7 +444,7 @@ void em_ctrl_t::handle_nb_event(em_nb_event_t *evt)
             resp->rc = cb(name, property, NULL);
             em_printfout("%s:%d AUTOCONFIG_DEBUG id:%d \n", __func__, __LINE__, resp->id);
         } break;
-#if 0
+
         case NB_REQTYPE_METHOD: {
             const char *method = evt->u.method.method;
             rbusObject_t in = static_cast<rbusObject_t> (evt->u.method.in);
@@ -453,7 +453,7 @@ void em_ctrl_t::handle_nb_event(em_nb_event_t *evt)
             rbusMethodHandler_t cb = (rbusMethodHandler_t) evt->cb;
             resp->rc = cb(NULL, method, in, out, async);
         } break;
-#endif
+
         default:
             break;
     }
@@ -949,7 +949,7 @@ void em_ctrl_t::start_complete()
 		//	{ get_device_wifi_dataelements_network_controllerid, NULL , NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
 		// 	{ bus_data_type_string, false, 0, 0, 0, NULL } },
 		{ DEVICE_WIFI_DATAELEMENTS_NETWORK_SETSSID_CMD, bus_element_type_method,
-			{ NULL, NULL, NULL, NULL, NULL, cmd_setssid}, slow_speed, ZERO_TABLE,
+			{ NULL, cmd_setssid, NULL, NULL, NULL, NULL}, slow_speed, ZERO_TABLE,
 			{ bus_data_type_string, true, 0, 0, 0, NULL } },
 		{ DEVICE_WIFI_DATAELEMENTS_NETWORK_TOPOLOGY, bus_element_type_method,
 			{ NULL, NULL , NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,

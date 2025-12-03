@@ -40,7 +40,8 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, bus_data_prop_t const
     size_t json_len = 0;
     
     em_printfout("Received parameters in cmd_setssid");
-    
+    em_printfout("%s:%d AUTOCONFIG_DEBUG  Received parameters in cmd_setssid\n", __func__, __LINE__);
+
     prop = input_data;
     while (prop) {
         em_printfout("Param %d: name='%s', value='%s', len=%u", idx, prop->name, (char*)prop->value.raw_data.bytes, prop->value.raw_data_len);
@@ -51,7 +52,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, bus_data_prop_t const
     // Extract parameters from input_data
     prop = input_data;
     while (prop) {
-        em_printfout("name='%s', value='%.*s', len=%u", prop->name, (int)prop->value.raw_data_len, (char*)prop->value.raw_data.bytes, prop->value.raw_data_len);
+        em_printfout("%s:%d name='%s', value='%.*s', len=%u\n", prop->name, (int)prop->value.raw_data_len, (char*)prop->value.raw_data.bytes, prop->value.raw_data_len, __func__, __LINE__);
         if (strcmp(prop->name, "SSID") == 0) {
             strncpy(ssid, (char*)prop->value.raw_data.bytes, MAX_PARAM_LEN - 1);
             ssid[MAX_PARAM_LEN - 1] = '\0';

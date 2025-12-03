@@ -1816,6 +1816,7 @@ bus_error_t bus_get_cb_fwd(char *event_name, raw_data_t *p_data, bus_user_data_t
             err = bus_error_out_of_resources;
             break;
         }
+        em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s \n", __func__, __LINE__, event_name);
         s_id = g_ctrl.get_next_nb_evt_id();
         req->type = em_event_type_nb;
         req->u.nevt.id = s_id;
