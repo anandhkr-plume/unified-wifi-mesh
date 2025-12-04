@@ -22,7 +22,7 @@
 extern em_ctrl_t g_ctrl;
 extern char *global_netid;
 
-#define MAX_PARAM_LEN 128
+//#define MAX_PARAM_LEN 128
 
 #if 0
 //TODO: Rbus abstraction needed for this async method call, it will be enabled once its ready

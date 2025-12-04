@@ -650,6 +650,7 @@ bus_error_t device_get_inner(char *event_name, raw_data_t *p_data, bus_user_data
     }
     ++param;
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s \n", __func__, __LINE__, event_name);
     name += sizeof(DATAELEMS_NETWORK);
     name = get_table_instance(name, instance, MAX_INSTANCE_LEN, &is_num);
     dm_easy_mesh_t *dm = get_dm_easy_mesh(instance, is_num);
@@ -713,6 +714,7 @@ bus_error_t device_get_inner(char *event_name, raw_data_t *p_data, bus_user_data
         rc = raw_data_set(p_data, di->num_backhaul_down_mac);
     } else {
         printf("Invalid param: %s\n", param);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Invalid param: %s\n", __func__, __LINE__, param);
         rc = bus_error_invalid_input;
     }
 
@@ -1864,6 +1866,7 @@ bus_error_t ssid_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *use
 
 bus_error_t device_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
+    if(event_name != NULL) em_printfout("%s:%d AUTOCONFIG_DEBUG Calling device_get_inner event_name:%s \n", __func__, __LINE__, event_name);
     return bus_get_cb_fwd(event_name, p_data, user_data, device_get_inner);
 }
 
@@ -1876,6 +1879,7 @@ bus_error_t device_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *u
 
 bus_error_t radio_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
+    if(event_name != NULL) em_printfout("%s:%d AUTOCONFIG_DEBUG Calling radio_get_inner event_name:%s \n", __func__, __LINE__, event_name);
     return bus_get_cb_fwd(event_name, p_data, user_data, radio_get_inner);
 }
 
@@ -2114,7 +2118,7 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         dm = g_ctrl.get_next_dm(dm);
     }
 
-    em_printfout("%s:%d: AUTOCONFIG_DEBUG max_num_of_vaps:%d max_num_of_radios:%d \n", __FUNCTION__, __LINE__, max_num_of_vaps, max_num_of_radios);
+    em_printfout("%s:%d: AUTOCONFIG_DEBUG max_num_of_vaps:%d max_num_of_radios:%d max_num_of_devices:%d \n", __FUNCTION__, __LINE__, max_num_of_vaps, max_num_of_radios, max_num_of_devices);
     bus_data_element_t elements[] = {
         ELEMENT_PROPERTY(DE_NETWORK_ID,        network_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_NETWORK_CTRLID,    network_get, bus_data_type_string),
@@ -2147,7 +2151,7 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         ELEMENT_PROPERTY(DE_DEVICE_CACSTATNOE, device_get, bus_data_type_uint32),
         ELEMENT_PROPERTY(DE_DEVICE_BHDOWNNOE,  device_get, bus_data_type_uint32),
         //ELEMENT_TABLE(DE_RADIO_TABLE,          radio_tget, bus_data_type_string),
-        ELEMENT_TABLE_HANDLE(DE_RADIO_TABLE,      radio_table_addRowhandler, EM_MAX_BANDS, bus_data_type_object),
+        ELEMENT_TABLE_HANDLE(DE_RADIO_TABLE,      radio_table_addRowhandler, max_num_of_radios, bus_data_type_object),
         ELEMENT_PROPERTY(DE_RADIO_ID,          radio_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_RADIO_ENABLED,     radio_get, bus_data_type_boolean),
         ELEMENT_PROPERTY(DE_RADIO_NOISE,       radio_get, bus_data_type_uint32),
