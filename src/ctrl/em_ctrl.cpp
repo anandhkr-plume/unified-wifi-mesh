@@ -1085,11 +1085,11 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     return bus_error_success;
 }
 
-bus_error_t cmd_ssid_set(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
+/*bus_error_t cmd_ssid_set(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
     (void)user_data;
     em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s data_type:%d input:%s \n", __func__, __LINE__, event_name, p_data->data_type, (char *) p_data->raw_data.bytes);
     return g_ctrl.ctrl_cmd_ssid_set(event_name, p_data, user_data);
-}
+}*/
 
 void em_ctrl_t::start_complete()
 {
@@ -1113,7 +1113,7 @@ void em_ctrl_t::start_complete()
 		//	{ get_device_wifi_dataelements_network_controllerid, NULL , NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
 		// 	{ bus_data_type_string, false, 0, 0, 0, NULL } },
 		{ DEVICE_WIFI_DATAELEMENTS_NETWORK_SETSSID_CMD, bus_element_type_method,
-			{ NULL, cmd_ssid_set, NULL, NULL, NULL, cmd_setssid}, slow_speed, ZERO_TABLE,
+			{ NULL, ctrl_cmd_ssid_set, NULL, NULL, NULL, cmd_setssid}, slow_speed, ZERO_TABLE,
 			{ bus_data_type_string, true, 0, 0, 0, NULL } },
 		{ DEVICE_WIFI_DATAELEMENTS_NETWORK_TOPOLOGY, bus_element_type_method,
 			{ NULL, NULL , NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
