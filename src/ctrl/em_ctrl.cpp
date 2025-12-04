@@ -963,13 +963,13 @@ bus_error_t cmd_setssid(const char *event_name, raw_data_t *inParams, raw_data_t
 
 #define MAX_PARAM_LEN 64
 
-bus_error_t cmd_ssid_set(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
+bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
     (void)user_data;
     em_subdoc_info_t *subdoc = NULL;
     unsigned char buff[EM_IO_BUFF_SZ];
     cJSON *json = NULL, *target = NULL, *ssid_list = NULL, *haul_type_arr = NULL, *haul_type_item = NULL, *item = NULL, *root = NULL, *child = NULL, *next = NULL, *new_json = NULL, *json_obj = NULL;
     char *jsonbuff = NULL, ssid[p_data->raw_data_len] = {0}, *updated_json = NULL;
-    unsigned int haul_type = 0;
+    unsigned int haul_type = 0, json_len = 0;
     bool found = false;
 
     if(!p_data || p_data->raw_data_len < 5) {
@@ -1025,7 +1025,17 @@ bus_error_t cmd_ssid_set(char *event_name, raw_data_t *p_data, bus_user_data_t *
     cJSON_ArrayForEach(item, ssid_list) {
         haul_type_arr = cJSON_GetObjectItem(item, "HaulType");
         cJSON *temp_ssid = cJSON_GetObjectItem(item, "SSID");
-        em_printfout("%s:%d AUTOCONFIG_DEBUG temp_ssid:%s \n", __func__, __LINE__, temp_ssid->value_string);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG temp_ssid:%s \n", __func__, __LINE__, temp_ssid->valuestring);
+
+        if(cJSON_IsNumber(haul_type_arr)) {
+            haul_type = (unsigned int) cJSON_GetNumberValue(haul_type_arr);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG haul_type:%d\n", __func__, __LINE__, haul_type);
+            if(haul_type == em_haul_type_fronthaul) {
+                target = item;
+                found = true;
+            }
+        }
+        if(found) break;
 
         if(haul_type_arr == NULL || !cJSON_IsArray(haul_type_arr)) {
             em_printfout("ERROR: HaulType not found or is not an array\n");
@@ -1034,7 +1044,7 @@ bus_error_t cmd_ssid_set(char *event_name, raw_data_t *p_data, bus_user_data_t *
         }
 
         cJSON_ArrayForEach(haul_type_item, haul_type_arr) {
-            haul_type = cJSON_GetObjectItem(haul_type_item);
+            haul_type = (unsigned int) cJSON_GetNumberValue(haul_type_item);
             em_printfout("%s:%d AUTOCONFIG_DEBUG haul_type:%d\n", __func__, __LINE__, haul_type);
             if(haul_type == em_haul_type_fronthaul) {
                 target = item;
@@ -1073,6 +1083,12 @@ bus_error_t cmd_ssid_set(char *event_name, raw_data_t *p_data, bus_user_data_t *
     cJSON_Delete(json);
 
     return bus_error_success;
+}
+
+bus_error_t cmd_ssid_set(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
+    (void)user_data;
+    em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s data_type:%d input:%s \n", __func__, __LINE__, event_name, p_data->data_type, (char *) p_data->raw_data.bytes);
+    return g_ctrl.ctrl_cmd_ssid_set(event_name, p_data, user_data);
 }
 
 void em_ctrl_t::start_complete()
