@@ -968,16 +968,18 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     em_subdoc_info_t *subdoc = NULL;
     unsigned char buff[EM_IO_BUFF_SZ];
     cJSON *json = NULL, *target = NULL, *ssid_list = NULL, *haul_type_arr = NULL, *haul_type_item = NULL, *item = NULL, *root = NULL, *child = NULL, *next = NULL, *new_json = NULL, *json_obj = NULL;
-    char *jsonbuff = NULL, ssid[p_data->raw_data_len] = {0}, *updated_json = NULL;
+    char *jsonbuff = NULL, ssid[MAX_PARAM_LEN] = {0}, *updated_json = NULL;
     unsigned int haul_type = 0, json_len = 0;
     bool found = false;
 
-    if(!p_data || p_data->raw_data_len < 5) {
+    if(!p_data || p_data->raw_data_len < 5 || p_data->raw_data_len >= MAX_PARAM_LEN) {
         em_printfout("ERROR: Incorrect Input parameters in cmd_ssid_set\n");
         return bus_error_invalid_input;
     }
 
-    em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s data_type:%d input:%s \n", __func__, __LINE__, event_name, p_data->data_type, (char *) p_data->raw_data.bytes);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s data_type:%d data_len:%d input:%s \n", __func__, __LINE__,
+        event_name, p_data->data_type, p_data->raw_data_len, (char *) p_data->raw_data.bytes);
+
     strncpy(ssid, (char *)p_data->raw_data.bytes, MAX_PARAM_LEN - 1);
     ssid[MAX_PARAM_LEN - 1] = '\0';
 
@@ -988,6 +990,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
         em_printfout("%s:%d ERROR: subdoc->buff is NULL\n", __func__, __LINE__);
         return bus_error_invalid_input;
     }
+    em_printfout("%s:%d AUTOCONFIG_DEBUG name:%s \n", __func__, __LINE__, subdoc->name);
     em_printfout("%s:%d AUTOCONFIG_DEBUG buff:%s \n", __func__, __LINE__, subdoc->buff);
 
     json = cJSON_Parse(subdoc->buff);
@@ -997,9 +1000,10 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     }
 
     root = cJSON_CreateObject();
-
+    em_printfout("%s:%d AUTOCONFIG_DEBUG root: %p \n", __func__, __LINE__, root);
     new_json = cJSON_CreateObject();
     cJSON_AddStringToObject(new_json, "ID", "OneWifiMesh");
+    em_printfout("%s:%d AUTOCONFIG_DEBUG new_json: %s \n", __func__, __LINE__, new_json->valuestring);
 
     child = json->child;
     while (child) {
@@ -1012,6 +1016,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
         free(print_json_child);
     }
     cJSON_Delete(json);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Assign new_json to json \n", __func__, __LINE__);
     json = new_json;
 
     cJSON_AddItemToObject(root, "wfa-dataelements:SetSSID", json);
