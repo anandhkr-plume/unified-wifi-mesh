@@ -984,6 +984,10 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     subdoc = (em_subdoc_info_t *)buff;
     strncpy(subdoc->name, "NetworkSSIDList", strlen("NetworkSSIDList"));
     g_ctrl.m_data_model.get_config("OneWifiMesh", subdoc);
+    if(subdoc->buff == NULL) {
+        em_printfout("%s:%d ERROR: subdoc->buff is NULL\n", __func__, __LINE__);
+        return bus_error_invalid_input;
+    }
     em_printfout("%s:%d AUTOCONFIG_DEBUG buff:%s \n", __func__, __LINE__, subdoc->buff);
 
     json = cJSON_Parse(subdoc->buff);
