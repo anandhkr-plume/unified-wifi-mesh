@@ -31,6 +31,7 @@
 #define MAX_INSTANCE_LEN        32
 #define MAX_CAPS_STR_LEN        32
 #define ARRAY_SIZE(a)           (sizeof(a) / sizeof(a[0]))
+uint32_t num_of_vaps = 0, num_of_radios = 0, num_of_devices = 0;
 
 extern em_ctrl_t g_ctrl;
 
@@ -784,6 +785,27 @@ bus_error_t ssid_get_inner(char *event_name, raw_data_t *p_data, bus_user_data_t
     return rc;
 }
 
+bus_error_t ssid_table_addRowhandler(char const *tableName, char const *aliasName, uint32_t *instNum) {
+
+    *instNum = ++num_of_vaps;
+    em_printfout("%s:%d: table_name:%s instNum:%d\n", __FUNCTION__, __LINE__, tableName, *instNum);
+    return bus_error_success;
+}
+
+bus_error_t device_table_addRowhandler(char const *tableName, char const *aliasName, uint32_t *instNum) {
+
+    *instNum = ++num_of_devices;
+    em_printfout("%s:%d: table_name:%s instNum:%d\n", __FUNCTION__, __LINE__, tableName, *instNum);
+    return bus_error_success;
+}
+
+bus_error_t radio_table_addRowhandler(char const *tableName, char const *aliasName, uint32_t *instNum) {
+    *instNum = ++num_of_radios;
+    em_printfout("%s:%d: table_name:%s instNum:%d\n", __FUNCTION__, __LINE__, tableName, *instNum);
+    return bus_error_success;
+}
+
+#if 0
 bus_error_t ssid_tget_inner(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     const char *root = event_name;
@@ -904,6 +926,7 @@ bus_error_t device_tget_inner(char *event_name, raw_data_t *p_data, bus_user_dat
 
     return rc;
 }
+#endif
 
 char *get_ht_caps_str(em_ap_ht_cap_t *ht, char *buf, size_t buf_len)
 {
@@ -1023,6 +1046,7 @@ bus_error_t radio_get_inner(char *event_name, raw_data_t *p_data, bus_user_data_
     return rc;
 }
 
+#if 0
 bus_error_t radio_tget_params(dm_easy_mesh_t *dm, const char *root, bus_data_prop_t **property)
 {
     char path[512];
@@ -1118,6 +1142,7 @@ bus_error_t radio_tget_inner(char *event_name, raw_data_t *p_data, bus_user_data
 
     return rc;
 }
+#endif
 
 bus_error_t rbhsta_get_inner(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
@@ -1810,14 +1835,10 @@ bus_error_t ssid_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user
     return bus_get_cb_fwd(event_name, p_data, user_data, ssid_get_inner);
 }
 
+#if 0
 bus_error_t ssid_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     return bus_get_cb_fwd(event_name, p_data, user_data, ssid_tget_inner);
-}
-
-bus_error_t device_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
-{
-    return bus_get_cb_fwd(event_name, p_data, user_data, device_get_inner);
 }
 
 bus_error_t device_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
@@ -1825,14 +1846,20 @@ bus_error_t device_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *u
     return bus_get_cb_fwd(event_name, p_data, user_data, device_tget_inner);
 }
 
-bus_error_t radio_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
-{
-    return bus_get_cb_fwd(event_name, p_data, user_data, radio_get_inner);
-}
-
 bus_error_t radio_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     return bus_get_cb_fwd(event_name, p_data, user_data, radio_tget_inner);
+}
+#endif
+
+bus_error_t device_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
+{
+    return bus_get_cb_fwd(event_name, p_data, user_data, device_get_inner);
+}
+
+bus_error_t radio_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
+{
+    return bus_get_cb_fwd(event_name, p_data, user_data, radio_get_inner);
 }
 
 bus_error_t rbhsta_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
@@ -2036,17 +2063,33 @@ bus_error_t sta_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user
 #define ELEMENT_METHOD(n, f, t)     {n, bus_element_type_method, CALLBACK_METHOD(f), ELEMENT_DEFAULTS(t)}
 #define ELEMENT_TABLE(n, f, t)      {n, bus_element_type_table, CALLBACK_GETTER(f), ELEMENT_DEFAULTS(t)}
 
+#define TABLE_ELEMENT_DEFAULTS(d, t) slow_speed, d, {t, false, 0L, 0L, 0U, NULL}
+
+#define BUS_TABLE_CALLBACK(ar) {NULL, NULL, ar, NULL, NULL, NULL}
+#define ELEMENT_TABLE_HANDLE(n, ar, d, t)      {n, bus_element_type_table, BUS_TABLE_CALLBACK(ar), TABLE_ELEMENT_DEFAULTS(d, t)}
+
 int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
 {
-    uint32_t count;
+    uint32_t count, max_num_of_vaps = 0, max_num_of_radios = 0, max_num_of_devices = 0;
     bus_error_t rc;
     wifi_bus_desc_t *bus_desc;
+    dm_easy_mesh_t *dm = g_ctrl.get_first_dm();
+    max_num_of_vaps = dm->get_num_network_ssid();
+    max_num_of_radios = dm->get_num_radios();
+
+    while(dm != NULL) {
+        max_num_of_devices++;
+        dm = g_ctrl.get_next_dm(dm);
+    }
+
+    em_printfout("%s:%d: max_num_of_vaps:%d max_num_of_radios:%d max_num_of_devices:%d \n", __FUNCTION__, __LINE__, max_num_of_vaps, max_num_of_radios, max_num_of_devices);
     bus_data_element_t elements[] = {
         ELEMENT_PROPERTY(DE_NETWORK_ID,        network_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_NETWORK_CTRLID,    network_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_NETWORK_COLAGTID,  network_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_NETWORK_DEVNOE,    network_get, bus_data_type_uint32),
-        ELEMENT_TABLE(DE_SSID_TABLE,           ssid_tget, bus_data_type_string),
+        //ELEMENT_TABLE(DE_SSID_TABLE,           ssid_tget, bus_data_type_string),
+        ELEMENT_TABLE_HANDLE(DE_SSID_TABLE,      ssid_table_addRowhandler, max_num_of_vaps, bus_data_type_object),
         ELEMENT_PROPERTY(DE_SSID_SSID,         ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_BAND,         ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_ENABLE,       ssid_get, bus_data_type_boolean),
@@ -2056,7 +2099,8 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         ELEMENT_PROPERTY(DE_SSID_MFPCONFIG,    ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_MOBDOMAIN,    ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_HAULTYPE,     ssid_get, bus_data_type_string),
-        ELEMENT_TABLE(DE_DEVICE_TABLE,         device_tget, bus_data_type_string),
+        //ELEMENT_TABLE(DE_DEVICE_TABLE,         device_tget, bus_data_type_string),
+        ELEMENT_TABLE_HANDLE(DE_DEVICE_TABLE,      device_table_addRowhandler, max_num_of_devices, bus_data_type_object),
         ELEMENT_PROPERTY(DE_DEVICE_ID,         device_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_DEVICE_MANUFACT,   device_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_DEVICE_SERIALNO,   device_get, bus_data_type_string),
@@ -2070,7 +2114,8 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         ELEMENT_PROPERTY(DE_DEVICE_RADIONOE,   device_get, bus_data_type_uint32),
         ELEMENT_PROPERTY(DE_DEVICE_CACSTATNOE, device_get, bus_data_type_uint32),
         ELEMENT_PROPERTY(DE_DEVICE_BHDOWNNOE,  device_get, bus_data_type_uint32),
-        ELEMENT_TABLE(DE_RADIO_TABLE,          radio_tget, bus_data_type_string),
+        //ELEMENT_TABLE(DE_RADIO_TABLE,          radio_tget, bus_data_type_string),
+        ELEMENT_TABLE_HANDLE(DE_RADIO_TABLE,      radio_table_addRowhandler, max_num_of_radios, bus_data_type_object),
         ELEMENT_PROPERTY(DE_RADIO_ID,          radio_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_RADIO_ENABLED,     radio_get, bus_data_type_boolean),
         ELEMENT_PROPERTY(DE_RADIO_NOISE,       radio_get, bus_data_type_uint32),

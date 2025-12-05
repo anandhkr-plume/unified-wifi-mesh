@@ -23,6 +23,123 @@ extern char *global_netid;
 
 #define MAX_PARAM_LEN 128
 
+bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
+    (void)user_data;
+    em_subdoc_info_t *subdoc = NULL;
+    unsigned char buff[EM_IO_BUFF_SZ];
+    cJSON *json = NULL, *target = NULL, *ssid_list = NULL, *haul_type_arr = NULL, *haul_type_item = NULL, *item = NULL, *root = NULL, *child = NULL, *next = NULL, *new_json = NULL, *json_obj = NULL;
+    char *jsonbuff = NULL, ssid[MAX_PARAM_LEN] = {0}, *updated_json = NULL;
+    unsigned int haul_type = 0, json_len = 0;
+    bool found = false;
+
+    if(!p_data || p_data->raw_data_len < 5 || p_data->raw_data_len >= MAX_PARAM_LEN) {
+        em_printfout("ERROR: Incorrect Input parameters in cmd_ssid_set\n");
+        return bus_error_invalid_input;
+    }
+
+    em_printfout("%s:%d event_name:%s data_type:%d data_len:%d input:%s \n", __func__, __LINE__,
+        event_name, p_data->data_type, p_data->raw_data_len, (char *) p_data->raw_data.bytes);
+
+    strncpy(ssid, (char *)p_data->raw_data.bytes, MAX_PARAM_LEN - 1);
+    ssid[MAX_PARAM_LEN - 1] = '\0';
+
+    subdoc = (em_subdoc_info_t *)buff;
+    strncpy(subdoc->name, "NetworkSSIDList", strlen("NetworkSSIDList"));
+    g_ctrl.m_data_model.get_config("OneWifiMesh", subdoc);
+    if(subdoc->buff == NULL) {
+        em_printfout("%s:%d ERROR: subdoc->buff is NULL\n", __func__, __LINE__);
+        return bus_error_invalid_input;
+    }
+
+    json = cJSON_Parse(subdoc->buff);
+    if(json == NULL) {
+        em_printfout("ERROR: Failed to parse JSON from subdoc\n");
+        return bus_error_invalid_input;
+    }
+
+    root = cJSON_CreateObject();
+    new_json = cJSON_CreateObject();
+    cJSON_AddStringToObject(new_json, "ID", "OneWifiMesh");
+
+    child = json->child;
+    while (child) {
+        next = child->next;
+        cJSON_DetachItemViaPointer(json, child);
+        cJSON_AddItemToObject(new_json, child->string, child);
+        child = next;
+    }
+    cJSON_Delete(json);
+    json = new_json;
+
+    cJSON_AddItemToObject(root, "wfa-dataelements:SetSSID", json);
+    jsonbuff = cJSON_Print(root);
+    em_printfout("%s:%d root: %s\n", __func__, __LINE__, jsonbuff);
+    free(jsonbuff);
+
+    ssid_list = cJSON_GetObjectItem(json, "NetworkSSIDList");
+    if(ssid_list == NULL || !cJSON_IsArray(ssid_list)) {
+        em_printfout("ERROR: NetworkSSIDList not found or is not an array\n");
+        cJSON_Delete(json);
+        return bus_error_invalid_input;
+    }
+
+    cJSON_ArrayForEach(item, ssid_list) {
+        haul_type_arr = cJSON_GetObjectItem(item, "HaulType");
+        cJSON *temp_ssid = cJSON_GetObjectItem(item, "SSID");
+
+        if(cJSON_IsNumber(haul_type_arr)) {
+            haul_type = (unsigned int) cJSON_GetNumberValue(haul_type_arr);
+            if(haul_type == em_haul_type_fronthaul) {
+                target = item;
+                found = true;
+            }
+        }
+        if(found) break;
+
+        if(haul_type_arr == NULL || !cJSON_IsArray(haul_type_arr)) {
+            em_printfout("ERROR: HaulType not found or is not an array\n");
+            cJSON_Delete(json);
+            return bus_error_invalid_input;
+        }
+
+        cJSON_ArrayForEach(haul_type_item, haul_type_arr) {
+            haul_type = (unsigned int) cJSON_GetNumberValue(haul_type_item);
+            if(haul_type == em_haul_type_fronthaul) {
+                target = item;
+                found = true;
+            }
+        }
+        if(found) break;
+    }
+
+    cJSON_ReplaceItemInObject(target, "SSID", cJSON_CreateString(ssid));
+
+    updated_json = cJSON_PrintUnformatted(root);
+    json_len = strlen(updated_json);
+    if (json_len >= EM_IO_BUFF_SZ) {
+        em_printfout("ERROR: JSON too large for buffer!");
+        free(updated_json);
+        cJSON_Delete(json);
+        return bus_error_invalid_input;
+    }
+
+    memcpy(subdoc->buff, updated_json, json_len);
+    subdoc->buff[json_len] = '\0';
+    json_obj = cJSON_Parse(subdoc->buff);
+    if (json_obj) {
+        char *new_json = cJSON_Print(json_obj);
+        em_printfout("Updated and formatted JSON:\n%s", new_json);
+        free(new_json);
+        cJSON_Delete(json_obj);
+    }
+
+    g_ctrl.io_process(em_bus_event_type_set_ssid, subdoc->buff, strlen(subdoc->buff));
+    free(updated_json);
+    cJSON_Delete(json);
+
+    return bus_error_success;
+}
+
 #if 0
 //TODO: Rbus abstraction needed for this async method call, it will be enabled once its ready
 bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, bus_data_prop_t const *input_data, bus_data_prop_t *output_data, void *user_data)
