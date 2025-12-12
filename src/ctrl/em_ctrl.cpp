@@ -927,61 +927,185 @@ void em_ctrl_t::io(void *data, bool input)
     delete m_ctrl_cmd;
 }
 
-bus_error_t cmd_setssid(const char *event_name, raw_data_t *inParams, raw_data_t *outParams, void *user_data) {
-    (void)user_data;
-    raw_data_t *params = NULL;
+#define MAX_PARAM_LEN 64
+bus_error_t validate_ssid_input_data (cJSON *input_data, char *input_name) {
+    bool SuiteSelector = false;
+    em_printfout("%s:%d AUTOCONFIG_DEBUG validating input_data:%s input_name:%s\n", __func__, __LINE__, input_data->name, input_name);
 
-    em_printfout("%s:%d AUTOCONFIG_DEBUG  Received parameters in cmd_setssid\n", __func__, __LINE__);
-
-    if(!inParams || !event_name ) {
-        em_printfout("%s:%d AUTOCONFIG_DEBUG inParams or Event Name is NULL\n", __func__, __LINE__);
-        return bus_error_invalid_input;
-    }
-    
-    params = (raw_data_t *)inParams;
-    em_printfout("%s:%d AUTOCONFIG_DEBUG type:%d len:%d \n", __func__, __LINE__, params->data_type, params->raw_data_len);
-    if(params->raw_data_len > 0) {
-        switch(params->data_type) {
-            case bus_data_type_bytes:
-                em_printfout("%s:%d AUTOCONFIG_DEBUG Bytes: \n", __func__, __LINE__);
-                util::print_hex_dump(params->raw_data_len, (unsigned char *)(params->raw_data.bytes));
-                break;
-            case bus_data_type_string:
-                em_printfout("%s:%d AUTOCONFIG_DEBUG string:%s \n", __func__, __LINE__, (char*)params->raw_data.bytes);
-                break;
-            case bus_data_type_property | bus_data_type_object:
-                em_printfout("%s:%d AUTOCONFIG_DEBUG property or object \n", __func__, __LINE__);
-                break;
-            default:
-                em_printfout("%s:%d AUTOCONFIG_DEBUG Other data type \n", __func__, __LINE__);
-                break;
+    if(strncmp(input_name, "SSID", strlen("SSID")) == 0) {
+        if(!cJSON_IsString(item) || strlen(input_data->valuestring) > MAX_PARAM_LEN) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG SSID must be a string with a max of 64 characters\n", __func__, __LINE__);
+            return bus_error_invalid_input;
+        }
+    } else if(strncmp(input_name, "AddRemoveChange", strlen("AddRemoveChange")) == 0) {
+        if(!cJSON_IsString(item) || !(strncmp(item->valuestring, "Add", strlen("Add")) == 0 || strncmp(item->valuestring, "Remove", strlen("Remove")) == 0 || 
+            strncmp(item->valuestring, "Change", strlen("Change")) == 0)) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG AddRemoveChange must be a string with one or many of these values: Add, Remove or Change\n", __func__, __LINE__);
+            return bus_error_invalid_input;
+        }
+    } else if(strncmp(input_name, "PassPhrase", strlen("PassPhrase")) == 0) {
+        if(!cJSON_IsString(item) || strlen(input_data->valuestring) < 8 || strlen(input_data->valuestring) > MAX_PARAM_LEN) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG PassPhrase must be a string b/w 8-63 characters\n", __func__, __LINE__);
+            return bus_error_invalid_input;
+        }
+    } else if(strncmp(input_name, "Enable", strlen("Enable"))) {
+        if(!cJSON_IsBool(input_data)) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG Enable must be a boolean\n", __func__, __LINE__);
+            return bus_error_invalid_input;
+        }
+    } else if(strncmp(input_name, "Band", strlen("Band")) == 0) {
+        if(!cJSON_IsArray(input_data)) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG Band must be an array\n", __func__, __LINE__);
+            return bus_error_invalid_input;
+        }
+        cJSON_ArrayForEach(item, input_data) {
+            if(!cJSON_IsString(item) || !(strncmp(item->valuestring, "2.4GHz", strlen("2.4GHz")) == 0 || strncmp(item->valuestring, "5GHz", strlen("5GHz")) == 0 || 
+                strncmp(item->valuestring, "6GHz", strlen("6GHz")) == 0)) {
+                em_printfout("%s:%d AUTOCONFIG_DEBUG Band must be string with one or many of these values: 2.4GHz, 5GHz or 6GHz\n", __func__, __LINE__);
+                return bus_error_invalid_input;
+            }
+        }
+    } else if(strncmp(input_name, "AKMsAllowed", strlen("AKMsAllowed")) == 0) {
+        if(!cJSON_IsArray(input_data)) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG Band must be an array\n", __func__, __LINE__);
+            return bus_error_invalid_input;
+        }
+        cJSON_ArrayForEach(item, input_data) {
+            if(strncmp(item->valuestring, "SuiteSelector", strlen("SuiteSelector")) == 0) {
+                SuiteSelector = true;
+                continue;
+            }
+            if(!cJSON_IsString(item) || !(strncmp(item->valuestring, "psk", strlen("psk")) == 0 || strncmp(item->valuestring, "dpp", strlen("dpp")) == 0 || 
+                strncmp(item->valuestring, "sae", strlen("sae")) == 0 || strncmp(item->valuestring, "psk+sae", strnlen("psk+sae")) == 0 || 
+                strncmp(item->valuestring, "dpp+sae", strnlen("dpp+sae")) == 0 || strncmp(item->valuestring, "dpp+psk+sae", strnlen("dpp+psk+sae")) == 0)) {
+                em_printfout("%s:%d AUTOCONFIG_DEBUG Band must be string with one or many of these values: 2.4GHz, 5GHz or 6GHz\n", __func__, __LINE__);
+                return bus_error_invalid_input;
+            }
+        }
+    } else if(strncmp(input_name, "SuiteSelector", strlen(SuiteSelector)) == 0 && SuiteSelector) {
+        if(!cJSON_IsString(input_data)) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG SuiteSelector must be an array\n", __func__, __LINE__);
+            return bus_error_invalid_input;
+        }
+        for(char ch: std::string(input_data->valuestring)) {
+            if(isxdigit(ch)) {
+                em_printfout("%s:%d SuiteSelector should be in Hex Format. %c is not a valid hex character\n", __func__, __LINE__, ch);
+                return bus_error_invalid_input;
+            }
+        }
+    } else if(strncmp(input_name, "AdvertisementEnabled", strlen("AdvertisementEnabled")) == 0) {
+        if(!cJSON_IsBool(input_data)) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG AdvertisementEnabled must be a boolean\n", __func__, __LINE__);
+            return bus_error_invalid_input;
+        }
+    } else if(strncmp(input_name, "MFPConfig", strlen("MFPConfig")) == 0) {
+        if(!cJSON_IsString(input_data) || !((strncmp(input_data->valuestring, "Disabled", strlen("Disabled")) == 0) ||
+            (strncmp(input_data->valuestring, "Optional", strlen("Optional")) == 0) || (strncmp(input_data->valuestring, "Required", strlen("Required")) == 0))) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG MFPConfig must be a string\n", __func__, __LINE__);
+            return bus_error_invalid_input;
+        }
+    } else if(strncmp(input_name, "MobilityDomain", strlen("MobilityDomain")) == 0) {
+        if(!cJSON_IsString(input_data) && !cJSON_IsArray(input_data)) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG MobilityDomain must be a string or array of strings\n", __func__, __LINE__);
+            return bus_error_invalid_input;
+        }
+        if(cJSON_IsArray(input_data)) {
+            cJSON_ArrayForEach(item, input_data) {
+                for(char ch: std::string(item->valuestring)) {
+                    if(isxdigit(ch) || ch == ':') {
+                        em_printfout("%s:%d MobilityDomain should be in Hex Format. %c is not a valid hex character\n", __func__, __LINE__, ch);
+                        return bus_error_invalid_input;
+                    }
+                }
+            }
+        } else {
+            for(char ch: std::string(input_data->valuestring)) {
+                if(isxdigit(ch) || ch == ':') {
+                    em_printfout("%s:%d MobilityDomain should be in Hex Format. %c is not a valid hex character\n", __func__, __LINE__, ch);
+                    return bus_error_invalid_input;
+                }
+            }
+        }
+    } else if(strncmp(input_name, "HaulType", strlen("HaulType")) == 0) {
+        if(!cJSON_IsArray(input_data)) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG HaulType must be an array\n", __func__, __LINE__);
+            return bus_error_invalid_input;
+        }
+        cJSON_ArrayForEach(item, input_data) {
+            if(!cJSON_IsString(item) || !(strncmp(item->valuestring, "Fronthaul", strlen("Fronthaul")) == 0 || strncmp(item->valuestring, "Backhaul", strlen("Backhaul")) == 0 ||
+                strncmp(item->valuestring, "IoT", strlen("IoT")) == 0 || strncmp(item->valuestring, "Configurator", strlen("Configurator")) == 0 || strncmp(item->valuestring, "Hotspot", strlen("Hotspot")) == 0)) {
+                em_printfout("%s:%d AUTOCONFIG_DEBUG HaulType must be string with one or many of these values: Fronthaul, Backhaul, IoT, Configurator, Hotspot\n", __func__, __LINE__);
+                return bus_error_invalid_input;
+            }
+        }
+    } else if(strncmp(input_name, "Type", strlen("Type")) == 0) {
+        if(!cJSON_IsString(input_data)) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG Type must be a string\n", __func__, __LINE__);
+            return bus_error_invalid_input;
         }
     }
+    em_printfout("%s:%d AUTOCONFIG_DEBUG validation successful for input_name:%s\n", __func__, __LINE__, input_name);
 
-    return bus_error_success;
+    return bus_error_success; 
 }
 
-#define MAX_PARAM_LEN 64
+#define decode_input_data(input_data, input_key, input_value) \
+{ \
+    input_value = cJSON_GetObjectItem(input_data, input_key); \
+    if(input_value != NULL && input_value->valuestring == NULL) { \
+        em_printfout("%s:%d Input is NULL for key:%s\n", __func__, __LINE__, input_key); \
+        return bus_error_invalid_input; \
+    } \ 
+    return validate_ssid_input_data(input_value, input_key); \
+} \
+
+#define for_each_arg(input_json, item, ssid_args) \
+    for(std::string str_ssid_args : ssid_args) { \ 
+        if(cJSON_HasObjectItem(input_json, str_ssid_args) == 1) { \
+            cJSON *param_ssid_args = NULL; \
+            decode_input_data(input_json, str_ssid_args, param_ssid_args); \
+            cJSON_ReplaceItemInObject(item, str_ssid_args, param_ssid_args); \
+        } \
+    } \
 
 bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
     (void)user_data;
     em_subdoc_info_t *subdoc = NULL;
     unsigned char buff[EM_IO_BUFF_SZ];
-    cJSON *json = NULL, *target = NULL, *ssid_list = NULL, *haul_type_arr = NULL, *haul_type_item = NULL, *item = NULL, *root = NULL, *child = NULL, *next = NULL, *new_json = NULL, *json_obj = NULL;
-    char *jsonbuff = NULL, ssid[MAX_PARAM_LEN] = {0}, *updated_json = NULL;
-    unsigned int haul_type = 0, json_len = 0;
+    cJSON *json = NULL, *input_json = NULL, *input_json_item = NULL, *item = NULL, *root = NULL, *child = NULL, *next = NULL, *new_json = NULL, *json_obj = NULL, *get_haul_type = NULL;
+    /**target = NULL, *ssid_list = NULL, *haul_type_arr = NULL, *haul_type_item = NULL, *input_ssid = NULL, *input_addremovechange = NULL, *input_enable = NULL,\
+    *input_passphrase = NULL, *input_band = NULL, *input_akms = NULL, *input_suite_selector = NULL, *input_mfp_config = NULL, *input_mobility_domain = NULL, \
+    *input_advertisement_enabled = NULL, *input_haultype = NULL, *input_type = NULL, *get_haul_type = NULL;*/
+    std::vector<std::string> set_ssid_args = {"PassPhrase", "Enable", "Band", "AKMsAllowed", "SuiteSelector", "AdvertisementEnabled",
+        "MFPConfig", "MobilityDomain", "Type"};
+    char *jsonbuff = NULL, *updated_json = NULL;
+    unsigned int haul_type = 0, json_len = 0, count_haultype = 0,ret = 0;
     bool found = false;
-
-    if(!p_data || p_data->raw_data_len < 5 || p_data->raw_data_len >= MAX_PARAM_LEN) {
-        em_printfout("ERROR: Incorrect Input parameters in cmd_ssid_set\n");
-        return bus_error_invalid_input;
-    }
 
     em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s data_type:%d data_len:%d input:%s \n", __func__, __LINE__,
         event_name, p_data->data_type, p_data->raw_data_len, (char *) p_data->raw_data.bytes);
 
-    strncpy(ssid, (char *)p_data->raw_data.bytes, MAX_PARAM_LEN - 1);
-    ssid[MAX_PARAM_LEN - 1] = '\0';
+    if(!p_data || p_data->raw_data_len < 0 || p_data->raw_data_len >= EM_IO_BUFF_SZ) {
+        em_printfout("ERROR: Incorrect Input parameters in cmd_ssid_set\n");
+        return bus_error_invalid_input;
+    }
+
+    //strncpy(ssid, (char *)p_data->raw_data.bytes, MAX_PARAM_LEN - 1);
+    //ssid[MAX_PARAM_LEN - 1] = '\0';
+    input_json = cJSON_Parse((char *)p_data->raw_data.bytes);
+    if(input_json == NULL) {
+        em_printfout("ERROR: Failed to parse JSON from input_data; Provide input according to SetSSID Method\n");
+        return bus_error_invalid_input;
+    }
+
+    decode_input_data(input_json, "SSID", input_ssid);
+    decode_input_data(input_json, "AddRemoveChange", input_addremovechange);
+    decode_input_data(input_json, "HaulType", input_haultype);
+    if(input_ssid == NULL || input_addremovechange == NULL) {
+        em_printfout("ERROR: SSID or AddRemoveChange not found in input_data\n");
+        return bus_error_invalid_input;
+    }
+    em_printfout("%s:%d AUTOCONFIG_DEBUG ssid:%s AddRemoveChange:%s\n", __func__, __LINE__, input_ssid->valuestring, input_addremovechange->valuestring);
 
     subdoc = (em_subdoc_info_t *)buff;
     strncpy(subdoc->name, "NetworkSSIDList", strlen("NetworkSSIDList"));
@@ -1033,6 +1157,69 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
 
     cJSON_ArrayForEach(item, ssid_list) {
         haul_type_arr = cJSON_GetObjectItem(item, "HaulType");
+        cJSON_ArrayForEach(haul_type_item, haul_type_arr) {
+            haul_type = (unsigned int) cJSON_GetNumberValue(haul_type_item);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG haul_type:%d\n", __func__, __LINE__, haul_type);
+        }
+
+        if(input_haultype == NULL && haul_type == em_haul_type_fronthaul) {
+            for_each_arg(input_json, item, set_ssid_args);
+            break;
+        }
+
+            /*if(strncmp(input_json->name, "PassPhrase", strlen("PassPhrase")) == 0) {
+                decode_input_data(input_json, "PassPhrase", input_passphrase);
+                cJSON_ReplaceItemInObject(item, "PassPhrase", input_passphrase);
+            } else if(strncmp(input_json->name, "Enable", strlen("Enable")) == 0) {
+                decode_input_data(input_json, "Enable", input_enable);
+                cJSON_ReplaceItemInObject(item, "Enable", input_enable);
+            } else if(strncmp(input_json->name, "Band", strlen("Band")) == 0) {
+                decode_input_data(input_json, "Band", input_band);
+            } else if(strncmp(input_json->name, "AKMsAllowed", strlen("AKMsAllowed")) == 0) {
+                decode_input_data(input_json, "AKMsAllowed", input_akms);
+            } else if(strncmp(input_json->name, "SuiteSelector", strlen("SuiteSelector")) == 0) {
+                decode_input_data(input_json, "SuiteSelector", input_suite_selector);
+            } else if(strncmp(input_json->name, "AdvertisementEnabled", strlen("AdvertisementEnabled")) == 0) {
+                decode_input_data(input_json, "AdvertisementEnabled", input_advertisement_enabled);
+            } else if(strncmp(input_json->name, "MFPConfig", strlen("MFPConfig")) == 0) {
+                decode_input_data(input_json, "MFPConfig", input_mfp_config);
+            } else if(strncmp(input_json->name, "MobilityDomain", strlen("MobilityDomain")) == 0) {
+                decode_input_data(input_json, "MobilityDomain", input_mobility_domain);
+            } else if(strncmp(input_json->name, "Type", strlen("Type")) == 0) {
+                decode_input_data(input_json, "Type", input_type);
+            }*/
+
+        cJSON_ArrayForEach(get_haul_type, input_haultype) {
+            if( haul_type ==  (unsigned int)cJSON_GetNumberValue(get_haul_type) ) {
+                for_each_arg(input_json, item, set_ssid_args);
+                count_haultype++;
+            }
+                /*if(strncmp(input_json->name, "PassPhrase", strlen("PassPhrase")) == 0) {
+                    decode_input_data(input_json, "PassPhrase", input_passphrase);
+                } else if(strncmp(input_json->name, "Enable", strlen("Enable")) == 0) {
+                    decode_input_data(input_json, "Enable", input_enable);
+                } else if(strncmp(input_json->name, "Band", strlen("Band")) == 0) {
+                    decode_input_data(input_json, "Band", input_band);
+                } else if(strncmp(input_json->name, "AKMsAllowed", strlen("AKMsAllowed")) == 0) {
+                    decode_input_data(input_json, "AKMsAllowed", input_akms);
+                } else if(strncmp(input_json->name, "SuiteSelector", strlen("SuiteSelector")) == 0) {
+                    decode_input_data(input_json, "SuiteSelector", input_suite_selector);
+                } else if(strncmp(input_json->name, "AdvertisementEnabled", strlen("AdvertisementEnabled")) == 0) {
+                    decode_input_data(input_json, "AdvertisementEnabled", input_advertisement_enabled);
+                } else if(strncmp(input_json->name, "MFPConfig", strlen("MFPConfig")) == 0) {
+                    decode_input_data(input_json, "MFPConfig", input_mfp_config);
+                } else if(strncmp(input_json->name, "MobilityDomain", strlen("MobilityDomain")) == 0) {
+                    decode_input_data(input_json, "MobilityDomain", input_mobility_domain);
+                } else if(strncmp(input_json->name, "Type", strlen("Type")) == 0) {
+                    decode_input_data(input_json, "Type", input_type);
+                }
+            }*/
+        }
+        if(count_haultype == cJSON_GetArraySize(input_haultype)) break;
+    }
+
+    /*cJSON_ArrayForEach(item, ssid_list) {
+        haul_type_arr = cJSON_GetObjectItem(item, "HaulType");
         cJSON *temp_ssid = cJSON_GetObjectItem(item, "SSID");
         em_printfout("%s:%d AUTOCONFIG_DEBUG temp_ssid:%s \n", __func__, __LINE__, temp_ssid->valuestring);
 
@@ -1063,7 +1250,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
         if(found) break;
     }
 
-    cJSON_ReplaceItemInObject(target, "SSID", cJSON_CreateString(ssid));
+    cJSON_ReplaceItemInObject(target, "SSID", cJSON_CreateString(ssid));*/
 
     updated_json = cJSON_PrintUnformatted(root);
     json_len = strlen(updated_json);
@@ -1122,7 +1309,7 @@ void em_ctrl_t::start_complete()
 		//	{ get_device_wifi_dataelements_network_controllerid, NULL , NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
 		// 	{ bus_data_type_string, false, 0, 0, 0, NULL } },
 		{ DEVICE_WIFI_DATAELEMENTS_NETWORK_SETSSID_CMD, bus_element_type_method,
-			{ NULL, ctrl_cmd_ssid_set, NULL, NULL, NULL, cmd_setssid}, slow_speed, ZERO_TABLE,
+			{ NULL, ctrl_cmd_ssid_set, NULL, NULL, NULL, NULL}, slow_speed, ZERO_TABLE,
 			{ bus_data_type_string, true, 0, 0, 0, NULL } },
 		{ DEVICE_WIFI_DATAELEMENTS_NETWORK_TOPOLOGY, bus_element_type_method,
 			{ NULL, NULL , NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
