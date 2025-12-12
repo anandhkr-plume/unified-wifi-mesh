@@ -1053,10 +1053,16 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
 #define decode_input_data(input_data, input_key, input_value) \
 { \
     input_value = cJSON_GetObjectItem(input_data, input_key); \
+    if(input_value == NULL) { \ 
+        em_printfout("%s:%d Input is NULL for key:%s\n", __func__, __LINE__, input_key); \
+    } \
     if(input_value != NULL && input_value->valuestring == NULL) { \
         em_printfout("%s:%d Input is NULL for key:%s\n", __func__, __LINE__, input_key); \
         return bus_error_invalid_input; \
-    } else if(input_value != NULL) { \ 
+    } else if(input_value != NULL) { \
+        char *print_input_value = cJSON_Print(input_value); \
+        em_printfout("%s:%d AUTOCONFIG_DEBUG print_input_value:%s \n", __func__, __LINE__, print_input_value); \
+        free(print_input_value); \
         return validate_ssid_input_data(input_value, input_key); \
     } \
 } \
@@ -1098,6 +1104,17 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     if(input_json == NULL) {
         em_printfout("ERROR: Failed to parse JSON from input_data; Provide input according to SetSSID Method\n");
         return bus_error_invalid_input;
+    }
+
+    char *print_input_json = cJSON_Print(input_json);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG input_json:%s print_input_json:%s \n", __func__, __LINE__, input_json->string, print_input_json);
+    free(print_input_json);
+    child = input_json->child;
+    while (child) {
+        char *print_json_child = cJSON_Print(child);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG print_json_child:%s \n", __func__, __LINE__, print_json_child);
+        child = child->next;
+        free(print_json_child);
     }
 
     decode_input_data(input_json, "SSID", input_ssid);
