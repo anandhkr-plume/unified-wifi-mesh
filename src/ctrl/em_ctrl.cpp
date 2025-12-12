@@ -1058,6 +1058,7 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
     } \
     if(input_value != NULL && input_value->valuestring == NULL) { \
         em_printfout("%s:%d Input is NULL for key:%s\n", __func__, __LINE__, input_key); \
+        cJSON_Delete(input_json); \
         return bus_error_invalid_input; \
     } else if(input_value != NULL) { \
         char *print_input_value = cJSON_Print(input_value); \
@@ -1081,7 +1082,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     em_subdoc_info_t *subdoc = NULL;
     unsigned char buff[EM_IO_BUFF_SZ];
     cJSON *json = NULL, *input_json = NULL, *input_json_item = NULL, *item = NULL, *root = NULL, *child = NULL, *next = NULL, *new_json = NULL, *json_obj = NULL, *get_haul_type = NULL, \
-    *input_haultype = NULL, *haul_type_arr = NULL, *ssid_list = NULL, *haul_type_item = NULL, *input_ssid = NULL, *input_addremovechange = NULL;
+    *input_haultype = NULL, *haul_type_arr = NULL, *ssid_list = NULL, *haul_type_item = NULL, *input_ssid = NULL, *input_addremovechange = NULL, *input_json_args = NULL;
     /**target = NULL, *input_ssid = NULL, *input_addremovechange = NULL, *input_enable = NULL,\
     *input_passphrase = NULL, *input_band = NULL, *input_akms = NULL, *input_suite_selector = NULL, *input_mfp_config = NULL, *input_mobility_domain = NULL, \
     *input_advertisement_enabled = NULL, *input_type = NULL, *get_haul_type = NULL;*/
@@ -1107,19 +1108,22 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     }
 
     char *print_input_json = cJSON_Print(input_json);
-    em_printfout("%s:%d AUTOCONFIG_DEBUG input_json:%s print_input_json:%s \n", __func__, __LINE__, input_json->string, print_input_json);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG input_json:%d print_input_json:%s has_object:%d \n", __func__, __LINE__, input_json->type, print_input_json, cJSON_HasObjectItem(input_json, "parameters"));
     free(print_input_json);
-    child = input_json->child;
-    while (child) {
-        char *print_json_child = cJSON_Print(child);
-        em_printfout("%s:%d AUTOCONFIG_DEBUG print_json_child:%s \n", __func__, __LINE__, print_json_child);
-        child = child->next;
-        free(print_json_child);
+    if(input_json->child != NULL) {
+        input_json_args = input_json->child;
+    } else {
+        em_printfout("ERROR: Incorrect JSON Format\n");
+        cJSON_Delete(input_json);
+        return bus_error_invalid_input;
     }
+    char *print_json_child = cJSON_Print(input_json_args);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG print_json_child:%s \n", __func__, __LINE__, print_json_child);
+    free(print_json_child);
 
-    decode_input_data(input_json, "SSID", input_ssid);
-    decode_input_data(input_json, "AddRemoveChange", input_addremovechange);
-    decode_input_data(input_json, "HaulType", input_haultype);
+    decode_input_data(input_json_args, "SSID", input_ssid);
+    decode_input_data(input_json_args, "AddRemoveChange", input_addremovechange);
+    decode_input_data(input_json_args, "HaulType", input_haultype);
     if(input_ssid == NULL || input_addremovechange == NULL) {
         em_printfout("ERROR: SSID or AddRemoveChange not found in input_data\n");
         return bus_error_invalid_input;
@@ -1182,7 +1186,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
         }
 
         if(input_haultype == NULL && haul_type == em_haul_type_fronthaul) {
-            cJSON_ReplaceItemInObject(item, "SSID", input_ssid);
+            cJSON_ReplaceItemInObject(item, "SSID", input_json_args);
             for_each_arg(input_json, item, set_ssid_args);
             break;
         }
@@ -1211,7 +1215,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
 
         cJSON_ArrayForEach(get_haul_type, input_haultype) {
             if( haul_type ==  (unsigned int)cJSON_GetNumberValue(get_haul_type) ) {
-                cJSON_ReplaceItemInObject(item, "SSID", input_ssid);
+                cJSON_ReplaceItemInObject(item, "SSID", input_json_args);
                 for_each_arg(input_json, item, set_ssid_args);
                 count_haultype++;
             }
@@ -1298,6 +1302,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     g_ctrl.io_process(em_bus_event_type_set_ssid, subdoc->buff, strlen(subdoc->buff));
     free(updated_json);
     cJSON_Delete(json);
+    cJSON_Delete(input_json);
 
     return bus_error_success;
 }
