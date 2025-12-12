@@ -930,7 +930,7 @@ void em_ctrl_t::io(void *data, bool input)
 #define MAX_PARAM_LEN 64
 bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name) {
     cJSON *item = NULL;
-    bool SuiteSelector = false;
+    bool suiteselector = false;
     em_printfout("%s:%d AUTOCONFIG_DEBUG validating input_data:%s input_name:%s\n", __func__, __LINE__, input_data->string, input_name);
 
     if(strncmp(input_name, "SSID", strlen("SSID")) == 0) {
@@ -973,17 +973,17 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
         }
         cJSON_ArrayForEach(item, input_data) {
             if(strncmp(item->valuestring, "SuiteSelector", strlen("SuiteSelector")) == 0) {
-                SuiteSelector = true;
+                suiteselector = true;
                 continue;
             }
             if(!cJSON_IsString(item) || !(strncmp(item->valuestring, "psk", strlen("psk")) == 0 || strncmp(item->valuestring, "dpp", strlen("dpp")) == 0 || 
-                strncmp(item->valuestring, "sae", strlen("sae")) == 0 || strncmp(item->valuestring, "psk+sae", strnlen("psk+sae")) == 0 || 
-                strncmp(item->valuestring, "dpp+sae", strnlen("dpp+sae")) == 0 || strncmp(item->valuestring, "dpp+psk+sae", strnlen("dpp+psk+sae")) == 0)) {
+                strncmp(item->valuestring, "sae", strlen("sae")) == 0 || strncmp(item->valuestring, "psk+sae", strlen("psk+sae")) == 0 || 
+                strncmp(item->valuestring, "dpp+sae", strlen("dpp+sae")) == 0 || strncmp(item->valuestring, "dpp+psk+sae", strlen("dpp+psk+sae")) == 0)) {
                 em_printfout("%s:%d AUTOCONFIG_DEBUG Band must be string with one or many of these values: 2.4GHz, 5GHz or 6GHz\n", __func__, __LINE__);
                 return bus_error_invalid_input;
             }
         }
-    } else if(strncmp(input_name, "SuiteSelector", strlen(SuiteSelector)) == 0 && SuiteSelector) {
+    } else if(strncmp(input_name, "SuiteSelector", strlen("SuiteSelector")) == 0 && suiteselector) {
         if(!cJSON_IsString(input_data)) {
             em_printfout("%s:%d AUTOCONFIG_DEBUG SuiteSelector must be an array\n", __func__, __LINE__);
             return bus_error_invalid_input;
@@ -1056,8 +1056,9 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
     if(input_value != NULL && input_value->valuestring == NULL) { \
         em_printfout("%s:%d Input is NULL for key:%s\n", __func__, __LINE__, input_key); \
         return bus_error_invalid_input; \
-    } \ 
-    return validate_ssid_input_data(input_value, input_key); \
+    } else if(input_value != NULL) { \ 
+        return validate_ssid_input_data(input_value, input_key); \
+    } \
 } \
 
 #define for_each_arg(input_json, item, ssid_args) \
