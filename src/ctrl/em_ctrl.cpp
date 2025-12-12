@@ -929,6 +929,7 @@ void em_ctrl_t::io(void *data, bool input)
 
 #define MAX_PARAM_LEN 64
 bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name) {
+    cJSON *item = NULL;
     bool SuiteSelector = false;
     em_printfout("%s:%d AUTOCONFIG_DEBUG validating input_data:%s input_name:%s\n", __func__, __LINE__, input_data->string, input_name);
 
@@ -1060,7 +1061,7 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
 } \
 
 #define for_each_arg(input_json, item, ssid_args) \
-    for(std::string *str_ssid_args : ssid_args) { \ 
+    for(std::string str_ssid_args : ssid_args) { \ 
         if(cJSON_HasObjectItem(input_json, str_ssid_args.c_str()) == 1) { \
             cJSON *param_ssid_args = NULL; \
             decode_input_data(input_json, str_ssid_args.c_str(), param_ssid_args); \
@@ -1072,12 +1073,12 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     (void)user_data;
     em_subdoc_info_t *subdoc = NULL;
     unsigned char buff[EM_IO_BUFF_SZ];
-    cJSON *json = NULL, *input_json = NULL, *input_json_item = NULL, *item = NULL, *root = NULL, *child = NULL, *next = NULL, *new_json = NULL, *json_obj = NULL, *get_haul_type = NULL, *input_haultype = NULL;
-    /**target = NULL, *ssid_list = NULL, *haul_type_arr = NULL, *haul_type_item = NULL, *input_ssid = NULL, *input_addremovechange = NULL, *input_enable = NULL,\
+    cJSON *json = NULL, *input_json = NULL, *input_json_item = NULL, *item = NULL, *root = NULL, *child = NULL, *next = NULL, *new_json = NULL, *json_obj = NULL, *get_haul_type = NULL, \
+    *input_haultype = NULL, *haul_type_arr = NULL, *ssid_list = NULL, *haul_type_item = NULL, *input_ssid = NULL, *input_addremovechange = NULL;
+    /**target = NULL, *input_ssid = NULL, *input_addremovechange = NULL, *input_enable = NULL,\
     *input_passphrase = NULL, *input_band = NULL, *input_akms = NULL, *input_suite_selector = NULL, *input_mfp_config = NULL, *input_mobility_domain = NULL, \
     *input_advertisement_enabled = NULL, *input_type = NULL, *get_haul_type = NULL;*/
-    std::vector<std::string> set_ssid_args = {"PassPhrase", "Enable", "Band", "AKMsAllowed", "SuiteSelector", "AdvertisementEnabled",
-        "MFPConfig", "MobilityDomain", "Type"};
+    std::vector<std::string> set_ssid_args = {"PassPhrase", "Enable", "Band", "AKMsAllowed", "SuiteSelector", "AdvertisementEnabled", "MFPConfig", "MobilityDomain", "Type"};
     char *jsonbuff = NULL, *updated_json = NULL;
     unsigned int haul_type = 0, json_len = 0, count_haultype = 0,ret = 0;
     bool found = false;
@@ -1163,6 +1164,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
         }
 
         if(input_haultype == NULL && haul_type == em_haul_type_fronthaul) {
+            cJSON_ReplaceItemInObject(item, "SSID", input_ssid);
             for_each_arg(input_json, item, set_ssid_args);
             break;
         }
@@ -1191,6 +1193,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
 
         cJSON_ArrayForEach(get_haul_type, input_haultype) {
             if( haul_type ==  (unsigned int)cJSON_GetNumberValue(get_haul_type) ) {
+                cJSON_ReplaceItemInObject(item, "SSID", input_ssid);
                 for_each_arg(input_json, item, set_ssid_args);
                 count_haultype++;
             }
