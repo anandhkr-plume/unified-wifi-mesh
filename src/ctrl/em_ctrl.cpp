@@ -1060,7 +1060,7 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
         char *print_input_value = cJSON_Print(input_value); \
         em_printfout("%s:%d AUTOCONFIG_DEBUG print_input_value:%s \n", __func__, __LINE__, print_input_value); \
         free(print_input_value); \
-        int ret = validate_ssid_input_data(input_value, input_key); \
+        bus_error_t ret = validate_ssid_input_data(input_value, input_key); \
         if(ret != bus_error_success) { \
             cJSON_Delete(input_json); \
             return ret; \
