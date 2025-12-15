@@ -1058,6 +1058,7 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
         free(print_input_value); \
         bus_error_t ret = validate_ssid_input_data(input_value, input_key); \
         if(ret != bus_error_success) { \
+            cJSON_Delete(input_json); \
             return ret; \
         } \
     } \
@@ -1125,6 +1126,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     decode_input_data(input_json_args, "HaulType", input_haultype);
     if(input_ssid == NULL || input_addremovechange == NULL) {
         em_printfout("ERROR: SSID or AddRemoveChange not found in input_data\n");
+        cJSON_Delete(input_json);
         return bus_error_invalid_input;
     }
     em_printfout("%s:%d AUTOCONFIG_DEBUG ssid:%s AddRemoveChange:%s\n", __func__, __LINE__, input_ssid->valuestring, input_addremovechange->valuestring);
@@ -1139,6 +1141,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     g_ctrl.m_data_model.get_config("OneWifiMesh", subdoc);
     if(subdoc->buff == NULL) {
         em_printfout("%s:%d ERROR: subdoc->buff is NULL\n", __func__, __LINE__);
+        cJSON_Delete(input_json);
         return bus_error_invalid_input;
     }
     em_printfout("%s:%d AUTOCONFIG_DEBUG name:%s \n", __func__, __LINE__, subdoc->name);
@@ -1147,6 +1150,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     json = cJSON_Parse(subdoc->buff);
     if(json == NULL) {
         em_printfout("ERROR: Failed to parse JSON from subdoc\n");
+        cJSON_Delete(input_json);
         return bus_error_invalid_input;
     }
 
@@ -1177,6 +1181,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     if(ssid_list == NULL || !cJSON_IsArray(ssid_list)) {
         em_printfout("ERROR: NetworkSSIDList not found or is not an array\n");
         cJSON_Delete(json);
+        cJSON_Delete(input_json);
         return bus_error_invalid_input;
     }
 
@@ -1203,46 +1208,13 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
         if(count_haultype == cJSON_GetArraySize(input_haultype)) break;
     }
 
-    /*cJSON_ArrayForEach(item, ssid_list) {
-        haul_type_arr = cJSON_GetObjectItem(item, "HaulType");
-        cJSON *temp_ssid = cJSON_GetObjectItem(item, "SSID");
-        em_printfout("%s:%d AUTOCONFIG_DEBUG temp_ssid:%s \n", __func__, __LINE__, temp_ssid->valuestring);
-
-        if(cJSON_IsNumber(haul_type_arr)) {
-            haul_type = (unsigned int) cJSON_GetNumberValue(haul_type_arr);
-            em_printfout("%s:%d AUTOCONFIG_DEBUG haul_type:%d\n", __func__, __LINE__, haul_type);
-            if(haul_type == em_haul_type_fronthaul) {
-                target = item;
-                found = true;
-            }
-        }
-        if(found) break;
-
-        if(haul_type_arr == NULL || !cJSON_IsArray(haul_type_arr)) {
-            em_printfout("ERROR: HaulType not found or is not an array\n");
-            cJSON_Delete(json);
-            return bus_error_invalid_input;
-        }
-
-        cJSON_ArrayForEach(haul_type_item, haul_type_arr) {
-            haul_type = (unsigned int) cJSON_GetNumberValue(haul_type_item);
-            em_printfout("%s:%d AUTOCONFIG_DEBUG haul_type:%d\n", __func__, __LINE__, haul_type);
-            if(haul_type == em_haul_type_fronthaul) {
-                target = item;
-                found = true;
-            }
-        }
-        if(found) break;
-    }
-
-    cJSON_ReplaceItemInObject(target, "SSID", cJSON_CreateString(ssid));*/
-
     updated_json = cJSON_PrintUnformatted(root);
     json_len = strlen(updated_json);
     if (json_len >= EM_IO_BUFF_SZ) {
         em_printfout("ERROR: JSON too large for buffer!");
         free(updated_json);
         cJSON_Delete(json);
+        cJSON_Delete(input_json);
         return bus_error_invalid_input;
     }
 
@@ -1262,6 +1234,9 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     g_ctrl.io_process(em_bus_event_type_set_ssid, subdoc->buff, strlen(subdoc->buff));
     free(updated_json);
     cJSON_Delete(json);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Delete input_json \n", __func__, __LINE__);
+    cJSON_Delete(input_json);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG calling return bus_error_success \n", __func__, __LINE__);
 
     return bus_error_success;
 }
