@@ -1058,7 +1058,6 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
         free(print_input_value); \
         bus_error_t ret = validate_ssid_input_data(input_value, input_key); \
         if(ret != bus_error_success) { \
-            cJSON_Delete(input_json); \
             return ret; \
         } \
     } \
@@ -1263,7 +1262,6 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     g_ctrl.io_process(em_bus_event_type_set_ssid, subdoc->buff, strlen(subdoc->buff));
     free(updated_json);
     cJSON_Delete(json);
-    cJSON_Delete(input_json);
 
     return bus_error_success;
 }
