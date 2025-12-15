@@ -959,9 +959,9 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
             return bus_error_invalid_input;
         }
         cJSON_ArrayForEach(item, input_data) {
-            if(!cJSON_IsString(item) || !(strncmp(item->valuestring, "2.4GHz", strlen("2.4GHz")) == 0 || strncmp(item->valuestring, "5GHz", strlen("5GHz")) == 0 || 
-                strncmp(item->valuestring, "6GHz", strlen("6GHz")) == 0)) {
-                em_printfout("%s:%d AUTOCONFIG_DEBUG Band must be string with one or many of these values: 2.4GHz, 5GHz or 6GHz\n", __func__, __LINE__);
+            if(!cJSON_IsString(item) || !(strncmp(item->valuestring, "2.4", strlen("2.4")) == 0 || strncmp(item->valuestring, "5", strlen("5")) == 0 || 
+                strncmp(item->valuestring, "6", strlen("6")) == 0)) {
+                em_printfout("%s:%d AUTOCONFIG_DEBUG Band must be string with one or many of these values: 2.4, 5 or 6\n", __func__, __LINE__);
                 return bus_error_invalid_input;
             }
         }
@@ -975,7 +975,7 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
                 strncmp(item->valuestring, "sae", strlen("sae")) == 0 || strncmp(item->valuestring, "psk+sae", strlen("psk+sae")) == 0 || 
                 strncmp(item->valuestring, "dpp+sae", strlen("dpp+sae")) == 0 || strncmp(item->valuestring, "dpp+psk+sae", strlen("dpp+psk+sae")) == 0) ||
                 (strncmp(item->valuestring, "SuiteSelector", strlen("SuiteSelector")) == 0)) {
-                em_printfout("%s:%d AUTOCONFIG_DEBUG Band must be string with one or many of these values: 2.4GHz, 5GHz or 6GHz\n", __func__, __LINE__);
+                em_printfout("%s:%d AUTOCONFIG_DEBUG AKMs must be string with one or many of these values: psk, sae, dpp, psk+sae, dpp+sae, dpp+psk+sae or SuiteSelector\n", __func__, __LINE__);
                 return bus_error_invalid_input;
             }
         }
@@ -1065,7 +1065,8 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
 
 #define for_each_arg(input_json, item, ssid_args) \
     for(std::string str_ssid_args : ssid_args) { \ 
-        if(cJSON_HasObjectItem(input_json, str_ssid_args.c_str()) == 1) { \
+        if(cJSON_HasObjectItem(input_json, str_ssid_args.c_str())) { \
+            em_printfout("%s:%d AUTOCONFIG_DEBUG input_json has Object:%s\n", __func__, __LINE__, str_ssid_args.c_str()); \
             cJSON *param_ssid_args = NULL; \
             decode_input_data(input_json, str_ssid_args.c_str(), param_ssid_args); \
             cJSON_ReplaceItemInObject(item, str_ssid_args.c_str(), param_ssid_args); \
@@ -1150,7 +1151,6 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     em_printfout("%s:%d AUTOCONFIG_DEBUG root: %p \n", __func__, __LINE__, root);
     new_json = cJSON_CreateObject();
     cJSON_AddStringToObject(new_json, "ID", "OneWifiMesh");
-    em_printfout("%s:%d AUTOCONFIG_DEBUG new_json: %s \n", __func__, __LINE__, new_json->valuestring);
 
     child = json->child;
     while (child) {
@@ -1163,7 +1163,6 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
         free(print_json_child);
     }
     cJSON_Delete(json);
-    em_printfout("%s:%d AUTOCONFIG_DEBUG Assign new_json to json \n", __func__, __LINE__);
     json = new_json;
 
     cJSON_AddItemToObject(root, "wfa-dataelements:SetSSID", json);
@@ -1186,15 +1185,15 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
         }
 
         if(input_haultype == NULL && haul_type == em_haul_type_fronthaul) {
-            cJSON_ReplaceItemInObject(item, "SSID", input_json_args);
-            for_each_arg(input_json, item, set_ssid_args);
+            cJSON_ReplaceItemInObject(item, "SSID", input_ssid);
+            for_each_arg(input_json_args, item, set_ssid_args);
             break;
         }
 
         cJSON_ArrayForEach(get_haul_type, input_haultype) {
             if( haul_type ==  (unsigned int)cJSON_GetNumberValue(get_haul_type) ) {
-                cJSON_ReplaceItemInObject(item, "SSID", input_json_args);
-                for_each_arg(input_json, item, set_ssid_args);
+                cJSON_ReplaceItemInObject(item, "SSID", input_ssid);
+                for_each_arg(input_json_args, item, set_ssid_args);
                 count_haultype++;
             }
         }
