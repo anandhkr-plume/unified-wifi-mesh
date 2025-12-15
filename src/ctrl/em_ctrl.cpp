@@ -948,7 +948,7 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
             em_printfout("%s:%d AUTOCONFIG_DEBUG PassPhrase must be a string b/w 8-63 characters\n", __func__, __LINE__);
             return bus_error_invalid_input;
         }
-    } else if(strncmp(input_name, "Enable", strlen("Enable"))) {
+    } else if(strncmp(input_name, "Enable", strlen("Enable")) == 0) {
         if(!cJSON_IsBool(input_data)) {
             em_printfout("%s:%d AUTOCONFIG_DEBUG Enable must be a boolean\n", __func__, __LINE__);
             return bus_error_invalid_input;
