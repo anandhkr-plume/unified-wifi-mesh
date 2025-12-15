@@ -981,11 +981,11 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
         }
     } else if(strncmp(input_name, "SuiteSelector", strlen("SuiteSelector")) == 0) {
         if(!cJSON_IsString(input_data)) {
-            em_printfout("%s:%d AUTOCONFIG_DEBUG SuiteSelector must be an array\n", __func__, __LINE__);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG SuiteSelector must be a string\n", __func__, __LINE__);
             return bus_error_invalid_input;
         }
         for(char ch: std::string(input_data->valuestring)) {
-            if(isxdigit(ch)) {
+            if(!isxdigit(ch)) {
                 em_printfout("%s:%d SuiteSelector should be in Hex Format. %c is not a valid hex character\n", __func__, __LINE__, ch);
                 return bus_error_invalid_input;
             }
@@ -1009,7 +1009,7 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
         if(cJSON_IsArray(input_data)) {
             cJSON_ArrayForEach(item, input_data) {
                 for(char ch: std::string(item->valuestring)) {
-                    if(isxdigit(ch) || ch == ':') {
+                    if(!isxdigit(ch) || ch == ':') {
                         em_printfout("%s:%d MobilityDomain should be in Hex Format. %c is not a valid hex character\n", __func__, __LINE__, ch);
                         return bus_error_invalid_input;
                     }
@@ -1017,7 +1017,7 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
             }
         } else {
             for(char ch: std::string(input_data->valuestring)) {
-                if(isxdigit(ch) || ch == ':') {
+                if(!isxdigit(ch) || ch == ':') {
                     em_printfout("%s:%d MobilityDomain should be in Hex Format. %c is not a valid hex character\n", __func__, __LINE__, ch);
                     return bus_error_invalid_input;
                 }
@@ -1052,6 +1052,7 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
     if(input_value == NULL) { \ 
         em_printfout("%s:%d Input is NULL for key:%s\n", __func__, __LINE__, input_key); \
     } else { \
+        input_value = cJSON_DetachItemViaPointer(input_data, input_value); \
         char *print_input_value = cJSON_Print(input_value); \
         em_printfout("%s:%d AUTOCONFIG_DEBUG print_input_value:%s \n", __func__, __LINE__, print_input_value); \
         free(print_input_value); \
@@ -1064,11 +1065,14 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
 } \
 
 #define for_each_arg(input_json, item, ssid_args) \
-    for(std::string str_ssid_args : ssid_args) { \ 
+    for(std::string str_ssid_args : ssid_args) { \
         if(cJSON_HasObjectItem(input_json, str_ssid_args.c_str())) { \
             em_printfout("%s:%d AUTOCONFIG_DEBUG input_json has Object:%s\n", __func__, __LINE__, str_ssid_args.c_str()); \
             cJSON *param_ssid_args = NULL; \
             decode_input_data(input_json, str_ssid_args.c_str(), param_ssid_args); \
+            char *print_input_json = cJSON_Print(input_json); \
+            em_printfout("%s:%d AUTOCONFIG_DEBUG print_input_json:%s \n", __func__, __LINE__, print_input_json); \
+            free(print_input_json); \
             cJSON_ReplaceItemInObject(item, str_ssid_args.c_str(), param_ssid_args); \
         } \
     } \
