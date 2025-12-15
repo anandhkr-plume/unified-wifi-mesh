@@ -1854,6 +1854,7 @@ bus_error_t radio_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *us
 
 bus_error_t device_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
+    if(event_name != NULL) em_printfout("%s:%d AUTOCONFIG_DEBUG Calling device_get_inner event_name:%s \n", __func__, __LINE__, event_name);
     return bus_get_cb_fwd(event_name, p_data, user_data, device_get_inner);
 }
 

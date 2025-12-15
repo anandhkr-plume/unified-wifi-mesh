@@ -264,7 +264,7 @@ typedef char    em_string_t[32];
 typedef char    em_small_string_t[16];
 typedef char    em_tiny_string_t[4];
 typedef char    em_subdoc_name_space_t[64];
-typedef char    em_subdoc_data_buff_t[0];
+typedef char    em_subdoc_data_buff_t[EM_IO_BUFF_SZ];
 typedef char    em_status_string_t[EM_IO_BUFF_SZ];
 typedef unsigned	char    em_raw_data_t[0];
 
