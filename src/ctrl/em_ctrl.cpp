@@ -1052,19 +1052,13 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
     if(input_value == NULL) { \ 
         em_printfout("%s:%d Input is NULL for key:%s\n", __func__, __LINE__, input_key); \
     } \
-    if(input_value != NULL && input_value->valuestring == NULL) { \
-        em_printfout("%s:%d Input is NULL for key:%s\n", __func__, __LINE__, input_key); \
+    char *print_input_value = cJSON_Print(input_value); \
+    em_printfout("%s:%d AUTOCONFIG_DEBUG print_input_value:%s \n", __func__, __LINE__, print_input_value); \
+    free(print_input_value); \
+    bus_error_t ret = validate_ssid_input_data(input_value, input_key); \
+    if(ret != bus_error_success) { \
         cJSON_Delete(input_json); \
-        return bus_error_invalid_input; \
-    } else if(input_value != NULL) { \
-        char *print_input_value = cJSON_Print(input_value); \
-        em_printfout("%s:%d AUTOCONFIG_DEBUG print_input_value:%s \n", __func__, __LINE__, print_input_value); \
-        free(print_input_value); \
-        bus_error_t ret = validate_ssid_input_data(input_value, input_key); \
-        if(ret != bus_error_success) { \
-            cJSON_Delete(input_json); \
-            return ret; \
-        } \
+        return ret; \
     } \
 } \
 
@@ -1130,6 +1124,11 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     }
     em_printfout("%s:%d AUTOCONFIG_DEBUG ssid:%s AddRemoveChange:%s\n", __func__, __LINE__, input_ssid->valuestring, input_addremovechange->valuestring);
 
+    /*if(strncmp(input_addremovechange->valuestring, "Add", strlen("Add")) == 0 || strncmp(input_addremovechange->valuestring, "Remove", strlen("Remove")) == 0) {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG Adding or Removing SSID is not supported\n", __func__, __LINE__);
+        return bus_error_invalid_input;
+    }*/
+
     subdoc = (em_subdoc_info_t *)buff;
     strncpy(subdoc->name, "NetworkSSIDList", strlen("NetworkSSIDList"));
     g_ctrl.m_data_model.get_config("OneWifiMesh", subdoc);
@@ -1191,54 +1190,12 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
             break;
         }
 
-            /*if(strncmp(input_json->name, "PassPhrase", strlen("PassPhrase")) == 0) {
-                decode_input_data(input_json, "PassPhrase", input_passphrase);
-                cJSON_ReplaceItemInObject(item, "PassPhrase", input_passphrase);
-            } else if(strncmp(input_json->name, "Enable", strlen("Enable")) == 0) {
-                decode_input_data(input_json, "Enable", input_enable);
-                cJSON_ReplaceItemInObject(item, "Enable", input_enable);
-            } else if(strncmp(input_json->name, "Band", strlen("Band")) == 0) {
-                decode_input_data(input_json, "Band", input_band);
-            } else if(strncmp(input_json->name, "AKMsAllowed", strlen("AKMsAllowed")) == 0) {
-                decode_input_data(input_json, "AKMsAllowed", input_akms);
-            } else if(strncmp(input_json->name, "SuiteSelector", strlen("SuiteSelector")) == 0) {
-                decode_input_data(input_json, "SuiteSelector", input_suite_selector);
-            } else if(strncmp(input_json->name, "AdvertisementEnabled", strlen("AdvertisementEnabled")) == 0) {
-                decode_input_data(input_json, "AdvertisementEnabled", input_advertisement_enabled);
-            } else if(strncmp(input_json->name, "MFPConfig", strlen("MFPConfig")) == 0) {
-                decode_input_data(input_json, "MFPConfig", input_mfp_config);
-            } else if(strncmp(input_json->name, "MobilityDomain", strlen("MobilityDomain")) == 0) {
-                decode_input_data(input_json, "MobilityDomain", input_mobility_domain);
-            } else if(strncmp(input_json->name, "Type", strlen("Type")) == 0) {
-                decode_input_data(input_json, "Type", input_type);
-            }*/
-
         cJSON_ArrayForEach(get_haul_type, input_haultype) {
             if( haul_type ==  (unsigned int)cJSON_GetNumberValue(get_haul_type) ) {
                 cJSON_ReplaceItemInObject(item, "SSID", input_json_args);
                 for_each_arg(input_json, item, set_ssid_args);
                 count_haultype++;
             }
-                /*if(strncmp(input_json->name, "PassPhrase", strlen("PassPhrase")) == 0) {
-                    decode_input_data(input_json, "PassPhrase", input_passphrase);
-                } else if(strncmp(input_json->name, "Enable", strlen("Enable")) == 0) {
-                    decode_input_data(input_json, "Enable", input_enable);
-                } else if(strncmp(input_json->name, "Band", strlen("Band")) == 0) {
-                    decode_input_data(input_json, "Band", input_band);
-                } else if(strncmp(input_json->name, "AKMsAllowed", strlen("AKMsAllowed")) == 0) {
-                    decode_input_data(input_json, "AKMsAllowed", input_akms);
-                } else if(strncmp(input_json->name, "SuiteSelector", strlen("SuiteSelector")) == 0) {
-                    decode_input_data(input_json, "SuiteSelector", input_suite_selector);
-                } else if(strncmp(input_json->name, "AdvertisementEnabled", strlen("AdvertisementEnabled")) == 0) {
-                    decode_input_data(input_json, "AdvertisementEnabled", input_advertisement_enabled);
-                } else if(strncmp(input_json->name, "MFPConfig", strlen("MFPConfig")) == 0) {
-                    decode_input_data(input_json, "MFPConfig", input_mfp_config);
-                } else if(strncmp(input_json->name, "MobilityDomain", strlen("MobilityDomain")) == 0) {
-                    decode_input_data(input_json, "MobilityDomain", input_mobility_domain);
-                } else if(strncmp(input_json->name, "Type", strlen("Type")) == 0) {
-                    decode_input_data(input_json, "Type", input_type);
-                }
-            }*/
         }
         if(count_haultype == cJSON_GetArraySize(input_haultype)) break;
     }
