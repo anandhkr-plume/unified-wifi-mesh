@@ -447,10 +447,10 @@ void em_ctrl_t::handle_nb_event(em_nb_event_t *evt)
 
         case NB_REQTYPE_METHOD: {
             const char *method = evt->u.method.method;
-            raw_data_t *in = static_cast<rbusObject_t> (evt->u.method.in);
-            raw_data_t *out = static_cast<rbusObject_t> (evt->u.method.out);
-            rbusMethodAsyncHandle_t async = static_cast<rbusMethodAsyncHandle_t> (evt->u.method.async);
-            rbusMethodHandler_t cb = (rbusMethodHandler_t) evt->cb;
+            raw_data_t *in = static_cast<raw_data_t *> (evt->u.method.in);
+            raw_data_t *out = static_cast<raw_data_t *> (evt->u.method.out);
+            void *async = evt->u.method.async;
+            bus_method_handler_t cb = (bus_method_handler_t) evt->cb;
             resp->rc = cb(NULL, method, in, out, async);
         } break;
 
@@ -927,7 +927,7 @@ void em_ctrl_t::io(void *data, bool input)
     delete m_ctrl_cmd;
 }
 
-
+bus_error_t em_ctrl_t::ctrl_cmd_ssid_set_outer(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
 void em_ctrl_t::start_complete()
 {
 	dm_easy_mesh_t *dm;
