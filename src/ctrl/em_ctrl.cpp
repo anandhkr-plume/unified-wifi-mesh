@@ -967,7 +967,7 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
         }
     } else if(strncmp(input_name, "AKMsAllowed", strlen("AKMsAllowed")) == 0) {
         if(!cJSON_IsArray(input_data)) {
-            em_printfout("%s:%d AUTOCONFIG_DEBUG Band must be an array\n", __func__, __LINE__);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG AKMsAllowed must be an array\n", __func__, __LINE__);
             return bus_error_invalid_input;
         }
         cJSON_ArrayForEach(item, input_data) {
@@ -1129,7 +1129,8 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
         cJSON_Delete(input_json);
         return bus_error_invalid_input;
     }
-    em_printfout("%s:%d AUTOCONFIG_DEBUG ssid:%s AddRemoveChange:%s\n", __func__, __LINE__, input_ssid->valuestring, input_addremovechange->valuestring);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG ssid:%s AddRemoveChange:%s size_of_input_haultype:%d \n", __func__, __LINE__, input_ssid->valuestring,
+        input_addremovechange->valuestring, cJSON_GetArraySize(input_haultype));
 
     /*if(strncmp(input_addremovechange->valuestring, "Add", strlen("Add")) == 0 || strncmp(input_addremovechange->valuestring, "Remove", strlen("Remove")) == 0) {
         em_printfout("%s:%d AUTOCONFIG_DEBUG Adding or Removing SSID is not supported\n", __func__, __LINE__);
@@ -1192,7 +1193,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
             em_printfout("%s:%d AUTOCONFIG_DEBUG haul_type:%d\n", __func__, __LINE__, haul_type);
         }
 
-        if(input_haultype == NULL && haul_type == em_haul_type_fronthaul) {
+        if(!cJSON_GetArraySize(input_haultype) && haul_type == em_haul_type_fronthaul) {
             cJSON_ReplaceItemInObject(item, "SSID", input_ssid);
             for_each_arg(input_json_args, item, set_ssid_args);
             break;
@@ -1205,7 +1206,10 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
                 count_haultype++;
             }
         }
-        if(count_haultype == cJSON_GetArraySize(input_haultype)) break;
+        if(count_haultype == cJSON_GetArraySize(input_haultype)) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG count_haultype:%d is equal to ArraySize:%d\n", __func__, __LINE__, count_haultype, cJSON_GetArraySize(input_haultype));
+            break;
+        }
     }
 
     updated_json = cJSON_PrintUnformatted(root);
@@ -1231,7 +1235,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     }
 
     em_printfout("%s:%d AUTOCONFIG_DEBUG calling io_process \n", __func__, __LINE__);
-    g_ctrl.io_process(em_bus_event_type_set_ssid, subdoc->buff, strlen(subdoc->buff));
+    io_process(em_bus_event_type_set_ssid, subdoc->buff, strlen(subdoc->buff));
     free(updated_json);
     cJSON_Delete(json);
     em_printfout("%s:%d AUTOCONFIG_DEBUG Delete input_json \n", __func__, __LINE__);
