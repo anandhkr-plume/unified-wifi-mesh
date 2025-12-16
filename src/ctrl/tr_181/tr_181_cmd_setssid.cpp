@@ -273,7 +273,7 @@ bus_error_t bus_method_cb_fwd(char const* methodName, raw_data_t *inParams, raw_
         req->type = em_event_type_nb;
         req->u.nevt.id = s_id;
         req->u.nevt.type = NB_REQTYPE_METHOD;
-        req->u.nevt.u.method.method = event_name;
+        req->u.nevt.u.method.method = methodName;
         req->u.nevt.u.method.in = inParams;
         req->u.nevt.u.method.out = outParams;
         req->u.nevt.u.method.async = asyncHandle;
