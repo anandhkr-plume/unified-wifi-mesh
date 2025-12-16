@@ -15,7 +15,16 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-#include "em_ctrl.h"
+ #include <stdio.h>
+ #include <string.h>
+ #include <stdlib.h>
+ #include <errno.h>
+ #include <assert.h>
+ #include <signal.h>
+ #include <unistd.h>
+ #include <cjson/cJSON.h>
+ 
+ #include "em_ctrl.h"
 #include "tr_181.h"
 #include "util.h"
 
@@ -247,7 +256,6 @@ bus_error_t bus_set_cb_fwd(char *event_name, raw_data_t *p_data, bus_user_data_t
 
 bus_error_t bus_method_cb_fwd(char const* methodName, raw_data_t *inParams, raw_data_t *outParams, void *asyncHandle, bus_method_handler_t cb)
 {
-    (void)user_data;
     uint32_t s_id;
     bus_error_t err = bus_error_success;
     em_event_t *req;
@@ -266,9 +274,9 @@ bus_error_t bus_method_cb_fwd(char const* methodName, raw_data_t *inParams, raw_
         req->u.nevt.id = s_id;
         req->u.nevt.type = NB_REQTYPE_METHOD;
         req->u.nevt.u.method.method = event_name;
-        req->u.nevt.u.method.in = p_data;
-        req->u.nevt.u.method.out = NULL;
-        req->u.nevt.u.method.async = NULL;
+        req->u.nevt.u.method.in = inParams;
+        req->u.nevt.u.method.out = outParams;
+        req->u.nevt.u.method.async = asyncHandle;
         req->u.nevt.cb = (void *) cb;
 
         g_ctrl.push_to_queue(req);
@@ -605,14 +613,15 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
 }
 
 bus_error_t ctrl_cmd_ssid_set_inner(char const* methodName, raw_data_t *inParams, raw_data_t *outParams, void *asyncHandle) {
-    em_printfout("%s:%d AUTOCONFIG_DEBUG methodName:%s *asyncHandle:%p \n", __func__, __LINE__, methodName, *asyncHandle);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG methodName:%s \n", __func__, __LINE__, methodName);
     outParams = (raw_data_t *) malloc(sizeof(raw_data_t));
     if(outParams == NULL) {
         em_printfout("%s:%d AUTOCONFIG_DEBUG outParams is NULL\n", __func__, __LINE__);
         return bus_error_out_of_resources;
     }
+    std::string status = "Status: Success";
     outParams->raw_data_len = 16;
-    outParams->raw_data.bytes = "Status: Success";
+    outParams->raw_data.bytes = status;
     outParams->data_type = bus_data_type_string;
 
     if(inParams->raw_data_len > 0) em_printfout("%s:%d AUTOCONFIG_DEBUG input_params:%s \n", __func__, __LINE__, (char *)inParams->raw_data.bytes);
@@ -625,6 +634,6 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set_outer(char *event_name, raw_data_t *p_d
 }
 
 bus_error_t em_ctrl_t::ctrl_cmd_ssid_set_method(char const* methodName, raw_data_t *inParams, raw_data_t *outParams, void *asyncHandle) {
-    em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s \n", __func__, __LINE__, event_name);
-    return bus_method_cb_fwd(event_name, inParams, outParams, asyncHandle, ctrl_cmd_ssid_set_inner);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG methodName:%s \n", __func__, __LINE__, methodName);
+    return bus_method_cb_fwd(methodName, inParams, outParams, asyncHandle, ctrl_cmd_ssid_set_inner);
 }
