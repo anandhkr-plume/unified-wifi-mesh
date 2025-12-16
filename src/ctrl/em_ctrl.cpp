@@ -1193,14 +1193,14 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
             em_printfout("%s:%d AUTOCONFIG_DEBUG haul_type:%s\n", __func__, __LINE__, haul_type);
         }
 
-        if(!cJSON_GetArraySize(input_haultype) && haul_type == em_haul_type_fronthaul) {
+        if(!cJSON_GetArraySize(input_haultype) && strncmp(haul_type, "Fronthaul", strlen("Fronthaul")) == 0) {
             cJSON_ReplaceItemInObject(item, "SSID", input_ssid);
             for_each_arg(input_json_args, item, set_ssid_args);
             break;
         }
 
         cJSON_ArrayForEach(get_haul_type, input_haultype) {
-            char *input_haul_type = (unsigned int)cJSON_GetStringValue(get_haul_type);
+            char *input_haul_type = cJSON_GetStringValue(get_haul_type);
             em_printfout("%s:%d AUTOCONFIG_DEBUG input_haul_type:%s count_haultype:%d \n", __func__, __LINE__, input_haul_type, count_haultype);
             if( strncmp(haul_type, input_haul_type, strlen(input_haul_type)) == 0 ) {
                 cJSON_ReplaceItemInObject(item, "SSID", input_ssid);
