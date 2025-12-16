@@ -451,7 +451,7 @@ void em_ctrl_t::handle_nb_event(em_nb_event_t *evt)
             raw_data_t *out = static_cast<raw_data_t *> (evt->u.method.out);
             void *async = evt->u.method.async;
             bus_method_handler_t cb = (bus_method_handler_t) evt->cb;
-            resp->rc = cb(NULL, method, in, out, async);
+            resp->rc = cb(method, in, out, async);
         } break;
 
         default:
@@ -925,52 +925,6 @@ void em_ctrl_t::io(void *data, bool input)
 
     m_ctrl_cmd->deinit();
     delete m_ctrl_cmd;
-}
-
-bus_error_t bus_set_cb_fwd(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data, bus_set_handler_t cb)
-{
-    (void)user_data;
-    uint32_t s_id;
-    bus_error_t err = bus_error_success;
-    em_event_t *req;
-    bus_resp_get_t *resp = NULL;
-    uintptr_t buf;
-
-    do {
-        req = (em_event_t *) malloc(sizeof(em_event_t));
-        if(!req) {
-            err = bus_error_out_of_resources;
-            break;
-        }
-        em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s \n", __func__, __LINE__, event_name);
-        s_id = g_ctrl.get_next_nb_evt_id();
-        req->type = em_event_type_nb;
-        req->u.nevt.id = s_id;
-        req->u.nevt.type = NB_REQTYPE_METHOD;
-        req->u.nevt.u.method.method = event_name;
-        req->u.nevt.u.method.in = p_data;
-        req->u.nevt.u.method.out = NULL;
-        req->u.nevt.u.method.async = NULL;
-        req->u.nevt.cb = (void *) cb;
-
-        g_ctrl.push_to_queue(req);
-
-        em_printfout("%s:%d AUTOCONFIG_DEBUG Reading from pipe \n", __func__, __LINE__);
-        ssize_t len = read(g_ctrl.get_nb_pipe_rd(), &buf, sizeof(buf));
-        assert(len == sizeof(buf));
-        resp = (bus_resp_get_t *) buf;
-        em_printfout("%s:%d AUTOCONFIG_DEBUG resp->id:%d \n", __func__, __LINE__, resp->id);
-        assert(resp->id == s_id);
-        err = resp->rc;
-        em_printfout("%s:%d Reached End of Do \n", __func__, __LINE__);
-    } while(0);
-
-    return err;
-}
-
-bus_error_t em_ctrl_t::ctrl_cmd_ssid_set_outer(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
-    em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s \n", __func__, __LINE__, event_name);
-    return bus_set_cb_fwd(event_name, p_data, user_data, ctrl_cmd_ssid_set);
 }
 
 void em_ctrl_t::start_complete()
