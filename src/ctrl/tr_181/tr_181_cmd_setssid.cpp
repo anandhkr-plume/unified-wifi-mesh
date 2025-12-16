@@ -612,7 +612,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     return bus_error_success;
 }
 
-bus_error_t ctrl_cmd_ssid_set_inner(char const* methodName, raw_data_t *inParams, raw_data_t *outParams, void *asyncHandle) {
+bus_error_t em_ctrl_t::ctrl_cmd_ssid_set_inner(char const* methodName, raw_data_t *inParams, raw_data_t *outParams, void *asyncHandle) {
     em_printfout("%s:%d AUTOCONFIG_DEBUG methodName:%s \n", __func__, __LINE__, methodName);
     outParams = (raw_data_t *) malloc(sizeof(raw_data_t));
     if(outParams == NULL) {
