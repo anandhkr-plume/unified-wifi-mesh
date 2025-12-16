@@ -1087,8 +1087,8 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     *input_passphrase = NULL, *input_band = NULL, *input_akms = NULL, *input_suite_selector = NULL, *input_mfp_config = NULL, *input_mobility_domain = NULL, \
     *input_advertisement_enabled = NULL, *input_type = NULL, *get_haul_type = NULL;*/
     std::vector<std::string> set_ssid_args = {"PassPhrase", "Enable", "Band", "AKMsAllowed", "SuiteSelector", "AdvertisementEnabled", "MFPConfig", "MobilityDomain", "Type"};
-    char *jsonbuff = NULL, *updated_json = NULL;
-    unsigned int haul_type = 0, json_len = 0, count_haultype = 0,ret = 0;
+    char *jsonbuff = NULL, *updated_json = NULL, *haul_type = NULL;
+    unsigned int json_len = 0, count_haultype = 0,ret = 0;
     bool found = false;
 
     em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s data_type:%d data_len:%d input:%s \n", __func__, __LINE__,
@@ -1189,8 +1189,8 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     cJSON_ArrayForEach(item, ssid_list) {
         haul_type_arr = cJSON_GetObjectItem(item, "HaulType");
         cJSON_ArrayForEach(haul_type_item, haul_type_arr) {
-            haul_type = (unsigned int) cJSON_GetNumberValue(haul_type_item);
-            em_printfout("%s:%d AUTOCONFIG_DEBUG haul_type:%d\n", __func__, __LINE__, haul_type);
+            haul_type = cJSON_GetStringValue(haul_type_item);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG haul_type:%s\n", __func__, __LINE__, haul_type);
         }
 
         if(!cJSON_GetArraySize(input_haultype) && haul_type == em_haul_type_fronthaul) {
@@ -1200,7 +1200,9 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
         }
 
         cJSON_ArrayForEach(get_haul_type, input_haultype) {
-            if( haul_type ==  (unsigned int)cJSON_GetNumberValue(get_haul_type) ) {
+            char *input_haul_type = (unsigned int)cJSON_GetStringValue(get_haul_type);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG input_haul_type:%s count_haultype:%d \n", __func__, __LINE__, input_haul_type, count_haultype);
+            if( strncmp(haul_type, input_haul_type, strlen(input_haul_type)) == 0 ) {
                 cJSON_ReplaceItemInObject(item, "SSID", input_ssid);
                 for_each_arg(input_json_args, item, set_ssid_args);
                 count_haultype++;
