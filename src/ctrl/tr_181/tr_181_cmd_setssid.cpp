@@ -268,7 +268,7 @@ bus_error_t bus_method_cb_fwd(char const* methodName, raw_data_t *inParams, raw_
             err = bus_error_out_of_resources;
             break;
         }
-        em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s \n", __func__, __LINE__, event_name);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG methodName:%s \n", __func__, __LINE__, methodName);
         s_id = g_ctrl.get_next_nb_evt_id();
         req->type = em_event_type_nb;
         req->u.nevt.id = s_id;
@@ -621,7 +621,7 @@ bus_error_t ctrl_cmd_ssid_set_inner(char const* methodName, raw_data_t *inParams
     }
     std::string status = "Status: Success";
     outParams->raw_data_len = 16;
-    outParams->raw_data.bytes = status;
+    outParams->raw_data.bytes = (void *)status.c_str();
     outParams->data_type = bus_data_type_string;
 
     if(inParams->raw_data_len > 0) em_printfout("%s:%d AUTOCONFIG_DEBUG input_params:%s \n", __func__, __LINE__, (char *)inParams->raw_data.bytes);
