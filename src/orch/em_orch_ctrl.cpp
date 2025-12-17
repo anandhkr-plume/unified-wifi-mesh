@@ -192,7 +192,7 @@ bool em_orch_ctrl_t::is_em_ready_for_orch_fini(em_cmd_t *pcmd, em_t *em)
 
 bool em_orch_ctrl_t::is_em_ready_for_orch_exec(em_cmd_t *pcmd, em_t *em)
 {
-    em_printfout("%s:%d AUTOCONFIG_DEBUG is_em_ready_for_orch_exec command: %d state: %d\n", __func__, __LINE__, pcmd->get_type(), em->get_state());
+    em_printfout("%s:%d AUTOCONFIG_DEBUG is_em_ready_for_orch_exec command: %d \n", __func__, __LINE__, pcmd->m_type);
     switch (pcmd->m_type) {
         case em_cmd_type_set_ssid:
         case em_cmd_type_set_radio:
