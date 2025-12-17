@@ -25,6 +25,7 @@
  #include <cjson/cJSON.h>
  
 #include "em_ctrl.h"
+#include "em_cmd_ctrl.h"
 #include "tr_181.h"
 #include "em_cli_apis.h"
 #include "util.h"
