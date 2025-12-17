@@ -24,8 +24,9 @@
  #include <unistd.h>
  #include <cjson/cJSON.h>
  
- #include "em_ctrl.h"
+#include "em_ctrl.h"
 #include "tr_181.h"
+#include "em_cli_apis.h"
 #include "util.h"
 
 extern em_ctrl_t g_ctrl;
@@ -454,6 +455,8 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     *input_passphrase = NULL, *input_band = NULL, *input_akms = NULL, *input_suite_selector = NULL, *input_mfp_config = NULL, *input_mobility_domain = NULL, \
     *input_advertisement_enabled = NULL, *input_type = NULL, *get_haul_type = NULL;*/
     std::vector<std::string> set_ssid_args = {"PassPhrase", "Enable", "Band", "AKMsAllowed", "SuiteSelector", "AdvertisementEnabled", "MFPConfig", "MobilityDomain", "Type"};
+    em_network_node_t *updated_ssid_network_tree = NULL;
+    em_cmd_params_t *ssid_cmd_params = g_ctrl.get_param();
     char *jsonbuff = NULL, *updated_json = NULL, *haul_type = NULL;
     unsigned int json_len = 0, count_haultype = 0,ret = 0;
     bool found = false;
@@ -601,8 +604,15 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
         em_printfout("Invalid JSON in subdoc->buff");
     }
 
+    updated_ssid_network_tree = get_network_tree(subdoc->buff);
+    if(updated_ssid_network_tree == NULL) {
+        em_printfout("ERROR: Failed to get network tree\n");
+        return bus_error_invalid_input;
+    }
+    ssid_cmd_params->net_node = updated_ssid_network_tree;
+
     em_printfout("%s:%d AUTOCONFIG_DEBUG calling io_process \n", __func__, __LINE__);
-    g_ctrl.io_process(em_bus_event_type_set_ssid, subdoc->buff, strlen(subdoc->buff));
+    g_ctrl.io_process(em_bus_event_type_set_ssid, subdoc->buff, strlen(subdoc->buff), ssid_cmd_params);
     free(updated_json);
     cJSON_Delete(json);
     em_printfout("%s:%d AUTOCONFIG_DEBUG Delete input_json \n", __func__, __LINE__);

@@ -92,7 +92,7 @@ void em_t::orch_execute(em_cmd_t *pcmd)
 
     // now set the em state to start message exchages with peer
     cmd_type = pcmd->m_type;
-    em_printfout("%s:%d AUTOCONFIG_DEBUG orch_execute command: %d radio: %s\n", __func__, __LINE__, cmd_type, get_radio_interface_mac());
+    em_printfout("%s:%d AUTOCONFIG_DEBUG orch_execute command: %d \n", __func__, __LINE__, cmd_type);
     switch (cmd_type) {
         case em_cmd_type_sta_list:
             m_sm.set_state(em_state_agent_topology_notify);

@@ -130,7 +130,7 @@ bool em_orch_t::submit_command(em_cmd_t *pcmd)
         push_stats(pcmd);
         submitted = true;
     }
-    em_printfout("%s:%d AUTOCONFIG_DEBUG submitted command: %d submitted: %d\n", __func__, __LINE__, pcmd->get_type(), submitted);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG submitted submitted: %d\n", __func__, __LINE__, submitted);
 
     return submitted;
 }
@@ -225,7 +225,7 @@ bool em_orch_t::orchestrate(em_cmd_t *pcmd, em_t *em)
         done = true;
     }
 
-    em_printfout("%s:%d AUTOCONFIG_DEBUG orchestrate command: %d orch_state:%d done: %d\n", __func__, __LINE__, pcmd->get_type(), orch_state, done);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG orchestrate orch_state:%d done: %d\n", __func__, __LINE__, orch_state, done);
     return done;
 }
 

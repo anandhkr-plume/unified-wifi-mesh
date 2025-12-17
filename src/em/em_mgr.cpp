@@ -108,7 +108,7 @@ bool em_mgr_t::io_process(em_event_t *evt)
     e = static_cast<em_event_t *>(malloc(sizeof(em_event_t) + EM_MAX_EVENT_DATA_LEN));
     memcpy(reinterpret_cast<unsigned char *>(e), reinterpret_cast<unsigned char *>(evt), sizeof(em_event_t) + EM_MAX_EVENT_DATA_LEN);
 
-    em_printfout("%s:%d AUTOCONFIG_DEBUG io_process event type: %d bus event type: %d\n", __func__, __LINE__, evt->type, e->u.bevt.type);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG io_process event type: %d \n", __func__, __LINE__, evt->type);
     push_to_queue(e);
 
     // check if the server should wait
