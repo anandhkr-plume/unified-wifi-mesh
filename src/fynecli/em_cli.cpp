@@ -234,6 +234,7 @@ em_network_node_t *em_cli_t::exec(char *in, size_t sz, em_network_node_t *node)
     if (cli_cmd->validate() == false) {
         cli_cmd->m_cmd.status_to_string(em_cmd_out_status_invalid_input, result);
     } else {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG executing command\n", __func__, __LINE__);
         if (cli_cmd->execute(result) != 0) {
             cli_cmd->m_cmd.status_to_string(em_cmd_out_status_invalid_input, result);
 

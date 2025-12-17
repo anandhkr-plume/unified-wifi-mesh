@@ -92,6 +92,7 @@ void em_t::orch_execute(em_cmd_t *pcmd)
 
     // now set the em state to start message exchages with peer
     cmd_type = pcmd->m_type;
+    em_printfout("%s:%d AUTOCONFIG_DEBUG orch_execute command: %d radio: %s\n", __func__, __LINE__, cmd_type, get_radio_interface_mac());
     switch (cmd_type) {
         case em_cmd_type_sta_list:
             m_sm.set_state(em_state_agent_topology_notify);
@@ -100,8 +101,10 @@ void em_t::orch_execute(em_cmd_t *pcmd)
         case em_cmd_type_set_ssid:
         case em_cmd_type_set_radio:
 	    if (m_service_type == em_service_type_ctrl) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG set_renew_tx_count: 0\n", __func__, __LINE__);
 	        set_renew_tx_count(0);
-	    }
+	    }   
+            em_printfout("%s:%d AUTOCONFIG_DEBUG set_state: em_state_ctrl_misconfigured\n", __func__, __LINE__);
             m_sm.set_state(em_state_ctrl_misconfigured);
 			break;
 

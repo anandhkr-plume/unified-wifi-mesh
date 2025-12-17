@@ -130,6 +130,7 @@ bool em_orch_t::submit_command(em_cmd_t *pcmd)
         push_stats(pcmd);
         submitted = true;
     }
+    em_printfout("%s:%d AUTOCONFIG_DEBUG submitted command: %d submitted: %d\n", __func__, __LINE__, pcmd->get_type(), submitted);
 
     return submitted;
 }
@@ -201,6 +202,7 @@ bool em_orch_t::orchestrate(em_cmd_t *pcmd, em_t *em)
             //printf("%s:%d: Start orchestartion:%s(%s), em state:%s\n", __func__, __LINE__, 
 					//em_cmd_t::get_orch_op_str(pcmd->get_orch_op()), em_cmd_t::get_cmd_type_str(pcmd->m_type), 
 					//em_t::state_2_str(em->get_state()));
+            em_printfout("%s:%d AUTOCONFIG_DEBUG call orch_execute for pcmd:%d orch_state:%d \n", __func__, __LINE__, pcmd->m_type, orch_state);
             em->orch_execute(pcmd);
         } else {
             //printf("%s:%d: skipping orchestration:%s(%s) because of incorrect state, state:%s\n", __func__, __LINE__, 
@@ -223,6 +225,7 @@ bool em_orch_t::orchestrate(em_cmd_t *pcmd, em_t *em)
         done = true;
     }
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG orchestrate command: %d orch_state:%d done: %d\n", __func__, __LINE__, pcmd->get_type(), orch_state, done);
     return done;
 }
 

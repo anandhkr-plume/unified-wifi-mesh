@@ -108,6 +108,7 @@ bool em_mgr_t::io_process(em_event_t *evt)
     e = static_cast<em_event_t *>(malloc(sizeof(em_event_t) + EM_MAX_EVENT_DATA_LEN));
     memcpy(reinterpret_cast<unsigned char *>(e), reinterpret_cast<unsigned char *>(evt), sizeof(em_event_t) + EM_MAX_EVENT_DATA_LEN);
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG io_process event type: %d bus event type: %d\n", __func__, __LINE__, evt->type, bevt->type);
     push_to_queue(e);
 
     // check if the server should wait
@@ -538,7 +539,6 @@ int em_mgr_t::start()
 		util::add_milliseconds(&time_to_wait, m_queue.timeout);
 
         if (queue_count(m_queue.queue) == 0) {
-            em_printfout("%s:%d AUTOCONFIG_DEBUG Queue is empty\n", __func__, __LINE__);
             rc = pthread_cond_timedwait(&m_queue.cond, &m_queue.lock, &time_to_wait);
         }
         if ((rc == 0) || (queue_count(m_queue.queue) != 0)) {

@@ -185,6 +185,7 @@ int em_cmd_cli_t::execute(char *result)
     bevt = &evt->u.bevt;
     memcpy(&bevt->params, param, sizeof(em_cmd_params_t));
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG event type: %d\n", __func__, __LINE__, get_type());
     switch (get_type()) {
 
         case em_cmd_type_dev_test:

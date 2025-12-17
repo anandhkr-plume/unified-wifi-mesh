@@ -252,11 +252,12 @@ void em_ctrl_t::handle_set_ssid_list(em_bus_event_t *evt)
         	m_ctrl_cmd->send_result(em_cmd_out_status_invalid_input);
 		}
     } else if (m_orch->submit_commands(pcmd, static_cast<unsigned int> (num = ret)) > 0) {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG submitting commands\n", __func__, __LINE__);
         m_ctrl_cmd->send_result(em_cmd_out_status_success);
     } else {
         m_ctrl_cmd->send_result(em_cmd_out_status_not_ready);
     } 
-
+    em_printfout("%s:%d AUTOCONFIG_DEBUG end of handle_set_ssid_list\n", __func__, __LINE__);
 }
 
 void em_ctrl_t::handle_remove_device(em_bus_event_t *evt)
@@ -561,6 +562,7 @@ void em_ctrl_t::handle_bus_event(em_bus_event_t *evt)
         default:
             break;
     }
+    em_printfout("%s:%d AUTOCONFIG_DEBUG end of handle_bus_event\n", __func__, __LINE__);
 }
 
 void em_ctrl_t::handle_event(em_event_t *evt)

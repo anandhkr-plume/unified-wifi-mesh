@@ -92,6 +92,7 @@ int em_cmd_ctrl_t::execute(char *result)
         	//get_event()->u.bevt.data_len, get_event()->u.bevt.u.subdoc.name, get_event()->u.bevt.u.subdoc.buff);
         
         switch (get_event()->type) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG event type: %d\n", __func__, __LINE__, get_event()->type);
             case em_event_type_bus:
                 if (m_ctrl.is_data_model_initialized() == true && m_ctrl.is_network_topology_initialized() == true) {
                     wait = m_ctrl.io_process(get_event());
