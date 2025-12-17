@@ -456,7 +456,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     *input_advertisement_enabled = NULL, *input_type = NULL, *get_haul_type = NULL;*/
     std::vector<std::string> set_ssid_args = {"PassPhrase", "Enable", "Band", "AKMsAllowed", "SuiteSelector", "AdvertisementEnabled", "MFPConfig", "MobilityDomain", "Type"};
     em_network_node_t *updated_ssid_network_tree = NULL;
-    em_cmd_params_t *ssid_cmd_params = g_ctrl.get_param();
+    em_cmd_params_t *ssid_cmd_params = g_ctrl.m_ctrl_cmd->get_param();
     char *jsonbuff = NULL, *updated_json = NULL, *haul_type = NULL;
     unsigned int json_len = 0, count_haultype = 0,ret = 0;
     bool found = false;
