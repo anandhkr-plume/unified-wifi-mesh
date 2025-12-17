@@ -302,7 +302,7 @@ em_cmd_params_t *em_ctrl_t::update_set_ssid_params(em_subdoc_info_t *subdoc) {
     em_printfout("%s:%d AUTOCONFIG_DEBUG arg[1]:%s \n", __func__, __LINE__, cmd_params->u.args.args[1]);
     if(updated_ssid_network_tree == NULL) {
         em_printfout("ERROR: Failed to get network tree\n");
-        return bus_error_invalid_input;
+        return cmd_params;
     }
     em_printfout("%s:%d AUTOCONFIG_DEBUG key:%s type:%d \n", __func__, __LINE__, updated_ssid_network_tree->key, updated_ssid_network_tree->type);
     cmd_params->net_node = updated_ssid_network_tree;
