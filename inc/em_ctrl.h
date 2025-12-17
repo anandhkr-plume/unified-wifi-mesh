@@ -685,6 +685,7 @@ public:
 	*/
 	static bus_error_t ctrl_cmd_ssid_set_outer(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
 	static bus_error_t ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
+	em_cmd_params_t *em_ctrl_t::update_set_ssid_params(em_subdoc_info_t *subdoc);
 
 
 	static bus_error_t ctrl_cmd_ssid_set_method(char const* methodName, raw_data_t *inParams, raw_data_t *outParams, void *asyncHandle);

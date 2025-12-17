@@ -295,6 +295,22 @@ bus_error_t bus_method_cb_fwd(char const* methodName, raw_data_t *inParams, raw_
     return err;
 }
 
+em_cmd_params_t *em_ctrl_t::update_set_ssid_params(em_subdoc_info_t *subdoc) {
+    em_cmd_params_t *cmd_params = m_ctrl_cmd->get_param();
+    em_network_node_t *updated_ssid_network_tree = get_network_tree(subdoc->buff);
+
+    em_printfout("%s:%d AUTOCONFIG_DEBUG arg[1]:%s \n", __func__, __LINE__, cmd_params->u.args.args[1]);
+    if(updated_ssid_network_tree == NULL) {
+        em_printfout("ERROR: Failed to get network tree\n");
+        return bus_error_invalid_input;
+    }
+    em_printfout("%s:%d AUTOCONFIG_DEBUG key:%s type:%d \n", __func__, __LINE__, updated_ssid_network_tree->key, updated_ssid_network_tree->type);
+    cmd_params->net_node = updated_ssid_network_tree;
+    
+
+    return cmd_params;
+}
+
 bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name) {
     cJSON *item = NULL;
     em_printfout("%s:%d AUTOCONFIG_DEBUG validating input_data:%s input_name:%s\n", __func__, __LINE__, input_data->string, input_name);
@@ -448,6 +464,7 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
 bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
     (void)user_data;
     em_subdoc_info_t *subdoc = NULL;
+    em_cmd_params_t *ssid_cmd_params = NULL;
     unsigned char buff[EM_IO_BUFF_SZ];
     cJSON *json = NULL, *input_json = NULL, *input_json_item = NULL, *item = NULL, *root = NULL, *child = NULL, *next = NULL, *new_json = NULL, *json_obj = NULL, *get_haul_type = NULL, \
     *input_haultype = NULL, *haul_type_arr = NULL, *ssid_list = NULL, *haul_type_item = NULL, *input_ssid = NULL, *input_addremovechange = NULL, *input_json_args = NULL;
@@ -455,8 +472,6 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     *input_passphrase = NULL, *input_band = NULL, *input_akms = NULL, *input_suite_selector = NULL, *input_mfp_config = NULL, *input_mobility_domain = NULL, \
     *input_advertisement_enabled = NULL, *input_type = NULL, *get_haul_type = NULL;*/
     std::vector<std::string> set_ssid_args = {"PassPhrase", "Enable", "Band", "AKMsAllowed", "SuiteSelector", "AdvertisementEnabled", "MFPConfig", "MobilityDomain", "Type"};
-    em_network_node_t *updated_ssid_network_tree = NULL;
-    em_cmd_params_t *ssid_cmd_params = m_ctrl_cmd->get_param();
     char *jsonbuff = NULL, *updated_json = NULL, *haul_type = NULL;
     unsigned int json_len = 0, count_haultype = 0,ret = 0;
     bool found = false;
@@ -604,13 +619,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
         em_printfout("Invalid JSON in subdoc->buff");
     }
 
-    updated_ssid_network_tree = get_network_tree(subdoc->buff);
-    if(updated_ssid_network_tree == NULL) {
-        em_printfout("ERROR: Failed to get network tree\n");
-        return bus_error_invalid_input;
-    }
-    ssid_cmd_params->net_node = updated_ssid_network_tree;
-
+    ssid_cmd_params = g_ctrl.update_set_ssid_params(subdoc);
     em_printfout("%s:%d AUTOCONFIG_DEBUG calling io_process \n", __func__, __LINE__);
     g_ctrl.io_process(em_bus_event_type_set_ssid, subdoc->buff, strlen(subdoc->buff), ssid_cmd_params);
     free(updated_json);
