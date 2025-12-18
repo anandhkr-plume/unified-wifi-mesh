@@ -312,6 +312,7 @@ bool em_orch_ctrl_t::pre_process_orch_op(em_cmd_t *pcmd)
         case dm_orch_type_db_cfg:
             dm_ctrl->set_config(dm);
             dm_ctrl->set_initialized();
+            em_printfout("%s:%d AUTOCONFIG_DEBUG set_config done\n", __func__, __LINE__);
             break;
 
         case dm_orch_type_al_insert:
