@@ -303,6 +303,8 @@ int em_cmd_cli_t::execute(char *result)
                 printf("%s:%d: failed to open file at location:%s error:%d\n", __func__, __LINE__, param->u.args.fixed_args, errno);
                 return -1;
 			}	
+            em_printfout("%s:%d AUTOCONFIG_DEBUG key:%s type:%d value_str:%s node_ctr:%d node_pos:%d num_children:%d buff:%s\n", __func__, __LINE__, node->key, node->type,
+                node->value_str, node->display_info.node_ctr, node->display_info.node_pos, node->num_children, info->buff);
             break;
 
         case em_cmd_type_get_channel:
@@ -455,6 +457,7 @@ int em_cmd_cli_t::execute(char *result)
     }
 
 	//printf("%s:%d: Length: %d Event len: %d\n", __func__, __LINE__, bevt->data_len, get_event_length());
+    em_printfout("%s:%d AUTOCONFIG_DEBUG bevt->type:%d num_args:%d fixed_args:%s args[1]:%s \n", __func__, __LINE__, bevt->type, param->u.args.num_args, param->u.args.fixed_args, param->u.args.args[1]);
 
     get_cmd()->init(dm);
 

@@ -305,7 +305,7 @@ em_cmd_params_t *em_ctrl_t::update_set_ssid_params(em_subdoc_info_t *subdoc) {
         em_printfout("ERROR: Failed to get network tree\n");
         return cmd_params;
     }
-    strncpy(updated_ssid_network_tree->key, "wfa-dataelements:SetSSID", strlen("wfa-dataelements:SetSSID" + 1));
+    strncpy(updated_ssid_network_tree->key, "wfa-dataelements:SetSSID", strlen("wfa-dataelements:SetSSID") + 1);
     em_printfout("%s:%d AUTOCONFIG_DEBUG key:%s type:%d value_str:%s node_ctr:%d node_pos:%d num_children:%d\n",
         __func__, __LINE__, updated_ssid_network_tree->key, updated_ssid_network_tree->type, updated_ssid_network_tree->value_str,
         updated_ssid_network_tree->display_info.node_ctr, updated_ssid_network_tree->display_info.node_pos, updated_ssid_network_tree->num_children);
