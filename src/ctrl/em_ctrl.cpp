@@ -1000,6 +1000,7 @@ void em_ctrl_t::start_complete()
 	m_nb_pipe_wr = pipefd[1];
 
 	tr181_reg_data_elements(&m_bus_hdl);
+    tr181_reg_add_table_row(&m_bus_hdl);
 
 	num_elements = (sizeof(dataElements) / sizeof(bus_data_element_t));
 	bus_error_val = desc->bus_reg_data_element_fn(&m_bus_hdl, dataElements, num_elements);

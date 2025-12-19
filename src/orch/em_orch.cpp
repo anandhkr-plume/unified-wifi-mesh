@@ -191,10 +191,12 @@ bool em_orch_t::orchestrate(em_cmd_t *pcmd, em_t *em)
     bool done = false;
     em_orch_state_t orch_state;
     mac_addr_str_t	mac_str;
+    em_printfout("%s:%d: AUTOCONFIG_DEBUG Inside \n", __func__, __LINE__);
 
     orch_state = em->get_orch_state();
 
     dm_easy_mesh_t::macbytes_to_string(em->get_radio_interface_mac(), mac_str);
+    em_printfout("%s:%d: AUTOCONFIG_DEBUG orchestrate orch_state:%d mac_str:%s\n", __func__, __LINE__, orch_state, mac_str);
 
     if (orch_state == em_orch_state_pending) {
         if (is_em_ready_for_orch_exec(pcmd, em) == true) {
@@ -358,9 +360,12 @@ void em_orch_t::handle_timeout()
 
     // go through pending queue and check if the commands can be moved to active
     for (i = static_cast<int>(queue_count(m_pending)) - 1; i >= 0; i--) {
+        em_printfout("%s:%d: AUTOCONFIG_DEBUG pending queue count: %d\n", __func__, __LINE__, queue_count(m_pending));
         pcmd = static_cast<em_cmd_t *>(queue_peek(m_pending, static_cast<unsigned int>(i)));
         if (eligible_for_active(pcmd) == true) {
             queue_remove(m_pending, static_cast<unsigned int>(i));
+            em_printfout("%s:%d: AUTOCONFIG_DEBUG Cmd: %s Orch Type: %s eligible for active\n", __func__, __LINE__, 
+                    pcmd->get_cmd_name(), em_cmd_t::get_orch_op_str(pcmd->get_orch_op()));
             //printf("%s:%d: Cmd: %s Orch Type: %s eligible for active\n", __func__, __LINE__, 
                     //pcmd->get_cmd_name(), em_cmd_t::get_orch_op_str(pcmd->get_orch_op()));
             eligible_to_move = true;
@@ -370,16 +375,19 @@ void em_orch_t::handle_timeout()
 
     if (eligible_to_move == true) {
         for (i = static_cast<int>(queue_count(pcmd->m_em_candidates)) - 1; i >= 0; i--) {
+            em_printfout("%s:%d: AUTOCONFIG_DEBUG em candidates count: %d\n", __func__, __LINE__, queue_count(pcmd->m_em_candidates));
             em = static_cast<em_t *>(queue_peek(pcmd->m_em_candidates, static_cast<unsigned int>(i)));
             em->set_orch_state(em_orch_state_pending);
         }
 
 		// as soon as command is pushed to active start timing
 		pcmd->set_start_time();
+        em_printfout("%s:%d: AUTOCONFIG_DEBUG m_type:%d \n", __func__, __LINE__, pcmd->m_type);
         queue_push(m_active, pcmd);
     } else {
         if ((cnt = queue_count(m_pending))) {
             pcmd = static_cast<em_cmd_t *>(queue_peek(m_pending, cnt - 1));
+            em_printfout("%s:%d:%d Command in pending but not eligible for active\n", __func__, __LINE__, cnt);
             //printf("%s:%d:%d Command in pending but not eligible for active\n", __func__, __LINE__, cnt);
         }
     }
@@ -388,10 +396,14 @@ void em_orch_t::handle_timeout()
     // go through active queue and check command states
     for (i = static_cast<int>(queue_count(m_active)) - 1; i >= 0; i--) {
         pcmd = static_cast<em_cmd_t *>(queue_peek(m_active, static_cast<unsigned int>(i)));
+        em_printfout("%s:%d: AUTOCONFIG_DEBUG Cmd: %s, em candidates: %d\n", __func__, __LINE__, 
+				em_cmd_t::get_cmd_type_str(pcmd->m_type), queue_count(pcmd->m_em_candidates));
+
 		//printf("%s:%d: Cmd: %s, em candidates: %d\n", __func__, __LINE__, 
 					//em_cmd_t::get_cmd_type_str(pcmd->m_type), queue_count(pcmd->m_em_candidates));
         for (j = static_cast<int>(queue_count(pcmd->m_em_candidates)) - 1; j >= 0; j--) {
             em = static_cast<em_t *>(queue_peek(pcmd->m_em_candidates, static_cast<unsigned int>(j)));
+            em_printfout("%s:%d: AUTOCONFIG_DEBUG orchestrate\n", __func__, __LINE__);
             ret &= orchestrate(pcmd, em);
         }
 

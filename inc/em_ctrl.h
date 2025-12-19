@@ -707,6 +707,17 @@ public:
 	 */
 	int tr181_reg_data_elements(bus_handle_t *bus_handle);
 
+	/**!
+	 * @brief Registers the table rows for the data elements.
+	 *
+	 * This function registers the table rows for the data elements.
+	 *
+	 * @returns int Status of the register operation.
+	 * @retval 0 on success
+	 * @retval non-zero error code on failure
+	 */
+	int tr181_reg_add_table_row(bus_handle_t *bus_handle);
+
 #ifdef AL_SAP
     
 	/**!

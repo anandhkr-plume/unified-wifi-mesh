@@ -2094,8 +2094,6 @@ bus_error_t sta_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user
 #define ELEMENT_METHOD(n, f, t)     {n, bus_element_type_method, CALLBACK_METHOD(f), ELEMENT_DEFAULTS(t)}
 #define ELEMENT_TABLE(n, f, t)      {n, bus_element_type_table, CALLBACK_GETTER(f), ELEMENT_DEFAULTS(t)}
 
-//#define ADDROW(f) (std::string(f) + "_table_addRowhandler")
-//#define TABLE_GET(f) (std::string(f) + "_tget")
 #define TABLE_ELEMENT_DEFAULTS(num_of_row, element_type) slow_speed, num_of_row, {element_type, false, 0L, 0L, 0U, NULL}
 
 #define BUS_TABLE_CALLBACK(get_table_handler, add_row_handler) {get_table_handler, NULL, add_row_handler, NULL, NULL, NULL}
@@ -2240,6 +2238,38 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         printf("Bus register elements failed: %d\n", rc);
         em_printfout("%s:%d AUTOCONFIG_DEBUG Bus register elements failed: %d \n", __func__, __LINE__, rc);
         return -1;
+    }
+
+    return 0;
+}
+
+int em_ctrl_t::tr181_reg_add_table_row(bus_handle_t *bus_handle) {
+    wifi_bus_desc_t *bus_desc;
+    bus_error_t rc;
+    dm_easy_mesh_t *dm = g_ctrl.get_first_dm();
+    uint32_t radio_index = 0, device_count = 1;
+
+    bus_desc = get_bus_descriptor();
+    if (bus_desc == NULL) {
+        printf("Bus is not initialized\n");
+        return -1;
+    }
+
+    while(dm != NULL) {
+        em_long_string_t radio_table_name;
+        snprintf(radio_table_name, sizeof(radio_table_name), "%sDevice.%u.Radio", DATAELEMS_NETWORK, device_count);
+        device_count++;
+        for(uint32_t num_radios = 1; num_radios <= dm->get_num_radios(); num_radios++) {
+            if((rc = bus_desc->bus_add_table_row_fn(bus_handle, radio_table_name, NULL, &radio_index)) != bus_error_success) {
+                em_printfout("%s:%d AUTOCONFIG_DEBUG bus_add_table_row_fn failed try bus_reg_table_row_fn \n", __func__, __LINE__);
+                rc = bus_desc->bus_reg_table_row_fn(bus_handle, radio_table_name, num_radios, NULL);
+                if(rc != bus_error_success) {
+                    em_printfout("%s:%d AUTOCONFIG_DEBUG bus_reg_table_row_fn failed radio_index:%d \n", __func__, __LINE__, radio_index);
+                    return -1;
+                }
+            }
+            dm = g_ctrl.get_next_dm(dm);
+        }
     }
 
     return 0;
