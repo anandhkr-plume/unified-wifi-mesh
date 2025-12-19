@@ -2170,11 +2170,11 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         max_num_of_radios = std::max(max_num_of_radios, dm->get_num_radios());
         dm_device_t *dev = dm->get_device();
         if (dev == NULL) {
-            em_printfout("%s:%d AUTOCONFIG_DEBUG device is NULL event_name:%s \n", __func__, __LINE__, event_name);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG device is NULL \n", __func__, __LINE__);
         }
         em_device_info_t *di = dev->get_device_info();
         if (memcmp(di->id.dev_mac, ZERO_MAC_ADDR, sizeof(di->id.dev_mac)) == 0) {
-            em_printfout("%s:%d AUTOCONFIG_DEBUG ZERO_MAC_ADDR event_name:%s \n", __func__, __LINE__, event_name);
+            em_printfout("%s:%d AUTOCONFIG_DEBUG ZERO_MAC_ADDR \n", __func__, __LINE__);
         }    
         dm = g_ctrl.get_next_dm(dm);
     }
