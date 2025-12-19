@@ -19,9 +19,6 @@
 #include <stdio.h>
 #include <assert.h>
 #include <unistd.h>
-#include <unordered_map>
-#include <string>
-#include <algorithm>
 #if 0
 #include <libubox/utils.h>
 #endif
@@ -819,54 +816,8 @@ bus_error_t device_table_addRowhandler(char const *tableName, char const *aliasN
 bus_error_t radio_table_addRowhandler(char const *tableName, char const *aliasName, uint32_t *instNum) {
     em_printfout("%s:%d: AUTOCONFIG_DEBUG addRowHandler tableName=%s, aliasName=%s\n", __FUNCTION__, __LINE__, tableName, aliasName);
 
-    if (!tableName || !instNum) {
-        return bus_error_invalid_input;
-    }
-
-    /**
-     * Radio table is nested:
-     *   Device.WiFi.DataElements.Network.Device.{i}.Radio.{i}
-     *
-     * Row instance numbers must be allocated PER-DEVICE, otherwise getters like
-     * `radio_get_inner()` will index dm->get_radio(idx-1) with out-of-range idx
-     * for devices other than the first.
-     *
-     * NOTE: Providers typically create the initial rows using bus_reg_table_row_fn /
-     * bus_add_table_row_fn, so this handler mostly matters when a consumer invokes AddTblRow.
-     */
-    const char *name = tableName;
-    if (strncmp(name, DATAELEMS_NETWORK, strlen(DATAELEMS_NETWORK)) == 0) {
-        name += sizeof(DATAELEMS_NETWORK);
-    }
-
-    char dev_instance[MAX_INSTANCE_LEN] = {0};
-    bool is_num = true;
-    name = get_table_instance(name, dev_instance, MAX_INSTANCE_LEN, &is_num);
-
-    dm_easy_mesh_t *dm = get_dm_easy_mesh(dev_instance, is_num);
-    if (dm == NULL) {
-        em_printfout("%s:%d: AUTOCONFIG_DEBUG invalid device instance '%s' for tableName=%s\n",
-                     __FUNCTION__, __LINE__, dev_instance, tableName);
-        return bus_error_invalid_input;
-    }
-
-    const uint32_t radios_in_device = dm->get_num_radios();
-    if (radios_in_device == 0) {
-        return bus_error_invalid_operation;
-    }
-
-    static std::unordered_map<std::string, uint32_t> next_radio_idx_by_device;
-    const std::string dev_key = std::string(is_num ? "dev#" : "dev=") + dev_instance;
-    uint32_t &next_idx = next_radio_idx_by_device[dev_key];
-
-    if (next_idx >= radios_in_device) {
-        // Don't allow creating rows that do not exist in the backing DM.
-        return bus_error_invalid_operation;
-    }
-
-    *instNum = ++next_idx; // 1-based indexing
-    em_printfout("%s:%d: AUTOCONFIG_DEBUG allocated radio instNum:%u for %s (device has %u radios)\n",
-                 __FUNCTION__, __LINE__, *instNum, dev_key.c_str(), radios_in_device);
+    *instNum = ++num_of_radios;
+    em_printfout("%s:%d: AUTOCONFIG_DEBUG addRowHandler instNum:%d\n", __FUNCTION__, __LINE__, *instNum);
     return bus_error_success;
 }
 
@@ -1112,6 +1063,7 @@ bus_error_t radio_get_inner(char *event_name, raw_data_t *p_data, bus_user_data_
     return rc;
 }
 
+#if 0
 bus_error_t radio_tget_params(dm_easy_mesh_t *dm, const char *root, bus_data_prop_t **property)
 {
     char path[512];
@@ -1196,7 +1148,7 @@ bus_error_t radio_tget_inner(char *event_name, raw_data_t *p_data, bus_user_data
     name = get_table_instance(name, instance, MAX_INSTANCE_LEN, &is_num);
     dm_easy_mesh_t *dm = get_dm_easy_mesh(instance, is_num);
     if (dm == NULL) {
-        em_printfout("%s:%d: data model is NULL for instance '%s'\n", __func__, __LINE__, instance);
+        printf("data model is NULL\n");
         return bus_error_invalid_input;
     }
 
@@ -1207,6 +1159,7 @@ bus_error_t radio_tget_inner(char *event_name, raw_data_t *p_data, bus_user_data
 
     return rc;
 }
+#endif
 
 bus_error_t rbhsta_get_inner(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
@@ -2143,12 +2096,10 @@ bus_error_t sta_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user
 
 //#define ADDROW(f) (std::string(f) + "_table_addRowhandler")
 //#define TABLE_GET(f) (std::string(f) + "_tget")
-#define TABLE_ELEMENT_DEFAULTS(d, t) slow_speed, d, {t, false, 0L, 0L, 0U, NULL}
+#define TABLE_ELEMENT_DEFAULTS(num_of_row, element_type) slow_speed, num_of_row, {element_type, false, 0L, 0L, 0U, NULL}
 
-#define BUS_TABLE_CALLBACK(ar) {NULL, NULL, ar, NULL, NULL, NULL}
-#define ELEMENT_TABLE_HANDLE(n, ar, d, t)      {n, bus_element_type_table, BUS_TABLE_CALLBACK(ar), TABLE_ELEMENT_DEFAULTS(d, t)}
-#define CALLBACK_TABLE_GETTER_AND_ADDROW(f, ar) {f, NULL, ar, NULL, NULL, NULL}
-#define ELEMENT_TABLE_WITH_ADDROW(n, f, ar, d, t) {n, bus_element_type_table, CALLBACK_TABLE_GETTER_AND_ADDROW(f, ar), TABLE_ELEMENT_DEFAULTS(d, t)}
+#define BUS_TABLE_CALLBACK(get_table_handler, add_row_handler) {get_table_handler, NULL, add_row_handler, NULL, NULL, NULL}
+#define ELEMENT_TABLE_HANDLE(data_element, get_table_handler, add_row_handler, num_of_row, element_type)      {data_element, bus_element_type_table, BUS_TABLE_CALLBACK(get_table_handler, add_row_handler), TABLE_ELEMENT_DEFAULTS(num_of_row, element_type)}
 
 /*{   DE_SSID_TABLE, bus_element_type_table,
     {ssid_tget, NULL, ssid_table_addRowhandler, NULL, NULL, NULL}, slow_speed, num_of_vaps,
@@ -2162,12 +2113,11 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
     bus_error_t rc;
     wifi_bus_desc_t *bus_desc;
     dm_easy_mesh_t *dm = g_ctrl.get_first_dm();
-    max_num_of_vaps = dm ? dm->get_num_network_ssid() : 0;
+    max_num_of_vaps = dm->get_num_network_ssid();
+    max_num_of_radios = dm->get_num_radios();
 
-    // Compute total devices and max radios across all devices.
-    while (dm != NULL) {
+    while(dm != NULL) {
         max_num_of_devices++;
-        max_num_of_radios = std::max(max_num_of_radios, dm->get_num_radios());
         dm_device_t *dev = dm->get_device();
         if (dev == NULL) {
             em_printfout("%s:%d AUTOCONFIG_DEBUG device is NULL \n", __func__, __LINE__);
@@ -2186,7 +2136,7 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         ELEMENT_PROPERTY(DE_NETWORK_COLAGTID,  network_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_NETWORK_DEVNOE,    network_get, bus_data_type_uint32),
         //ELEMENT_TABLE(DE_SSID_TABLE,         ssid_tget, bus_data_type_string),
-        ELEMENT_TABLE_HANDLE(DE_SSID_TABLE,      ssid_table_addRowhandler, max_num_of_vaps, bus_data_type_object),
+        ELEMENT_TABLE_HANDLE(DE_SSID_TABLE,      NULL, ssid_table_addRowhandler, max_num_of_vaps, bus_data_type_object),
         ELEMENT_PROPERTY(DE_SSID_SSID,         ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_BAND,         ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_ENABLE,       ssid_get, bus_data_type_boolean),
@@ -2197,7 +2147,7 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         ELEMENT_PROPERTY(DE_SSID_MOBDOMAIN,    ssid_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_SSID_HAULTYPE,     ssid_get, bus_data_type_string),
         //ELEMENT_TABLE(DE_DEVICE_TABLE,         device_tget, bus_data_type_string),
-        ELEMENT_TABLE_HANDLE(DE_DEVICE_TABLE,      device_table_addRowhandler, max_num_of_devices, bus_data_type_object),
+        ELEMENT_TABLE_HANDLE(DE_DEVICE_TABLE,      NULL, device_table_addRowhandler, max_num_of_devices, bus_data_type_object),
         ELEMENT_PROPERTY(DE_DEVICE_ID,         device_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_DEVICE_MANUFACT,   device_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_DEVICE_SERIALNO,   device_get, bus_data_type_string),
@@ -2211,16 +2161,8 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         ELEMENT_PROPERTY(DE_DEVICE_RADIONOE,   device_get, bus_data_type_uint32),
         ELEMENT_PROPERTY(DE_DEVICE_CACSTATNOE, device_get, bus_data_type_uint32),
         ELEMENT_PROPERTY(DE_DEVICE_BHDOWNNOE,  device_get, bus_data_type_uint32),
-        /**
-         * Nested table (Device.{i}.Radio.{i}):
-         * Use ELEMENT_TABLE_WITH_ADDROW to provide both:
-         *   - radio_tget_inner: table getter to return all radio rows when queried
-         *   - radio_table_addRowhandler: handler for AddTblRow operations
-         * Do not use num_of_table_row for auto-prepopulation because the platform helper can only
-         * strip the LAST ".{i}." and cannot expand the parent Device.{i}. We will instantiate
-         * rows per-device explicitly after registration.
-         */
-        ELEMENT_TABLE_WITH_ADDROW(DE_RADIO_TABLE, radio_get, radio_table_addRowhandler, 0 /*nested*/, bus_data_type_object),
+        //ELEMENT_TABLE(DE_RADIO_TABLE,          radio_tget, bus_data_type_string),
+        ELEMENT_TABLE_HANDLE(DE_RADIO_TABLE,      radio_get, radio_table_addRowhandler, max_num_of_radios, bus_data_type_object),
         ELEMENT_PROPERTY(DE_RADIO_ID,          radio_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_RADIO_ENABLED,     radio_get, bus_data_type_boolean),
         ELEMENT_PROPERTY(DE_RADIO_NOISE,       radio_get, bus_data_type_uint32),
@@ -2298,44 +2240,6 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         printf("Bus register elements failed: %d\n", rc);
         em_printfout("%s:%d AUTOCONFIG_DEBUG Bus register elements failed: %d \n", __func__, __LINE__, rc);
         return -1;
-    }
-
-    /**
-     * Explicitly register Radio table rows under each Device instance.
-     * We prefer `bus_reg_table_row_fn` (stable row indices), and fall back to `bus_add_table_row_fn`.
-     */
-    dm = g_ctrl.get_first_dm();
-    uint32_t dev_idx = 1;
-    while (dm != NULL) {
-        const uint32_t radio_count = dm->get_num_radios();
-        if (radio_count > 0) {
-            em_long_string_t radio_table_name;
-            // Base table name: Device.WiFi.DataElements.Network.Device.<dev_idx>.Radio
-            snprintf(radio_table_name, sizeof(radio_table_name), "%sDevice.%u.Radio", DATAELEMS_NETWORK, dev_idx);
-
-            for (uint32_t ridx = 1; ridx <= radio_count; ridx++) {
-                if (bus_desc->bus_reg_table_row_fn) {
-                    rc = bus_desc->bus_reg_table_row_fn(bus_handle, radio_table_name, ridx, NULL);
-                } else if (bus_desc->bus_add_table_row_fn) {
-                    uint32_t out_idx = 0;
-                    rc = bus_desc->bus_add_table_row_fn(bus_handle, radio_table_name, NULL, &out_idx);
-                    if (rc == bus_error_success && out_idx != ridx) {
-                        em_printfout("%s:%d AUTOCONFIG_DEBUG WARNING: radio row index mismatch for %s expected=%u got=%u\n",
-                                     __func__, __LINE__, radio_table_name, ridx, out_idx);
-                    }
-                } else {
-                    rc = bus_error_success;
-                }
-
-                if (rc != bus_error_success) {
-                    em_printfout("%s:%d AUTOCONFIG_DEBUG failed to register radio row %u for %s rc=%d\n",
-                                 __func__, __LINE__, ridx, radio_table_name, rc);
-                }
-            }
-        }
-
-        dm = g_ctrl.get_next_dm(dm);
-        dev_idx++;
     }
 
     return 0;
