@@ -1112,7 +1112,6 @@ bus_error_t radio_get_inner(char *event_name, raw_data_t *p_data, bus_user_data_
     return rc;
 }
 
-#if 0
 bus_error_t radio_tget_params(dm_easy_mesh_t *dm, const char *root, bus_data_prop_t **property)
 {
     char path[512];
@@ -1197,7 +1196,7 @@ bus_error_t radio_tget_inner(char *event_name, raw_data_t *p_data, bus_user_data
     name = get_table_instance(name, instance, MAX_INSTANCE_LEN, &is_num);
     dm_easy_mesh_t *dm = get_dm_easy_mesh(instance, is_num);
     if (dm == NULL) {
-        printf("data model is NULL\n");
+        em_printfout("%s:%d: data model is NULL for instance '%s'\n", __func__, __LINE__, instance);
         return bus_error_invalid_input;
     }
 
@@ -1208,7 +1207,6 @@ bus_error_t radio_tget_inner(char *event_name, raw_data_t *p_data, bus_user_data
 
     return rc;
 }
-#endif
 
 bus_error_t rbhsta_get_inner(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
@@ -2149,6 +2147,8 @@ bus_error_t sta_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user
 
 #define BUS_TABLE_CALLBACK(ar) {NULL, NULL, ar, NULL, NULL, NULL}
 #define ELEMENT_TABLE_HANDLE(n, ar, d, t)      {n, bus_element_type_table, BUS_TABLE_CALLBACK(ar), TABLE_ELEMENT_DEFAULTS(d, t)}
+#define CALLBACK_TABLE_GETTER_AND_ADDROW(f, ar) {f, NULL, ar, NULL, NULL, NULL}
+#define ELEMENT_TABLE_WITH_ADDROW(n, f, ar, d, t) {n, bus_element_type_table, CALLBACK_TABLE_GETTER_AND_ADDROW(f, ar), TABLE_ELEMENT_DEFAULTS(d, t)}
 
 /*{   DE_SSID_TABLE, bus_element_type_table,
     {ssid_tget, NULL, ssid_table_addRowhandler, NULL, NULL, NULL}, slow_speed, num_of_vaps,
@@ -2211,14 +2211,16 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         ELEMENT_PROPERTY(DE_DEVICE_RADIONOE,   device_get, bus_data_type_uint32),
         ELEMENT_PROPERTY(DE_DEVICE_CACSTATNOE, device_get, bus_data_type_uint32),
         ELEMENT_PROPERTY(DE_DEVICE_BHDOWNNOE,  device_get, bus_data_type_uint32),
-        //ELEMENT_TABLE(DE_RADIO_TABLE,          radio_tget, bus_data_type_string),
         /**
          * Nested table (Device.{i}.Radio.{i}):
+         * Use ELEMENT_TABLE_WITH_ADDROW to provide both:
+         *   - radio_tget_inner: table getter to return all radio rows when queried
+         *   - radio_table_addRowhandler: handler for AddTblRow operations
          * Do not use num_of_table_row for auto-prepopulation because the platform helper can only
          * strip the LAST ".{i}." and cannot expand the parent Device.{i}. We will instantiate
          * rows per-device explicitly after registration.
          */
-        ELEMENT_TABLE_HANDLE(DE_RADIO_TABLE,      radio_table_addRowhandler, 0 /*nested*/, bus_data_type_object),
+        ELEMENT_TABLE_WITH_ADDROW(DE_RADIO_TABLE, radio_tget_inner, radio_table_addRowhandler, 0 /*nested*/, bus_data_type_object),
         ELEMENT_PROPERTY(DE_RADIO_ID,          radio_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_RADIO_ENABLED,     radio_get, bus_data_type_boolean),
         ELEMENT_PROPERTY(DE_RADIO_NOISE,       radio_get, bus_data_type_uint32),
