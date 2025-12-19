@@ -2255,11 +2255,14 @@ int em_ctrl_t::tr181_reg_add_table_row(bus_handle_t *bus_handle) {
         return -1;
     }
 
+    em_printfout("%s:%d AUTOCONFIG_DEBUG num_of_radios:%d \n", __func__, __LINE__, dm->m_num_radios);
     while(dm != NULL) {
         em_long_string_t radio_table_name;
         snprintf(radio_table_name, sizeof(radio_table_name), "%sDevice.%u.Radio", DATAELEMS_NETWORK, device_count);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG radio_table_name:%s \n", __func__, __LINE__, radio_table_name);
         device_count++;
         for(uint32_t num_radios = 1; num_radios <= dm->get_num_radios(); num_radios++) {
+            em_printfout("%s:%d AUTOCONFIG_DEBUG device_count:%d num_radios:%d \n", __func__, __LINE__, device_count, num_radios);
             if((rc = bus_desc->bus_add_table_row_fn(bus_handle, radio_table_name, NULL, &radio_index)) != bus_error_success) {
                 em_printfout("%s:%d AUTOCONFIG_DEBUG bus_add_table_row_fn failed try bus_reg_table_row_fn \n", __func__, __LINE__);
                 rc = bus_desc->bus_reg_table_row_fn(bus_handle, radio_table_name, num_radios, NULL);
@@ -2268,8 +2271,8 @@ int em_ctrl_t::tr181_reg_add_table_row(bus_handle_t *bus_handle) {
                     return -1;
                 }
             }
-            dm = g_ctrl.get_next_dm(dm);
         }
+        dm = g_ctrl.get_next_dm(dm);
     }
 
     return 0;
