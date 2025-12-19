@@ -2220,7 +2220,7 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
          * strip the LAST ".{i}." and cannot expand the parent Device.{i}. We will instantiate
          * rows per-device explicitly after registration.
          */
-        ELEMENT_TABLE_WITH_ADDROW(DE_RADIO_TABLE, radio_tget_inner, radio_table_addRowhandler, 0 /*nested*/, bus_data_type_object),
+        ELEMENT_TABLE_WITH_ADDROW(DE_RADIO_TABLE, radio_get, radio_table_addRowhandler, 0 /*nested*/, bus_data_type_object),
         ELEMENT_PROPERTY(DE_RADIO_ID,          radio_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_RADIO_ENABLED,     radio_get, bus_data_type_boolean),
         ELEMENT_PROPERTY(DE_RADIO_NOISE,       radio_get, bus_data_type_uint32),
