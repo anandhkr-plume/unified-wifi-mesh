@@ -41,6 +41,7 @@ em_cmd_set_ssid_t::em_cmd_set_ssid_t(em_cmd_params_t param, dm_easy_mesh_t& dm)
 
     m_type = em_cmd_type_set_ssid;
     memcpy(&m_param, &param, sizeof(em_cmd_params_t));
+    em_printfout("%s:%d AUTOCONFIG_DEBUG num_args:%d args[1]:%s fixed_arg:%s \n", __func__, __LINE__, param.u.args.num_args, param.u.args.args[1], param.u.args.fixed_args);
 
 	memset(reinterpret_cast<unsigned char *> (&m_orch_desc[0]), 0, EM_MAX_CMD*sizeof(em_orch_desc_t));
 
