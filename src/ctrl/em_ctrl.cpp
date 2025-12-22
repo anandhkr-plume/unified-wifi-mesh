@@ -315,6 +315,11 @@ void em_ctrl_t::handle_set_dev_test(em_bus_event_t *evt)
 
 }
 
+void em_ctrl_t::handle_tr181_reg_radio_table(em_bus_event_t *evt)
+{
+    tr181_reg_radio_table(&m_bus_hdl);
+}
+
 void em_ctrl_t::handle_get_dm_data(em_bus_event_t *evt)
 {           
     em_cmd_params_t params = evt->params;
@@ -557,6 +562,10 @@ void em_ctrl_t::handle_bus_event(em_bus_event_t *evt)
 
         case em_bus_event_type_bsta_cap_req:
             handle_bsta_cap_req(evt);
+            break;
+
+        case em_bus_event_type_tr181_reg_radio_table:
+            handle_tr181_reg_radio_table(evt);
             break;
 	
         default:
@@ -951,7 +960,7 @@ void em_ctrl_t::start_complete()
 		//	{ get_device_wifi_dataelements_network_controllerid, NULL , NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
 		// 	{ bus_data_type_string, false, 0, 0, 0, NULL } },
 		{ DEVICE_WIFI_DATAELEMENTS_NETWORK_SETSSID_CMD, bus_element_type_method,
-			{ NULL, ctrl_cmd_ssid_set_outer, NULL, NULL, NULL, ctrl_cmd_ssid_set_method}, slow_speed, ZERO_TABLE,
+			{ NULL, ctrl_cmd_ssid_set_outer, NULL, NULL, NULL, NULL}, slow_speed, ZERO_TABLE,
 			{ bus_data_type_string, true, 0, 0, 0, NULL } },
 		{ DEVICE_WIFI_DATAELEMENTS_NETWORK_TOPOLOGY, bus_element_type_method,
 			{ NULL, NULL , NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
@@ -1000,7 +1009,8 @@ void em_ctrl_t::start_complete()
 	m_nb_pipe_wr = pipefd[1];
 
 	tr181_reg_data_elements(&m_bus_hdl);
-    tr181_reg_add_table_row(&m_bus_hdl);
+    //tr181_reg_radio_table(&m_bus_hdl);
+    io_process(em_bus_event_type_tr181_reg_radio_table, NULL, 0);
 
 	num_elements = (sizeof(dataElements) / sizeof(bus_data_element_t));
 	bus_error_val = desc->bus_reg_data_element_fn(&m_bus_hdl, dataElements, num_elements);

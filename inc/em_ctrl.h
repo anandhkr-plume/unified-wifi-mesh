@@ -454,7 +454,16 @@ public:
 	void handle_bsta_cap_req(em_bus_event_t *evt);
     
 	/**!
-	 * @brief 
+	 * @brief Handles the registration of the radio table.
+	 *
+	 * This function handles the registration of the radio table.
+	 *
+	 * @param[in] evt Pointer to the event structure containing radio table registration details.
+	 *
+	 * @note Ensure that the event structure is properly initialized before calling this function.
+	 */
+	void handle_tr181_reg_radio_table(em_bus_event_t *evt);
+
 	 * This function handles input/output operations.
 	 *
 	 * @param[in] data Pointer to the data to be processed.
@@ -685,11 +694,7 @@ public:
 	*/
 	static bus_error_t ctrl_cmd_ssid_set_outer(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
 	static bus_error_t ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
-	em_cmd_params_t *update_set_ssid_params(em_subdoc_info_t *subdoc);
 
-
-	static bus_error_t ctrl_cmd_ssid_set_method(char const* methodName, raw_data_t *inParams, raw_data_t *outParams, void *asyncHandle);
-	static bus_error_t ctrl_cmd_ssid_set_inner(char const* methodName, raw_data_t *inParams, raw_data_t *outParams, void *asyncHandle);
 	//static bus_error_t cmd_setssid (const char *event_name, raw_data_t *inParams, raw_data_t *outParams, void *user_data);
 
 	/**!

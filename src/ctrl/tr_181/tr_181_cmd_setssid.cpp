@@ -256,64 +256,6 @@ bus_error_t bus_set_cb_fwd(char *event_name, raw_data_t *p_data, bus_user_data_t
     return err;
 }
 
-bus_error_t bus_method_cb_fwd(char const* methodName, raw_data_t *inParams, raw_data_t *outParams, void *asyncHandle, bus_method_handler_t cb)
-{
-    uint32_t s_id;
-    bus_error_t err = bus_error_success;
-    em_event_t *req;
-    bus_resp_get_t *resp = NULL;
-    uintptr_t buf;
-
-    do {
-        req = (em_event_t *) malloc(sizeof(em_event_t));
-        if(!req) {
-            err = bus_error_out_of_resources;
-            break;
-        }
-        em_printfout("%s:%d AUTOCONFIG_DEBUG methodName:%s \n", __func__, __LINE__, methodName);
-        s_id = g_ctrl.get_next_nb_evt_id();
-        req->type = em_event_type_nb;
-        req->u.nevt.id = s_id;
-        req->u.nevt.type = NB_REQTYPE_METHOD;
-        req->u.nevt.u.method.method = methodName;
-        req->u.nevt.u.method.in = inParams;
-        req->u.nevt.u.method.out = outParams;
-        req->u.nevt.u.method.async = asyncHandle;
-        req->u.nevt.cb = (void *) cb;
-
-        g_ctrl.push_to_queue(req);
-
-        em_printfout("%s:%d AUTOCONFIG_DEBUG Reading from pipe \n", __func__, __LINE__);
-        ssize_t len = read(g_ctrl.get_nb_pipe_rd(), &buf, sizeof(buf));
-        assert(len == sizeof(buf));
-        resp = (bus_resp_get_t *) buf;
-        em_printfout("%s:%d AUTOCONFIG_DEBUG resp->id:%d \n", __func__, __LINE__, resp->id);
-        assert(resp->id == s_id);
-        err = resp->rc;
-        em_printfout("%s:%d Reached End of Do \n", __func__, __LINE__);
-    } while(0);
-
-    return err;
-}
-
-em_cmd_params_t *em_ctrl_t::update_set_ssid_params(em_subdoc_info_t *subdoc) {
-    em_cmd_params_t *cmd_params = m_ctrl_cmd->get_param();
-    em_network_node_t *updated_ssid_network_tree = get_network_tree(subdoc->buff);
-
-    em_printfout("%s:%d AUTOCONFIG_DEBUG arg[1]:%s num_args:%d fixed_args:%s \n", __func__, __LINE__, cmd_params->u.args.args[1], cmd_params->u.args.num_args, cmd_params->u.args.fixed_args);
-    if(updated_ssid_network_tree == NULL) {
-        em_printfout("ERROR: Failed to get network tree\n");
-        return cmd_params;
-    }
-    strncpy(updated_ssid_network_tree->key, "wfa-dataelements:SetSSID", strlen("wfa-dataelements:SetSSID") + 1);
-    em_printfout("%s:%d AUTOCONFIG_DEBUG key:%s type:%d value_str:%s node_ctr:%d node_pos:%d num_children:%d\n",
-        __func__, __LINE__, updated_ssid_network_tree->key, updated_ssid_network_tree->type, updated_ssid_network_tree->value_str,
-        updated_ssid_network_tree->display_info.node_ctr, updated_ssid_network_tree->display_info.node_pos, updated_ssid_network_tree->num_children);
-    cmd_params->net_node = updated_ssid_network_tree;
-
-    return cmd_params;
-}
-
 bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name) {
     cJSON *item = NULL;
     em_printfout("%s:%d AUTOCONFIG_DEBUG validating input_data:%s input_name:%s\n", __func__, __LINE__, input_data->string, input_name);
@@ -467,7 +409,6 @@ bus_error_t validate_ssid_input_data (cJSON *input_data, const char *input_name)
 bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
     (void)user_data;
     em_subdoc_info_t *subdoc = NULL;
-    em_cmd_params_t *ssid_cmd_params = NULL;
     unsigned char buff[EM_IO_BUFF_SZ];
     cJSON *json = NULL, *input_json = NULL, *input_json_item = NULL, *item = NULL, *root = NULL, *child = NULL, *next = NULL, *new_json = NULL, *json_obj = NULL, *get_haul_type = NULL, \
     *input_haultype = NULL, *haul_type_arr = NULL, *ssid_list = NULL, *haul_type_item = NULL, *input_ssid = NULL, *input_addremovechange = NULL, *input_json_args = NULL;
@@ -622,9 +563,8 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
         em_printfout("Invalid JSON in subdoc->buff");
     }
 
-    ssid_cmd_params = g_ctrl.update_set_ssid_params(subdoc);
     em_printfout("%s:%d AUTOCONFIG_DEBUG calling io_process \n", __func__, __LINE__);
-    g_ctrl.io_process(em_bus_event_type_set_ssid, subdoc->buff, strlen(subdoc->buff), ssid_cmd_params);
+    g_ctrl.io_process(em_bus_event_type_set_ssid, subdoc->buff, strlen(subdoc->buff), NULL);
     free(updated_json);
     cJSON_Delete(json);
     em_printfout("%s:%d AUTOCONFIG_DEBUG Delete input_json \n", __func__, __LINE__);
@@ -634,28 +574,7 @@ bus_error_t em_ctrl_t::ctrl_cmd_ssid_set(char *event_name, raw_data_t *p_data, b
     return bus_error_success;
 }
 
-bus_error_t em_ctrl_t::ctrl_cmd_ssid_set_inner(char const* methodName, raw_data_t *inParams, raw_data_t *outParams, void *asyncHandle) {
-    em_printfout("%s:%d AUTOCONFIG_DEBUG methodName:%s \n", __func__, __LINE__, methodName);
-    outParams = (raw_data_t *) malloc(sizeof(raw_data_t));
-    if(outParams == NULL) {
-        em_printfout("%s:%d AUTOCONFIG_DEBUG outParams is NULL\n", __func__, __LINE__);
-        return bus_error_out_of_resources;
-    }
-    std::string status = "Status: Success";
-    outParams->raw_data_len = 16;
-    outParams->raw_data.bytes = (void *)status.c_str();
-    outParams->data_type = bus_data_type_string;
-
-    if(inParams->raw_data_len > 0) em_printfout("%s:%d AUTOCONFIG_DEBUG input_params:%s \n", __func__, __LINE__, (char *)inParams->raw_data.bytes);
-    return bus_error_success;
-}
-
 bus_error_t em_ctrl_t::ctrl_cmd_ssid_set_outer(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
     em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s \n", __func__, __LINE__, event_name);
     return bus_set_cb_fwd(event_name, p_data, user_data, ctrl_cmd_ssid_set);
-}
-
-bus_error_t em_ctrl_t::ctrl_cmd_ssid_set_method(char const* methodName, raw_data_t *inParams, raw_data_t *outParams, void *asyncHandle) {
-    em_printfout("%s:%d AUTOCONFIG_DEBUG methodName:%s \n", __func__, __LINE__, methodName);
-    return bus_method_cb_fwd(methodName, inParams, outParams, asyncHandle, ctrl_cmd_ssid_set_inner);
 }
