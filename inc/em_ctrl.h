@@ -464,7 +464,7 @@ public:
 	 */
 	void handle_tr181_reg_radio_table(em_bus_event_t *evt);
 
-	 * This function handles input/output operations.
+	 /* This function handles input/output operations.
 	 *
 	 * @param[in] data Pointer to the data to be processed.
 	 * @param[in] input Boolean flag indicating the operation mode. True for input, false for output.
