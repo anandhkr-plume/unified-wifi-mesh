@@ -2284,7 +2284,10 @@ int em_ctrl_t::tr181_reg_radio_table(bus_handle_t *bus_handle) {
             em_printfout("%s:%d AUTOCONFIG_DEBUG Bus register elements failed: %d \n", __func__, __LINE__, rc);
             return -1;
         }
-    
+
+        
+
+        
         dm = g_ctrl.get_next_dm(dm);
     }
 
