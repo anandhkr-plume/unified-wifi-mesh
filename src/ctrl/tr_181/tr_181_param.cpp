@@ -2160,7 +2160,7 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         ELEMENT_PROPERTY(DE_DEVICE_CACSTATNOE, device_get, bus_data_type_uint32),
         ELEMENT_PROPERTY(DE_DEVICE_BHDOWNNOE,  device_get, bus_data_type_uint32),
         //ELEMENT_TABLE(DE_RADIO_TABLE,          radio_tget, bus_data_type_string),
-        ELEMENT_TABLE_HANDLE(DE_RADIO_TABLE,      radio_get, radio_table_addRowhandler, max_num_of_radios, bus_data_type_object),
+        /*ELEMENT_TABLE_HANDLE(DE_RADIO_TABLE,      radio_get, radio_table_addRowhandler, max_num_of_radios, bus_data_type_object),
         ELEMENT_PROPERTY(DE_RADIO_ID,          radio_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_RADIO_ENABLED,     radio_get, bus_data_type_boolean),
         ELEMENT_PROPERTY(DE_RADIO_NOISE,       radio_get, bus_data_type_uint32),
@@ -2170,7 +2170,7 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         ELEMENT_PROPERTY(DE_RADIO_RECEIVEOTHER, radio_get, bus_data_type_uint32),
         ELEMENT_PROPERTY(DE_RADIO_CHIPVENDOR,  radio_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_RADIO_CURROPNOE,   radio_get, bus_data_type_uint32),
-        ELEMENT_PROPERTY(DE_RADIO_BSSNOE,      radio_get, bus_data_type_uint32),
+        ELEMENT_PROPERTY(DE_RADIO_BSSNOE,      radio_get, bus_data_type_uint32),*/
         ELEMENT_PROPERTY(DE_BHSTA_MACADDR,     rbhsta_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_RCAPS_HTCAPS,      rcaps_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_RCAPS_VHTCAPS,     rcaps_get, bus_data_type_string),
@@ -2226,12 +2226,6 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
     }
 
     count = sizeof(elements) / sizeof(bus_data_element_t);
-    em_printfout("%s:%d AUTOCONFIG_DEBUG count:%d \n", __func__, __LINE__, count);
-    if(count > 5) {
-        em_printfout("%s:%d AUTOCONFIG_DEBUG element[5].full_name:%s \n", __func__, __LINE__, elements[5].full_name);
-    } else {
-        em_printfout("%s:%d AUTOCONFIG_DEBUG count is less than 5 count:%d \n", __func__, __LINE__, count);
-    }
 
     rc = bus_desc->bus_reg_data_element_fn(bus_handle, elements, count);
     if (rc != bus_error_success) {
@@ -2263,13 +2257,31 @@ int em_ctrl_t::tr181_reg_add_table_row(bus_handle_t *bus_handle) {
         device_count++;
         for(uint32_t num_radios = 1; num_radios <= dm->get_num_radios(); num_radios++) {
             em_printfout("%s:%d AUTOCONFIG_DEBUG device_count:%d num_radios:%d \n", __func__, __LINE__, device_count, num_radios);
-            if((rc = bus_desc->bus_add_table_row_fn(bus_handle, radio_table_name, NULL, &radio_index)) != bus_error_success) {
-                em_printfout("%s:%d AUTOCONFIG_DEBUG bus_add_table_row_fn failed try bus_reg_table_row_fn \n", __func__, __LINE__);
-                rc = bus_desc->bus_reg_table_row_fn(bus_handle, radio_table_name, num_radios, NULL);
-                if(rc != bus_error_success) {
-                    em_printfout("%s:%d AUTOCONFIG_DEBUG bus_reg_table_row_fn failed radio_index:%d \n", __func__, __LINE__, radio_index);
-                    return -1;
-                }
+            if((rc = bus_desc->bus_reg_table_row_fn(bus_handle, radio_table_name, num_radios, NULL)) != bus_error_success) {
+                em_printfout("%s:%d AUTOCONFIG_DEBUG bus_reg_table_row_fn failed radio_index:%d \n", __func__, __LINE__, radio_index);
+                return -1;
+            }
+
+            bus_data_element_t elements[] = {
+                ELEMENT_TABLE_HANDLE(DE_RADIO_TABLE,      radio_get, radio_table_addRowhandler, max_num_of_radios, bus_data_type_object),
+                ELEMENT_PROPERTY(DE_RADIO_ID,          radio_get, bus_data_type_string),
+                ELEMENT_PROPERTY(DE_RADIO_ENABLED,     radio_get, bus_data_type_boolean),
+                ELEMENT_PROPERTY(DE_RADIO_NOISE,       radio_get, bus_data_type_uint32),
+                ELEMENT_PROPERTY(DE_RADIO_UTILIZATION, radio_get, bus_data_type_uint32),
+                ELEMENT_PROPERTY(DE_RADIO_TRANSMIT,    radio_get, bus_data_type_uint32),
+                ELEMENT_PROPERTY(DE_RADIO_RECEIVESELF, radio_get, bus_data_type_uint32),
+                ELEMENT_PROPERTY(DE_RADIO_RECEIVEOTHER, radio_get, bus_data_type_uint32),
+                ELEMENT_PROPERTY(DE_RADIO_CHIPVENDOR,  radio_get, bus_data_type_string),
+                ELEMENT_PROPERTY(DE_RADIO_CURROPNOE,   radio_get, bus_data_type_uint32),
+                ELEMENT_PROPERTY(DE_RADIO_BSSNOE,      radio_get, bus_data_type_uint32),
+            };
+
+            count = sizeof(elements) / sizeof(bus_data_element_t);
+            rc = bus_desc->bus_reg_data_element_fn(bus_handle, elements, count);
+            if (rc != bus_error_success) {
+                printf("Bus register elements failed: %d\n", rc);
+                em_printfout("%s:%d AUTOCONFIG_DEBUG Bus register elements failed: %d \n", __func__, __LINE__, rc);
+                return -1;
             }
         }
         dm = g_ctrl.get_next_dm(dm);

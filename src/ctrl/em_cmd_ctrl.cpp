@@ -132,6 +132,17 @@ int em_cmd_ctrl_t::send_result(em_cmd_out_status_t status)
     unsigned char *tmp;
 	int sd;
 
+	/* 
+	 * If m_ssl is NULL, this means the command was invoked via TR-181 (dmcli)
+	 * rather than through the CLI socket. TR-181 methods handle their own
+	 * response mechanism, so we should not try to send a result via SSL.
+	 * Return early to avoid crash.
+	 */
+	if (m_ssl == NULL) {
+		em_printfout("%s:%d: AUTOCONFIG_DEBUG m_ssl is NULL, skipping send_result (TR-181 context)\n", __func__, __LINE__);
+		return 0;
+	}
+
 	str = static_cast<char *> (malloc(EM_MAX_EVENT_DATA_LEN));
 	memset(str, 0, EM_MAX_EVENT_DATA_LEN);
 
