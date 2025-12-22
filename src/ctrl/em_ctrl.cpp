@@ -315,11 +315,6 @@ void em_ctrl_t::handle_set_dev_test(em_bus_event_t *evt)
 
 }
 
-void em_ctrl_t::handle_tr181_reg_radio_table(em_bus_event_t *evt)
-{
-    tr181_reg_radio_table(&m_bus_hdl);
-}
-
 void em_ctrl_t::handle_get_dm_data(em_bus_event_t *evt)
 {           
     em_cmd_params_t params = evt->params;
@@ -564,10 +559,6 @@ void em_ctrl_t::handle_bus_event(em_bus_event_t *evt)
             handle_bsta_cap_req(evt);
             break;
 
-        case em_bus_event_type_tr181_reg_radio_table:
-            handle_tr181_reg_radio_table(evt);
-            break;
-	
         default:
             break;
     }
@@ -1009,8 +1000,7 @@ void em_ctrl_t::start_complete()
 	m_nb_pipe_wr = pipefd[1];
 
 	tr181_reg_data_elements(&m_bus_hdl);
-    //tr181_reg_radio_table(&m_bus_hdl);
-    io_process(em_bus_event_type_tr181_reg_radio_table, radio_table, 0);
+    tr181_reg_radio_table(&m_bus_hdl);
 
 	num_elements = (sizeof(dataElements) / sizeof(bus_data_element_t));
 	bus_error_val = desc->bus_reg_data_element_fn(&m_bus_hdl, dataElements, num_elements);

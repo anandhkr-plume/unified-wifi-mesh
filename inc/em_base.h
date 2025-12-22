@@ -2700,7 +2700,6 @@ typedef enum {
     em_bus_event_type_get_reset,
     em_bus_event_type_recv_csa_beacon_frame,
     em_bus_event_type_bsta_cap_req,
-    em_bus_event_type_tr181_reg_radio_table,
 
     em_bus_event_type_max
 } em_bus_event_type_t;

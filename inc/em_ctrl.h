@@ -452,17 +452,6 @@ public:
 	 * @note Ensure that the event structure is properly initialized before calling this function.
 	 */
 	void handle_bsta_cap_req(em_bus_event_t *evt);
-    
-	/**!
-	 * @brief Handles the registration of the radio table.
-	 *
-	 * This function handles the registration of the radio table.
-	 *
-	 * @param[in] evt Pointer to the event structure containing radio table registration details.
-	 *
-	 * @note Ensure that the event structure is properly initialized before calling this function.
-	 */
-	void handle_tr181_reg_radio_table(em_bus_event_t *evt);
 
 	 /* This function handles input/output operations.
 	 *
