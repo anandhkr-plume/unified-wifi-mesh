@@ -2251,6 +2251,7 @@ int em_ctrl_t::tr181_reg_add_table_row(bus_handle_t *bus_handle) {
 
     em_printfout("%s:%d AUTOCONFIG_DEBUG num_of_radios:%d \n", __func__, __LINE__, dm->m_num_radios);
     while(dm != NULL) {
+        uint32_t count, max_num_of_radios = dm->m_num_radios;
         em_long_string_t radio_table_name;
         snprintf(radio_table_name, sizeof(radio_table_name), "%sDevice.%u.Radio", DATAELEMS_NETWORK, device_count);
         em_printfout("%s:%d AUTOCONFIG_DEBUG radio_table_name:%s \n", __func__, __LINE__, radio_table_name);
