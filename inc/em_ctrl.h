@@ -721,7 +721,7 @@ public:
 	 * @retval 0 on success
 	 * @retval non-zero error code on failure
 	 */
-	int tr181_reg_add_table_row(bus_handle_t *bus_handle);
+	int tr181_reg_radio_table(bus_handle_t *bus_handle);
 
 #ifdef AL_SAP
     

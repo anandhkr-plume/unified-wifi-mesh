@@ -947,7 +947,7 @@ void em_ctrl_t::start_complete()
 	mac_addr_str_t	al_mac_str;
 	em_bus_event_type_cfg_renew_params_t ac_config_raw;
 	mac_address_t null_mac = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	char service_name[] = "EasyMesh_Ctrl_Service";
+	char service_name[] = "EasyMesh_Ctrl_Service", *radio_table = NULL;
 	int i = 0;
 	bus_error_t bus_error_val;
 	int num_elements = 0;
@@ -1010,7 +1010,7 @@ void em_ctrl_t::start_complete()
 
 	tr181_reg_data_elements(&m_bus_hdl);
     //tr181_reg_radio_table(&m_bus_hdl);
-    io_process(em_bus_event_type_tr181_reg_radio_table, NULL, 0);
+    io_process(em_bus_event_type_tr181_reg_radio_table, radio_table, 0);
 
 	num_elements = (sizeof(dataElements) / sizeof(bus_data_element_t));
 	bus_error_val = desc->bus_reg_data_element_fn(&m_bus_hdl, dataElements, num_elements);

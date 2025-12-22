@@ -2237,7 +2237,7 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
     return 0;
 }
 
-int em_ctrl_t::tr181_reg_add_table_row(bus_handle_t *bus_handle) {
+int em_ctrl_t::tr181_reg_radio_table(bus_handle_t *bus_handle) {
     wifi_bus_desc_t *bus_desc;
     bus_error_t rc;
     dm_easy_mesh_t *dm = g_ctrl.get_first_dm();
