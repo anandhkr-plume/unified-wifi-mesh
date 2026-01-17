@@ -884,25 +884,22 @@ bus_error_t dpp_set_inner(char *event_name, raw_data_t *p_data, bus_user_data_t 
         return bus_error_invalid_input;
     }
 
-    ec_data_t *dpp_uri = dm->m_dpp.get_dpp_info();
+    dpp_uri = dm->m_dpp.get_dpp_info();
 
     //Try setting manually
     if(dpp_uri) {
-        size_t start = dpp.find(keyTag);
+        size_t start = dpp_uri.find("K:");
         if (start == std::string::npos) {
-            std::cerr << "K not found\n";
-            return 1;
+            em_printfout("ERROR: K Not Found\n");
         }
 
-        start += keyTag.length();
-        size_t end = dpp.find(";", start);
+        start += "K:".length();
+        size_t end = dpp_uri.find(";", start);
         if (end == std::string::npos) {
-            std::cerr << "Invalid format\n";
-            return 1;
+            em_printfout("ERROR: Invalid format\n");
         }
 
-        std::string resp_key = dpp.substr(start, end - start);
-        std::cout << "K = " << K << std::endl;
+        std::string resp_key = dpp_uri.substr(start, end - start);
 
         dpp_uri->responder_boot_key = em_crypto_t::ec_key_from_base64_der((char *)resp_key.c_str());
     }
@@ -926,19 +923,42 @@ bus_error_t dpp_set_inner(char *event_name, raw_data_t *p_data, bus_user_data_t 
         return bus_error_invalid_input;
     }
 
-    subdoc = cJSON_Parse((char *)p_data->raw_data.bytes);
-    if (subdoc == NULL) {
+    cJSON* json_obj = cJSON_Parse((char *)p_data->raw_data.bytes);
+    if (json_obj == NULL) {
         em_printfout("ERROR: Failed to parse JSON from input_data\n");
         return bus_error_invalid_input;
     }
 
-    cJSON* uri_json = cJSON_GetObjectItem(subdoc, "URI");
-    EM_ASSERT_NOT_NULL(uri_json, -1, "Failed to get URI from DPP JSON object");
+    cJSON* uri_json = cJSON_GetObjectItem(json_obj, "URI");
+    EM_ASSERT_NOT_NULL(uri_json, bus_error_invalid_input, "Failed to get URI from DPP JSON object");
 
+    char *dpp_json = cJSON_PrintUnformatted(json_obj);
+    int json_len = strlen(dpp_json);
+    if (json_len >= EM_IO_BUFF_SZ) {
+        em_printfout("ERROR: JSON too large for buffer!");
+        free(dpp_json);
+        cJSON_Delete(json_obj);
+        return bus_error_invalid_input;
+    }
+
+    memcpy(subdoc->buff, dpp_json, json_len);
+    subdoc->buff[json_len] = '\0';
+    free(json_obj);
+    json_obj = NULL;
+
+    json_obj = cJSON_Parse(subdoc->buff);
+    if (json_obj) {
+        char *new_json = cJSON_Print(json_obj);
+        em_printfout("Updated and formatted JSON:\n%s", new_json);
+        free(new_json);
+        cJSON_Delete(json_obj);
+    } else {
+        em_printfout("Invalid JSON in subdoc->buff");
+    }
     em_printfout("%s:%d AUTOCONFIG_DEBUG calling io_process \n", __func__, __LINE__);
     g_ctrl.io_process(em_bus_event_type_start_dpp, subdoc->buff, strlen(subdoc->buff), NULL);
-    free(subdoc);
-    cJSON_Delete(subdoc);
+    free(dpp_json);
+    cJSON_Delete(json_obj);
 
     return bus_error_success;
 }
