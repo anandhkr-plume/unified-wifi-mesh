@@ -93,14 +93,14 @@ bool ec_ctrl_configurator_t::onboard_enrollee(ec_data_t *bootstrapping_data)
 
     if (c_ctx.boot_data.initiator_boot_key != NULL) {
         std::string init_key_base64 = em_crypto_t::ec_key_to_base64_der(c_ctx.boot_data.initiator_boot_key);
-        em_printfout("%s:%d AUTOCONFIG_DEBUG initiator_boot_key (Base64 DER): %s\n", __func__, __LINE__, init_key_base64.c_str());
+        if(init_key_base64 != NULL) em_printfout("%s:%d AUTOCONFIG_DEBUG initiator_boot_key (Base64 DER): %s\n", __func__, __LINE__, init_key_base64.c_str());
     } else {
         em_printfout("%s:%d AUTOCONFIG_DEBUG initiator_boot_key is NULL\n", __func__, __LINE__);
     }
 
     if (c_ctx.boot_data.responder_boot_key != NULL) {
         std::string resp_key_base64 = em_crypto_t::ec_key_to_base64_der(c_ctx.boot_data.responder_boot_key);
-        em_printfout("%s:%d AUTOCONFIG_DEBUG responder_boot_key (Base64 DER): %s\n", __func__, __LINE__, resp_key_base64.c_str());
+        if(resp_key_base64 != NULL) em_printfout("%s:%d AUTOCONFIG_DEBUG responder_boot_key (Base64 DER): %s\n", __func__, __LINE__, resp_key_base64.c_str());
     } else {
         em_printfout("%s:%d AUTOCONFIG_DEBUG responder_boot_key is NULL\n", __func__, __LINE__);
     }

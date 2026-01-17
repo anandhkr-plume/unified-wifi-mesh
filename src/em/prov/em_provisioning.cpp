@@ -478,9 +478,9 @@ int em_provisioning_t::handle_dpp_chirp_notif(uint8_t *buff, unsigned int len, u
     em_tlv_t* chirp_tlv = em_msg_t::get_tlv(tlv, tlv_len, em_tlv_type_dpp_chirp_value);
     EM_ASSERT_NOT_NULL(chirp_tlv, -1, "DPP Chirp Value TLV not found in DPP Chirp Notification message");
     EM_ASSERT_NOT_NULL(chirp_tlv->value, -1, "DPP Chirp Value TLV value is NULL in DPP Chirp Notification message");
-    em_dpp_chirp_value_t* chirp = reinterpret_cast<em_dpp_chirp_value_t*> (tlv->value);
+    em_dpp_chirp_value_t* chirp = reinterpret_cast<em_dpp_chirp_value_t*> (chirp_tlv->value);
 
-    if (!m_ec_manager->process_chirp_notification(chirp, SWAP_LITTLE_ENDIAN(tlv->len), src_al_mac)) {
+    if (!m_ec_manager->process_chirp_notification(chirp, SWAP_LITTLE_ENDIAN(chirp_tlv->len), src_al_mac)) {
         em_printfout("Failed to process chirp notification");
         return -1;
     }

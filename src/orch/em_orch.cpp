@@ -360,7 +360,6 @@ void em_orch_t::handle_timeout()
 
     // go through pending queue and check if the commands can be moved to active
     for (i = static_cast<int>(queue_count(m_pending)) - 1; i >= 0; i--) {
-        em_printfout("%s:%d: AUTOCONFIG_DEBUG pending queue count: %d\n", __func__, __LINE__, queue_count(m_pending));
         pcmd = static_cast<em_cmd_t *>(queue_peek(m_pending, static_cast<unsigned int>(i)));
         if (eligible_for_active(pcmd) == true) {
             queue_remove(m_pending, static_cast<unsigned int>(i));
@@ -403,7 +402,6 @@ void em_orch_t::handle_timeout()
 					//em_cmd_t::get_cmd_type_str(pcmd->m_type), queue_count(pcmd->m_em_candidates));
         for (j = static_cast<int>(queue_count(pcmd->m_em_candidates)) - 1; j >= 0; j--) {
             em = static_cast<em_t *>(queue_peek(pcmd->m_em_candidates, static_cast<unsigned int>(j)));
-            em_printfout("%s:%d: AUTOCONFIG_DEBUG orchestrate\n", __func__, __LINE__);
             ret &= orchestrate(pcmd, em);
         }
 

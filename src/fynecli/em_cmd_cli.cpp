@@ -457,7 +457,8 @@ int em_cmd_cli_t::execute(char *result)
     }
 
 	//printf("%s:%d: Length: %d Event len: %d\n", __func__, __LINE__, bevt->data_len, get_event_length());
-    em_printfout("%s:%d AUTOCONFIG_DEBUG bevt->type:%d num_args:%d fixed_args:%s args[1]:%s \n", __func__, __LINE__, bevt->type, param->u.args.num_args, param->u.args.fixed_args, param->u.args.args[1]);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG bevt->type:%d num_args:%d fixed_args:%s args[1]:%s \n", __func__, __LINE__, bevt->type, param->u.args.num_args, param->u.args.fixed_args, 
+		(param->u.args.num_args >= 2 && strlen(param->u.args.args[1]) > 0) ? param->u.args.args[1] : "(none)");
 
     get_cmd()->init(dm);
 
