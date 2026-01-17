@@ -888,18 +888,19 @@ bus_error_t dpp_set_inner(char *event_name, raw_data_t *p_data, bus_user_data_t 
 
     //Try setting manually
     if(dpp_uri) {
-        size_t start = dpp_uri.find("K:");
+        std::string dpp_uri_str = p_data->raw_data.bytes;
+        size_t start = dpp_uri_str.find("K:");
         if (start == std::string::npos) {
             em_printfout("ERROR: K Not Found\n");
         }
 
         start += "K:".length();
-        size_t end = dpp_uri.find(";", start);
+        size_t end = dpp_uri_str.find(";", start);
         if (end == std::string::npos) {
             em_printfout("ERROR: Invalid format\n");
         }
 
-        std::string resp_key = dpp_uri.substr(start, end - start);
+        std::string resp_key = dpp_uri_str.substr(start, end - start);
 
         dpp_uri->responder_boot_key = em_crypto_t::ec_key_from_base64_der((char *)resp_key.c_str());
     }
@@ -914,12 +915,6 @@ bus_error_t dpp_set_inner(char *event_name, raw_data_t *p_data, bus_user_data_t 
 
     if (strcmp(param, "DPPURI") != 0) {
         em_printfout("ERROR: Set is applicable only for DPPURI\n");
-        return bus_error_invalid_input;
-    }
-
-    dm_easy_mesh_t *dm = g_ctrl.get_first_dm();
-    if (dm == NULL) {
-        printf("data model is NULL\n");
         return bus_error_invalid_input;
     }
 
