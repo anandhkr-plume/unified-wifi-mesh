@@ -55,6 +55,7 @@ ec_ctrl_configurator_t::ec_ctrl_configurator_t(const std::string& al_mac_addr, e
 
 bool ec_ctrl_configurator_t::onboard_enrollee(ec_data_t *bootstrapping_data)
 {
+    em_printfout("Inside onboard_enrollee \n");
 
     if (bootstrapping_data == NULL) {
         em_printfout("Bootstrapping data is NULL");
@@ -89,6 +90,20 @@ bool ec_ctrl_configurator_t::onboard_enrollee(ec_data_t *bootstrapping_data)
 
     // Initialize bootstrapping data
     memcpy(&c_ctx.boot_data, bootstrapping_data, sizeof(ec_data_t));
+
+    if (m_boot_data().initiator_boot_key != NULL) {
+        std::string init_key_base64 = em_crypto_t::ec_key_to_base64_der(m_boot_data().initiator_boot_key);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG initiator_boot_key (Base64 DER): %s\n", __func__, __LINE__, init_key_base64.c_str());
+    } else {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG initiator_boot_key is NULL\n", __func__, __LINE__);
+    }
+
+    if (m_boot_data().responder_boot_key != NULL) {
+        std::string resp_key_base64 = em_crypto_t::ec_key_to_base64_der(m_boot_data().responder_boot_key);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG responder_boot_key (Base64 DER): %s\n", __func__, __LINE__, resp_key_base64.c_str());
+    } else {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG responder_boot_key is NULL\n", __func__, __LINE__);
+    }
 
     // Not all of these will be present but it is better to compute them now.
     c_ctx.boot_data.resp_priv_boot_key = em_crypto_t::get_priv_key_bn(c_ctx.boot_data.responder_boot_key);
@@ -1814,6 +1829,10 @@ std::pair<uint8_t *, size_t> ec_ctrl_configurator_t::create_config_response_fram
 std::optional<std::pair<std::string, ec_connection_context_t *>> ec_ctrl_configurator_t::find_conn_ctx(uint8_t* enrollee_hash, uint8_t hash_len){
     ec_connection_context_t *e_conn_ctx = nullptr;
     std::string enroleee_phy_mac = "";
+
+    if(m_connections.empty()) {
+        em_printfout("No connections found \n");
+    }
 
     for (auto & [mac, conn_ctx] : m_connections) {
 

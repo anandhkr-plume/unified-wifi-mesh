@@ -18,6 +18,7 @@ ec_enrollee_t::ec_enrollee_t(const std::string& al_mac_addr, ec_ops_t& ops, std:
     m_send_bss_config_req_fn = ops.send_bss_config_req;
     m_scanned_channels_map = {};
 
+    em_printfout("Enrollee created with MAC: %s \n", al_mac_addr.c_str());
     m_1905_encrypt_layer = std::make_unique<ec_1905_encrypt_layer_t>(
         al_mac_addr, 
         ops.send_dir_encap_dpp, 
@@ -94,6 +95,14 @@ bool ec_enrollee_t::start_onboarding(bool do_reconfig, ec_data_t* boot_data, boo
 
     m_boot_data().init_priv_boot_key = em_crypto_t::get_priv_key_bn(m_boot_data().initiator_boot_key);    
     m_boot_data().init_pub_boot_key = em_crypto_t::get_pub_key_point(m_boot_data().initiator_boot_key);
+
+    // Print initiator_boot_key if it's not null
+    if (m_boot_data().initiator_boot_key != NULL) {
+        std::string init_key_base64 = em_crypto_t::ec_key_to_base64_der(m_boot_data().initiator_boot_key);
+        em_printfout("%s:%d AUTOCONFIG_DEBUG initiator_boot_key (Base64 DER): %s\n", __func__, __LINE__, init_key_base64.c_str());
+    } else {
+        em_printfout("%s:%d AUTOCONFIG_DEBUG initiator_boot_key is NULL\n", __func__, __LINE__);
+    }
 
     // Baseline test to ensure the bootstrapping key is present
     if (m_boot_data().resp_pub_boot_key == NULL) {

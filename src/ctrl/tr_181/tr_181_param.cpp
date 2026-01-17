@@ -31,7 +31,7 @@
 #define MAX_INSTANCE_LEN        32
 #define MAX_CAPS_STR_LEN        32
 #define ARRAY_SIZE(a)           (sizeof(a) / sizeof(a[0]))
-uint32_t num_of_vaps = 0, num_of_radios = 0, num_of_devices = 0;
+uint32_t num_of_vaps = 0, num_of_radios = 0, num_of_devices = 0, num_of_vaps_provisioned_dpp = 0;
 
 extern em_ctrl_t g_ctrl;
 
@@ -797,10 +797,164 @@ bus_error_t ssid_get_inner(char *event_name, raw_data_t *p_data, bus_user_data_t
     return rc;
 }
 
+bus_error_t dpp_get_inner(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
+    (void) user_data;
+    const char *name = event_name;
+    const char *param;
+    char instance[MAX_INSTANCE_LEN] = { 0 };
+    bool is_num;
+    bus_error_t rc;
+
+    if (!name || !p_data) {
+        return bus_error_invalid_input;
+    }
+
+    em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s \n", __func__, __LINE__, name);
+    param = strrchr(name, '.');
+    if (param == NULL) {
+        return bus_error_invalid_input;
+    }
+    ++param;
+
+    dm_easy_mesh_t *dm = g_ctrl.get_first_dm();
+    if (dm == NULL) {
+        printf("data model is NULL\n");
+        return bus_error_invalid_input;
+    }
+
+    ec_data_t *dpp_uri = dm->m_dpp.get_dpp_info();
+    if (dpp_uri == NULL) {
+        printf("dpp_uri is NULL\n");
+        return bus_error_invalid_input;
+    }
+
+    name += sizeof(DATAELEMS_NETWORK);
+    name = get_table_instance(name, instance, MAX_INSTANCE_LEN, &is_num);
+    if (!is_num) {
+        return bus_error_invalid_input;
+    }
+    unsigned int idx = static_cast<unsigned int>(atoi(instance));
+    if (!idx || idx > dm->get_num_network_ssid()) {
+        return bus_error_invalid_input;
+    }
+
+    dm_network_ssid_t *ssid = dm->get_network_ssid(idx - 1);
+    if (ssid == NULL) {
+        printf("ssid is NULL\n");
+        return bus_error_invalid_input;
+    }
+    em_network_ssid_info_t *si = ssid->get_network_ssid_info();
+
+    if (strcmp(param, "Alias") == 0) {
+        rc = raw_data_set(p_data, si->ssid);
+    }
+    else if (strcmp(param, "DPPURI") == 0) {
+        rc = raw_data_set(p_data, dpp_uri->responder_boot_key);
+    }
+    else {
+        printf("Invalid param: %s\n", param);
+        rc = bus_error_invalid_input;
+    }
+    return rc;
+}
+
+bus_error_t dpp_set_inner(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
+    (void) user_data;
+    const char *name = event_name;
+    const char *param;
+    char instance[MAX_INSTANCE_LEN] = { 0 };
+    bool is_num;
+    em_subdoc_info_t *subdoc = NULL;
+    ec_data_t *dpp_uri;
+
+    if (!name || !p_data) {
+        return bus_error_invalid_input;
+    }
+
+    em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s \n", __func__, __LINE__, name);
+    param = strrchr(name, '.');
+    if (param == NULL) {
+        return bus_error_invalid_input;
+    }
+    ++param;
+
+    dm_easy_mesh_t *dm = g_ctrl.get_first_dm();
+    if (dm == NULL) {
+        printf("data model is NULL\n");
+        return bus_error_invalid_input;
+    }
+
+    ec_data_t *dpp_uri = dm->m_dpp.get_dpp_info();
+
+    //Try setting manually
+    if(dpp_uri) {
+        size_t start = dpp.find(keyTag);
+        if (start == std::string::npos) {
+            std::cerr << "K not found\n";
+            return 1;
+        }
+
+        start += keyTag.length();
+        size_t end = dpp.find(";", start);
+        if (end == std::string::npos) {
+            std::cerr << "Invalid format\n";
+            return 1;
+        }
+
+        std::string resp_key = dpp.substr(start, end - start);
+        std::cout << "K = " << K << std::endl;
+
+        dpp_uri->responder_boot_key = em_crypto_t::ec_key_from_base64_der((char *)resp_key.c_str());
+    }
+
+    em_printfout("%s:%d AUTOCONFIG_DEBUG event_name:%s data_type:%d data_len:%d input:%s \n", __func__, __LINE__,
+        event_name, p_data->data_type, p_data->raw_data_len, (char *) p_data->raw_data.bytes);
+
+    if(!p_data || p_data->raw_data_len < 0 || p_data->raw_data_len >= EM_IO_BUFF_SZ) {
+        em_printfout("ERROR: Incorrect Input parameters in cmd_ssid_set\n");
+        return bus_error_invalid_input;
+    }
+
+    if (strcmp(param, "DPPURI") != 0) {
+        em_printfout("ERROR: Set is applicable only for DPPURI\n");
+        return bus_error_invalid_input;
+    }
+
+    dm_easy_mesh_t *dm = g_ctrl.get_first_dm();
+    if (dm == NULL) {
+        printf("data model is NULL\n");
+        return bus_error_invalid_input;
+    }
+
+    subdoc = cJSON_Parse((char *)p_data->raw_data.bytes);
+    if (subdoc == NULL) {
+        em_printfout("ERROR: Failed to parse JSON from input_data\n");
+        return bus_error_invalid_input;
+    }
+
+    cJSON* uri_json = cJSON_GetObjectItem(subdoc, "URI");
+    EM_ASSERT_NOT_NULL(uri_json, -1, "Failed to get URI from DPP JSON object");
+
+    em_printfout("%s:%d AUTOCONFIG_DEBUG calling io_process \n", __func__, __LINE__);
+    g_ctrl.io_process(em_bus_event_type_start_dpp, subdoc->buff, strlen(subdoc->buff), NULL);
+    free(subdoc);
+    cJSON_Delete(subdoc);
+
+    return bus_error_success;
+}
+
 bus_error_t ssid_table_addRowhandler(char const *tableName, char const *aliasName, uint32_t *instNum) {
     em_printfout("%s:%d: AUTOCONFIG_DEBUG addRowHandler tableName=%s, aliasName=%s\n", __FUNCTION__, __LINE__, tableName, aliasName);
 
     *instNum = ++num_of_vaps;
+    em_printfout("%s:%d: AUTOCONFIG_DEBUG addRowHandler instNum:%d\n", __FUNCTION__, __LINE__, *instNum);
+    return bus_error_success;
+}
+
+bus_error_t dpp_table_addRowhandler(char const *tableName, char const *aliasName, uint32_t *instNum) {
+    em_printfout("%s:%d: AUTOCONFIG_DEBUG addRowHandler tableName=%s, aliasName=%s\n", __FUNCTION__, __LINE__, tableName, aliasName);
+
+    *instNum = ++num_of_vaps_provisioned_dpp;
     em_printfout("%s:%d: AUTOCONFIG_DEBUG addRowHandler instNum:%d\n", __FUNCTION__, __LINE__, *instNum);
     return bus_error_success;
 }
@@ -1933,6 +2087,18 @@ bus_error_t sta_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user
     return bus_get_cb_fwd(event_name, p_data, user_data, sta_tget_inner);
 }
 
+bus_error_t dpp_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
+
+    if(event_name != NULL) em_printfout("%s:%d AUTOCONFIG_DEBUG Calling dpp_get_inner event_name:%s \n", __func__, __LINE__, event_name);
+    return bus_get_cb_fwd(event_name, p_data, user_data, dpp_get_inner);
+}
+
+bus_error_t dpp_set(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) {
+
+    if(event_name != NULL) em_printfout("%s:%d AUTOCONFIG_DEBUG Calling dpp_set_inner event_name:%s \n", __func__, __LINE__, event_name);
+    return bus_get_cb_fwd(event_name, p_data, user_data, dpp_set_inner);
+}
+
 /* Device.WiFi.DataElements.Network */
 #define DE_NETWORK_ID           DATAELEMS_NETWORK       "ID"
 #define DE_NETWORK_CTRLID       DATAELEMS_NETWORK       "ControllerID"
@@ -2086,6 +2252,11 @@ bus_error_t sta_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user
 #define DE_STA_WIFI6CAPS        DE_BSS_STA              "WiFi6Capabilities."
 #define DE_STAWF6CAPS_HE160     DE_STA_WIFI6CAPS        "HE160"
 #define DE_STAWF6CAPS_MCSNSS    DE_STA_WIFI6CAPS        "MCSNSS"
+/* Device.WiFi.DataElements.Network.ProvisionedDPP */
+#define DE_NETWORK_PROVISIONEDDPP DATAELEMS_NETWORK     "ProvisionedDPP.{i}."
+#define DE_PROVISIONEDDPP_TABLE DE_NETWORK_PROVISIONEDDPP
+#define DE_PROVISIONEDDPP_ALIAS DE_NETWORK_PROVISIONEDDPP "Alias"
+#define DE_PROVISIONEDDPP_URI DE_NETWORK_PROVISIONEDDPP "DPPURI"
 
 #define ELEMENT_DEFAULTS(t)         slow_speed, ZERO_TABLE, {t, false, 0L, 0L, 0U, NULL}
 #define CALLBACK_GETTER(f)          {f, NULL, NULL, NULL, NULL, NULL}
@@ -2099,6 +2270,7 @@ bus_error_t sta_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user
 #define BUS_TABLE_CALLBACK(get_table_handler, add_row_handler) {get_table_handler, NULL, add_row_handler, NULL, NULL, NULL}
 #define ELEMENT_TABLE_HANDLE(data_element, get_table_handler, add_row_handler, num_of_row, element_type)      {data_element, bus_element_type_table, BUS_TABLE_CALLBACK(get_table_handler, add_row_handler), TABLE_ELEMENT_DEFAULTS(num_of_row, element_type)}
 
+#define ELEMENT_GET_SET_PROPERTY(n, g, s, t)   {n, bus_element_type_property, {g, s, NULL, NULL, NULL, NULL}, ELEMENT_DEFAULTS(t)}
 /*{   DE_SSID_TABLE, bus_element_type_table,
     {ssid_tget, NULL, ssid_table_addRowhandler, NULL, NULL, NULL}, slow_speed, num_of_vaps,
     {bus_data_type_object, false, 0L, 0L, 0U, NULL}
@@ -2216,7 +2388,10 @@ int em_ctrl_t::tr181_reg_data_elements(bus_handle_t *bus_handle)
         ELEMENT_PROPERTY(DE_STA_HOSTNAME,      sta_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_STA_PAIRWSAKM,     sta_get, bus_data_type_string),
         ELEMENT_PROPERTY(DE_STA_PAIRWSCIPHER,  sta_get, bus_data_type_string),
-        ELEMENT_PROPERTY(DE_STA_RSNCAPS,       sta_get, bus_data_type_uint32)
+        ELEMENT_PROPERTY(DE_STA_RSNCAPS,       sta_get, bus_data_type_uint32),
+        ELEMENT_TABLE_HANDLE(DE_PROVISIONEDDPP_TABLE, NULL, dpp_table_addRowhandler, max_num_of_vaps, bus_data_type_object),
+        ELEMENT_GET_SET_PROPERTY(DE_PROVISIONEDDPP_ALIAS, dpp_get, dpp_set, bus_data_type_string),
+        ELEMENT_GET_SET_PROPERTY(DE_PROVISIONEDDPP_URI, dpp_get, dpp_set, bus_data_type_string),
     };
 
     bus_desc = get_bus_descriptor();

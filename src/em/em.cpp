@@ -129,6 +129,7 @@ void em_t::orch_execute(em_cmd_t *pcmd)
                 if (dpp_info->ec_freqs[i] == 0) break;
                 printf("\t\tFreq: %d\n", dpp_info->ec_freqs[i]);
             }
+            em_printfout("ORCH: Calling cfg_onboard_enrollee \n");
             if (!m_ec_manager->cfg_onboard_enrollee(dpp_info)){
                 printf("Failed to start DPP\n");
             }
