@@ -849,7 +849,8 @@ bus_error_t dpp_get_inner(char *event_name, raw_data_t *p_data, bus_user_data_t 
         rc = raw_data_set(p_data, si->ssid);
     }
     else if (strcmp(param, "DPPURI") == 0) {
-        rc = raw_data_set(p_data, dpp_uri->responder_boot_key);
+        std::string resp_key = em_crypto_t::ec_key_to_base64_der(dpp_uri->responder_boot_key);
+        rc = raw_data_set(p_data, resp_key.c_str());
     }
     else {
         printf("Invalid param: %s\n", param);
