@@ -888,13 +888,13 @@ bus_error_t dpp_set_inner(char *event_name, raw_data_t *p_data, bus_user_data_t 
 
     //Try setting manually
     if(dpp_uri) {
-        std::string dpp_uri_str = p_data->raw_data.bytes;
+        std::string dpp_uri_str = (char *)p_data->raw_data.bytes;
         size_t start = dpp_uri_str.find("K:");
         if (start == std::string::npos) {
             em_printfout("ERROR: K Not Found\n");
         }
 
-        start += "K:".length();
+        start += 2;
         size_t end = dpp_uri_str.find(";", start);
         if (end == std::string::npos) {
             em_printfout("ERROR: Invalid format\n");
