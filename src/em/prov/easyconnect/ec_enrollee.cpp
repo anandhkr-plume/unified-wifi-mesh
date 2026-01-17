@@ -96,10 +96,10 @@ bool ec_enrollee_t::start_onboarding(bool do_reconfig, ec_data_t* boot_data, boo
     m_boot_data().init_priv_boot_key = em_crypto_t::get_priv_key_bn(m_boot_data().initiator_boot_key);    
     m_boot_data().init_pub_boot_key = em_crypto_t::get_pub_key_point(m_boot_data().initiator_boot_key);
 
+    em_printfout("Bootstrapping data \n");
     // Print initiator_boot_key if it's not null
     if (m_boot_data().initiator_boot_key != NULL) {
         std::string init_key_base64 = em_crypto_t::ec_key_to_base64_der(m_boot_data().initiator_boot_key);
-        if(init_key_base64 != NULL)
         em_printfout("%s:%d AUTOCONFIG_DEBUG initiator_boot_key (Base64 DER): %s\n", __func__, __LINE__, init_key_base64.c_str());
     } else {
         em_printfout("%s:%d AUTOCONFIG_DEBUG initiator_boot_key is NULL\n", __func__, __LINE__);
