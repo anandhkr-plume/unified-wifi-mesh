@@ -2286,7 +2286,7 @@ bus_error_t dpp_set(char *event_name, raw_data_t *p_data, bus_user_data_t *user_
 #define BUS_TABLE_CALLBACK(get_table_handler, add_row_handler) {get_table_handler, NULL, add_row_handler, NULL, NULL, NULL}
 #define ELEMENT_TABLE_HANDLE(data_element, get_table_handler, add_row_handler, num_of_row, element_type)      {data_element, bus_element_type_table, BUS_TABLE_CALLBACK(get_table_handler, add_row_handler), TABLE_ELEMENT_DEFAULTS(num_of_row, element_type)}
 
-#define ELEMENT_GET_SET_PROPERTY(n, g, s, t)   {n, bus_element_type_property, {g, s, NULL, NULL, NULL, NULL}, ELEMENT_DEFAULTS(t)}
+#define ELEMENT_GET_SET_PROPERTY(n, g, s, t)   {n, bus_element_type_property, {g, s, NULL, NULL, NULL, NULL}, slow_speed, ZERO_TABLE, {t, true, 0L, 0L, 0U, NULL}}
 /*{   DE_SSID_TABLE, bus_element_type_table,
     {ssid_tget, NULL, ssid_table_addRowhandler, NULL, NULL, NULL}, slow_speed, num_of_vaps,
     {bus_data_type_object, false, 0L, 0L, 0U, NULL}
