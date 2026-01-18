@@ -866,6 +866,7 @@ bus_error_t dpp_set_inner(char *event_name, raw_data_t *p_data, bus_user_data_t 
     char instance[MAX_INSTANCE_LEN] = { 0 };
     bool is_num;
     em_subdoc_info_t *subdoc = NULL;
+    unsigned char buff[EM_IO_BUFF_SZ];
     ec_data_t *dpp_uri;
 
     if(!name || !p_data || p_data->raw_data_len < 0 || p_data->raw_data_len >= EM_IO_BUFF_SZ) {
@@ -893,6 +894,7 @@ bus_error_t dpp_set_inner(char *event_name, raw_data_t *p_data, bus_user_data_t 
         return bus_error_invalid_input;
     }
 
+    subdoc = (em_subdoc_info_t *)buff;
     cJSON* json_obj = cJSON_Parse((char *)p_data->raw_data.bytes);
     if (json_obj == NULL) {
         em_printfout("ERROR: Failed to parse JSON from input_data\n");
@@ -911,11 +913,9 @@ bus_error_t dpp_set_inner(char *event_name, raw_data_t *p_data, bus_user_data_t 
         return bus_error_invalid_input;
     }
 
-    em_printfout("%s:%d AUTOCONFIG_DEBUG Copy DPP URI to subdoc \n", __func__, __LINE__, dpp_json);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG Copy DPP URI to dpp_json :%s \n", __func__, __LINE__, dpp_json);
     memcpy(subdoc->buff, dpp_json, json_len);
     subdoc->buff[json_len] = '\0';
-    free(json_obj);
-    json_obj = NULL;
 
     json_obj = cJSON_Parse(subdoc->buff);
     if (json_obj) {
@@ -929,7 +929,6 @@ bus_error_t dpp_set_inner(char *event_name, raw_data_t *p_data, bus_user_data_t 
     em_printfout("%s:%d AUTOCONFIG_DEBUG calling io_process \n", __func__, __LINE__);
     g_ctrl.io_process(em_bus_event_type_start_dpp, subdoc->buff, strlen(subdoc->buff), NULL);
     free(dpp_json);
-    cJSON_Delete(json_obj);
 
     dpp_uri = dm->m_dpp.get_dpp_info();
 
@@ -939,16 +938,17 @@ bus_error_t dpp_set_inner(char *event_name, raw_data_t *p_data, bus_user_data_t 
         size_t start = dpp_uri_str.find("K:");
         if (start == std::string::npos) {
             em_printfout("ERROR: K Not Found\n");
+            return bus_error_invalid_input;
         }
 
         start += 2;
         size_t end = dpp_uri_str.find(";", start);
         if (end == std::string::npos) {
             em_printfout("ERROR: Invalid format\n");
+            return bus_error_invalid_input;
         }
 
         std::string resp_key = dpp_uri_str.substr(start, end - start);
-
         dpp_uri->responder_boot_key = em_crypto_t::ec_key_from_base64_der((char *)resp_key.c_str());
     }
 
