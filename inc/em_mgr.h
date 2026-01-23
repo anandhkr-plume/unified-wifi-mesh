@@ -385,8 +385,8 @@ public:
 	 *
 	 * @note This function is optional to implement and may not be supported on all platforms.
 	 */
-	virtual bool send_bsta_action_frame(uint8_t dest_mac[ETH_ALEN], uint8_t *action_frame, size_t action_frame_len, unsigned int frequency=0, unsigned int wait_time_ms=0) override;
-        printf("send_action_frame not implemented\n");
+	virtual bool send_bsta_action_frame(uint8_t dest_mac[ETH_ALEN], uint8_t *action_frame, size_t action_frame_len, unsigned int frequency=0, unsigned int wait_time_ms=0) {
+        printf("send_bsta_action_frame not implemented\n");
         return false;
     }
 
