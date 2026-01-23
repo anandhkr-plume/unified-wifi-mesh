@@ -173,12 +173,20 @@ void ec_enrollee_t::generate_bss_channel_list(bool is_reconfig_list){
     Add the preferred Presence Announcement channels to the channel list;
     */
 
-    freq_list.insert(2437); // 2.4 GHz: Channel 6 (2.437 GHz)
+    //freq_list.insert(2437); // 2.4 GHz: Channel 6 (2.437 GHz)
+    freq_list.insert(5180); // 5 GHz: Channel 36 (5.180 GHz)
+    freq_list.insert(5200); // 5 GHz: Channel 40 (5.200 GHz)
     freq_list.insert(5220); // 5 GHz: Channel 44 (5.220 GHz)
-    freq_list.insert(60480); // 60 GHz: Channel 2 (60.48 GHz)
-    freq_list.insert(920); // 920 MHz: Channel 37 
+    freq_list.insert(5240); // 5 GHz: Channel 48 (5.240 GHz)
+    freq_list.insert(5745); // 5 GHz: Channel 149 (5.745 GHz)
+    freq_list.insert(5765); // 5 GHz: Channel 153 (5.765 GHz)
+    freq_list.insert(5785); // 5 GHz: Channel 157 (5.785 GHz)
+    freq_list.insert(5805); // 5 GHz: Channel 161 (5.805 GHz)
+    //freq_list.insert(60480); // 60 GHz: Channel 2 (60.48 GHz)
+    //freq_list.insert(920); // 920 MHz: Channel 37
 
     /* EC-Reconfig #2
+
 
     For each channel on which the Enrollee detects the SSID for which it is currently configured, 
     add to the channel list;
