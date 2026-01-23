@@ -112,6 +112,18 @@ using send_1905_eapol_encap_func = std::function<bool(uint8_t*, size_t, uint8_t*
 using send_act_frame_func = std::function<bool(uint8_t*, uint8_t *, size_t, unsigned int, unsigned int)>;
 
 /**
+ * @brief Send an action frame. Optional to implement.
+ * 
+ * @param dest_mac The destination MAC address
+ * @param action_frame The action frame to send
+ * @param action_frame_len The length of the action frame
+ * @param frequency The frequency to send the frame on (0 for current frequency)
+ * @param wait The time to wait on the channel after sending the frame (0 for no wait)
+ * @return true if successful, false otherwise
+ */
+ using send_bsta_act_frame_func = std::function<bool(uint8_t*, uint8_t *, size_t, unsigned int, unsigned int)>;
+
+/**
  * @brief Set the CCE IEs in the beacon and probe response frames
  * 
  * @param bool Whether to enable or disable the inclusion of CCE IEs in the beacon and probe response frames
@@ -179,6 +191,7 @@ struct ec_ops_t {
     send_encap_dpp_func send_encap_dpp = nullptr;
     send_dir_encap_dpp_func send_dir_encap_dpp = nullptr;
     send_act_frame_func send_act_frame = nullptr;
+    send_bsta_act_frame_func send_bsta_act_frame = nullptr;
     toggle_cce_func toggle_cce = nullptr;
     trigger_sta_scan_func trigger_sta_scan = nullptr;
     bsta_connect_func bsta_connect = nullptr;

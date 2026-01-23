@@ -378,6 +378,18 @@ public:
 	bool send_backhaul_action_frame(uint8_t dest_mac[ETH_ALEN], uint8_t *action_frame, size_t action_frame_len, unsigned int frequency=0, unsigned int wait_time_ms=0) override;
 
 	/**
+	 * @brief Send an action frame on the backhaul station interface
+	 *
+	 * This function sends an action frame to a specified destination MAC address on the backhaul station interface.
+	 *
+	 * @param[in] dest_mac The destination MAC address.
+	 * @param[in] action_frame The action frame to send.
+	 * @param[in] action_frame_len The length of the action frame.
+	 * @param[in] frequency The frequency to send the frame on (0 for current frequency).
+	 */
+	bool send_bsta_action_frame(uint8_t dest_mac[ETH_ALEN], uint8_t *action_frame, size_t action_frame_len, unsigned int frequency=0, unsigned int wait_time_ms=0) override;
+
+	/**
 	 * @brief Set the disconnected steady state.
 	 * 
 	 * This function temporarily interupts the disconnected-scanning state machine in OneWifi
