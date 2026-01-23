@@ -1822,6 +1822,10 @@ bool em_t::initialize_ec_manager(){
                                                 std::placeholders::_1, std::placeholders::_2, 
                                                 std::placeholders::_3, std::placeholders::_4, 
                                                 std::placeholders::_5);
+    ops.send_bsta_act_frame             = std::bind(&em_mgr_t::send_bsta_action_frame, m_mgr,
+                                                std::placeholders::_1, std::placeholders::_2,
+                                                std::placeholders::_3, std::placeholders::_4,
+                                                std::placeholders::_5);
     ops.toggle_cce                 = std::bind(&em_t::toggle_cce, this, std::placeholders::_1);
     ops.trigger_sta_scan           = std::bind(&em_t::trigger_sta_scan, this);
     ops.bsta_connect               = std::bind(&em_t::bsta_connect_bss, this, 

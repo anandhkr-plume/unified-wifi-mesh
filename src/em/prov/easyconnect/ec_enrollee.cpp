@@ -9,7 +9,7 @@
 
 ec_enrollee_t::ec_enrollee_t(const std::string& al_mac_addr, ec_ops_t& ops, std::optional<ec_persistent_sec_ctx_t> existing_sec_ctx)
     : m_al_mac_addr(al_mac_addr) {
-    m_send_action_frame = ops.send_act_frame;
+    m_send_action_frame = ops.send_bsta_act_frame;
     m_get_bsta_info = ops.get_backhaul_sta_info;
     m_trigger_sta_scan_fn = ops.trigger_sta_scan;
     m_bsta_connect_fn = ops.bsta_connect;
