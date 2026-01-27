@@ -342,7 +342,19 @@ public:
         .vs_subtype = 0x00
     };
 
-    
+	/**
+	 * @brief Enables or disables the backhaul BSS.
+	 *
+	 *
+	 * @return true if the operation was successful, false otherwise.
+	 */
+    inline bool send_backhaul_enable(const std::string& ssid, bool enabled) {
+	
+		if (m_enrollee) {
+			return m_enrollee->m_send_backhaul_enable_fn(ssid, enabled);
+		}
+		return false;
+	}
 	/**
 	 * @brief Whether the enrollee node is **actively** onboarding or not.
 	 *

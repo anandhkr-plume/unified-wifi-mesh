@@ -1826,7 +1826,7 @@ bool em_agent_t::try_start_dpp_onboarding()  {
         std::string ssid = "Mesh_Backhaul";
         em_printfout("Enabling backhaul BSS: %s", ssid.c_str());
         memcpy(bss_info->ssid, ssid.c_str(), ssid.length());
-        al_node->get_ec_mgr().m_send_backhaul_enable_fn(std::string(bss_info->ssid), true);
+        al_node->get_ec_mgr().send_backhaul_enable(std::string(bss_info->ssid), true);
     }
 
     if (!al_node->get_ec_mgr().enrollee_start_onboarding(false, &ec_data, ethernet_onboarding)){
