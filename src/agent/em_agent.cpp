@@ -1822,6 +1822,7 @@ bool em_agent_t::try_start_dpp_onboarding()  {
     printf("%s:%d: DPP bootstrapping data generated successfully\n", __func__, __LINE__);
 
     set_disconnected_steady_state();
+    em_printfout("backhaul BSS enable: %d \n", bss_info->enabled);
     if(!bss_info->enabled) {
         std::string ssid = "Mesh_Backhaul";
         em_printfout("Enabling backhaul BSS: %s", ssid.c_str());

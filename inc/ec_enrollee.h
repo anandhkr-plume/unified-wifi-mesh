@@ -330,6 +330,16 @@ public:
 	 */
 	bool handle_autoconf_response_chirp(em_dpp_chirp_value_t *chirp, size_t chirp_len, uint8_t src_mac[ETH_ALEN]);
 
+	/**
+	 * @brief Function to enable or disable the backhaul BSS
+	 *
+	 * @param SSID SSID of the backhaul BSS
+	 * @param Passphrase Passphrase of the backhaul BSS
+	 * @param Enable Enable or Disable the backhaul BSS
+	 * @return bool true if successful, false otherwise
+	 */
+	 send_backhaul_enable_func m_send_backhaul_enable_fn;
+
 private:
 
 	/**
@@ -416,16 +426,6 @@ private:
 	 * @return bool true if successful, false otherwise
 	 */	
 	bsta_connect_func m_bsta_connect_fn;
-
-	/**
-	 * @brief Function to enable or disable the backhaul BSS
-	 *
-	 * @param SSID SSID of the backhaul BSS
-	 * @param Passphrase Passphrase of the backhaul BSS
-	 * @param Enable Enable or Disable the backhaul BSS
-	 * @return bool true if successful, false otherwise
-	 */
-	send_backhaul_enable_func m_send_backhaul_enable_fn;
 
 	/**
 	 * @brief Sends a direct encapsulated DPP message

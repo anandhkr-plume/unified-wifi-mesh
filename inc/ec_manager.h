@@ -355,6 +355,7 @@ public:
 		}
 		return false;
 	}
+
 	/**
 	 * @brief Whether the enrollee node is **actively** onboarding or not.
 	 *
