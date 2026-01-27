@@ -418,6 +418,16 @@ private:
 	bsta_connect_func m_bsta_connect_fn;
 
 	/**
+	 * @brief Function to enable or disable the backhaul BSS
+	 *
+	 * @param SSID SSID of the backhaul BSS
+	 * @param Passphrase Passphrase of the backhaul BSS
+	 * @param Enable Enable or Disable the backhaul BSS
+	 * @return bool true if successful, false otherwise
+	 */
+	send_backhaul_enable_func m_send_backhaul_enable_fn;
+
+	/**
 	 * @brief Sends a direct encapsulated DPP message
 	 * 
 	 * @param dpp_frame The DPP frame to send

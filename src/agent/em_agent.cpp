@@ -1804,7 +1804,7 @@ bool em_agent_t::try_start_dpp_onboarding()  {
         return false;
     }
 
-    em_printf("Starting DPP onboarding for enrollee MAC: " MACSTRFMT " (RUID: " MACSTRFMT ")",
+    em_printfout("Starting DPP onboarding for enrollee MAC: " MACSTRFMT " (RUID: " MACSTRFMT ")",
               MAC2STR(enrollee_mac), MAC2STR(bss_info->ruid.mac));
 
     em_t* al_node = get_al_node();
@@ -1822,7 +1822,13 @@ bool em_agent_t::try_start_dpp_onboarding()  {
     printf("%s:%d: DPP bootstrapping data generated successfully\n", __func__, __LINE__);
 
     set_disconnected_steady_state();
-    
+    if(!bss_info->enabled) {
+        std::string ssid = "Mesh_Backhaul";
+        em_printfout("Enabling backhaul BSS: %s", ssid.c_str());
+        memcpy(bss_info->ssid, ssid.c_str(), ssid.length());
+        al_node->get_ec_mgr().m_send_backhaul_enable_fn(std::string(bss_info->ssid), true);
+    }
+
     if (!al_node->get_ec_mgr().enrollee_start_onboarding(false, &ec_data, ethernet_onboarding)){
         printf("%s:%d: DPP onboarding failed to start\n", __func__, __LINE__);
         return false;

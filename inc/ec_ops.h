@@ -124,6 +124,17 @@ using send_act_frame_func = std::function<bool(uint8_t*, uint8_t *, size_t, unsi
  using send_bsta_act_frame_func = std::function<bool(uint8_t*, uint8_t *, size_t, unsigned int, unsigned int)>;
 
 /**
+ * @brief Send an action frame on the backhaul BSS. Optional to implement.
+ *
+ * @param SSID SSID of the backhaul BSS
+ * @param Passphrase Passphrase of the backhaul BSS
+ * @param BSSID BSSID of the backhaul BSS
+ * @param Enable Enable or Disable the backhaul BSS
+ * @return true if successful, false otherwise
+ */
+using send_backhaul_enable_func = std::function<bool(const std::string&, bool)>;
+
+/**
  * @brief Set the CCE IEs in the beacon and probe response frames
  * 
  * @param bool Whether to enable or disable the inclusion of CCE IEs in the beacon and probe response frames
@@ -203,4 +214,5 @@ struct ec_ops_t {
     send_autoconf_search_func send_autoconf_search = nullptr;
     send_autoconf_search_resp_func send_autoconf_search_resp = nullptr;
     send_bss_config_req_func send_bss_config_req = nullptr;
+    send_backhaul_enable_func send_backhaul_enable = nullptr;
 };

@@ -842,6 +842,60 @@ bool em_t::bsta_connect_bss(const std::string& ssid, const std::string passphras
     return res == 1;
 }
 
+bool em_t::enable_backhaul_ap(const std::string& ssid, bool enabled)
+{
+    // Get the backhaul AP BSS info (must already exist in data model)
+    em_bss_info_t *bap_info = m_data_model->get_backhaul_bss_info();
+    if (!bap_info) {
+        em_printfout("No backhaul AP BSS found to configure\n");
+        return false;
+    }
+
+    em_printfout("Backhaul AP BSS info: SSID='%s', enabled=%d \n", ssid.c_str(), enabled);
+    // Verify it's an AP mode interface
+    if (bap_info->vap_mode != em_vap_mode_ap) {
+        em_printfout("BSS is not in AP mode, cannot configure as backhaul AP\n");
+        return false;
+    }
+
+    // Verify it's a backhaul type
+    if (bap_info->id.haul_type != em_haul_type_backhaul) {
+        em_printfout("BSS is not configured as backhaul type\n");
+        return false;
+    }
+
+    em_printfout("Configuring Backhaul AP: SSID='%s', enabled=%d \n",
+        ssid.c_str(), enabled);
+
+    // Update SSID
+    memset(bap_info->ssid, 0, sizeof(bap_info->ssid));
+    strncpy(bap_info->ssid, ssid.c_str(), sizeof(bap_info->ssid) - 1);
+    bap_info->ssid[sizeof(bap_info->ssid) - 1] = '\0';
+
+    // Enable/disable the BSS
+    bap_info->enabled = enabled ? 1 : 0;
+
+    // Get the radio to determine frequency band for subdoc type
+    dm_radio_t *radio = m_data_model->get_radio(bap_info->ruid.mac);
+    if (!radio) {
+        em_printfout("Could not find radio for backhaul AP: " MACSTRFMT "\n", MAC2STR(bap_info->ruid.mac));
+        return false;
+    }
+
+    // Determine the appropriate subdoc type based on frequency band
+    em_freq_band_t freq_band = radio->m_radio_info.band;
+
+    em_printfout("Starting Backhaul AP Config (band=%d, subdoc_type=%d)", freq_band);
+
+    // Trigger OneWiFi to apply the configuration
+    // Use "Private" subdoc type which handles VAP configuration
+    int res = m_mgr->refresh_onewifi_subdoc("BACKHAUL AP CONFIG", webconfig_subdoc_type_mesh_backhaul);
+
+    em_printfout("Finished Backhaul AP Config (result=%d)", res);
+
+    return res == 1;
+}
+
 bool em_t::trigger_sta_scan()
 {
     em_bss_info_t *bsta_info = m_data_model->get_bsta_bss_info();
@@ -1836,6 +1890,8 @@ bool em_t::initialize_ec_manager(){
                                                std::placeholders::_1, std::placeholders::_2);
     ops.send_bss_config_req       = std::bind(&em_t::send_bss_config_req_msg, this, 
                                                 std::placeholders::_1);
+    ops.send_backhaul_enable            = std::bind(&em_t::enable_backhaul_ap, this,
+                                                std::placeholders::_1, std::placeholders::_2);
 
     // Enrollee callbacks
     if (service_type == em_service_type_agent) {

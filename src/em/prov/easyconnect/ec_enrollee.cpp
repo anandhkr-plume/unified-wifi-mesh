@@ -9,13 +9,14 @@
 
 ec_enrollee_t::ec_enrollee_t(const std::string& al_mac_addr, ec_ops_t& ops, std::optional<ec_persistent_sec_ctx_t> existing_sec_ctx)
     : m_al_mac_addr(al_mac_addr) {
-    m_send_action_frame = ops.send_bsta_act_frame;
+    m_send_action_frame = ops.send_act_frame;
     m_get_bsta_info = ops.get_backhaul_sta_info;
     m_trigger_sta_scan_fn = ops.trigger_sta_scan;
     m_bsta_connect_fn = ops.bsta_connect;
     m_send_dir_encap_fn = ops.send_dir_encap_dpp;
     m_send_autoconf_search_fn = ops.send_autoconf_search;
     m_send_bss_config_req_fn = ops.send_bss_config_req;
+    m_send_backhaul_enable_fn = ops.send_backhaul_enable;
     m_scanned_channels_map = {};
 
     m_1905_encrypt_layer = std::make_unique<ec_1905_encrypt_layer_t>(

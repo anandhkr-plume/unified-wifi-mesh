@@ -435,6 +435,15 @@ public:
 	bool bsta_connect_bss(const std::string& ssid, const std::string passphrase, bssid_t bssid);
 
 	/**
+	 * @brief Enables or disables the backhaul BSS.
+	 *
+	 * @param[in] ssid The SSID of the BSS to enable or disable.
+	 * @param[in] enabled True to enable, false to disable.
+	 * @return true if the operation was successful, false otherwise.
+	 */
+	bool enable_backhaul_ap(const std::string& ssid, bool enabled);
+
+	/**
 	 * @brief Triggers a station scan on all channels
 	 * 
 	 * @return true if the action was successful, false otherwise.
