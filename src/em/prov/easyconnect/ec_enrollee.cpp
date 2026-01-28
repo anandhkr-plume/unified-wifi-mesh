@@ -174,7 +174,9 @@ void ec_enrollee_t::generate_bss_channel_list(bool is_reconfig_list){
     Add the preferred Presence Announcement channels to the channel list;
     */
 
-    //freq_list.insert(2437); // 2.4 GHz: Channel 6 (2.437 GHz)
+    freq_list.insert(2412); // 2.4 GHz: Channel 1 (2.412 GHz)
+    freq_list.insert(2437); // 2.4 GHz: Channel 6 (2.437 GHz)
+    freq_list.insert(2462); // 2.4 GHz: Channel 11 (2.462 GHz)
     freq_list.insert(5180); // 5 GHz: Channel 36 (5.180 GHz)
     freq_list.insert(5200); // 5 GHz: Channel 40 (5.200 GHz)
     freq_list.insert(5220); // 5 GHz: Channel 44 (5.220 GHz)
