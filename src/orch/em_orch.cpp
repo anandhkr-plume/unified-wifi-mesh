@@ -359,7 +359,6 @@ void em_orch_t::handle_timeout()
         pcmd = static_cast<em_cmd_t *>(queue_peek(m_pending, static_cast<unsigned int>(i)));
         if (eligible_for_active(pcmd) == true) {
             queue_remove(m_pending, static_cast<unsigned int>(i));
-                    pcmd->get_cmd_name(), em_cmd_t::get_orch_op_str(pcmd->get_orch_op()));
             //printf("%s:%d: Cmd: %s Orch Type: %s eligible for active\n", __func__, __LINE__, 
                     //pcmd->get_cmd_name(), em_cmd_t::get_orch_op_str(pcmd->get_orch_op()));
             eligible_to_move = true;
