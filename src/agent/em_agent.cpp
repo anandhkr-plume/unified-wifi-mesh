@@ -1823,12 +1823,10 @@ bool em_agent_t::try_start_dpp_onboarding()  {
 
     set_disconnected_steady_state();
     em_printfout("backhaul BSS enable: %d \n", bss_info->enabled);
-    if(!bss_info->enabled) {
-        std::string ssid = "Mesh_Backhaul";
-        em_printfout("Enabling backhaul BSS: %s", ssid.c_str());
-        memcpy(bss_info->ssid, ssid.c_str(), ssid.length());
-        al_node->get_ec_mgr().send_backhaul_enable(std::string(bss_info->ssid), true);
-    }
+    std::string ssid = "Do_Not_Connect";
+    em_printfout("Enabling backhaul BSS: %s", ssid.c_str());
+    memcpy(bss_info->ssid, ssid.c_str(), ssid.length());
+    al_node->get_ec_mgr().send_backhaul_enable(std::string(bss_info->ssid), true);
 
     if (!al_node->get_ec_mgr().enrollee_start_onboarding(false, &ec_data, ethernet_onboarding)){
         printf("%s:%d: DPP onboarding failed to start\n", __func__, __LINE__);

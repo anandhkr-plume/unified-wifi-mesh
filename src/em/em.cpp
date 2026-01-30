@@ -885,7 +885,7 @@ bool em_t::enable_backhaul_ap(const std::string& ssid, bool enabled)
     // Determine the appropriate subdoc type based on frequency band
     em_freq_band_t freq_band = radio->m_radio_info.band;
 
-    em_printfout("Starting Backhaul AP Config (band=%d, subdoc_type=%d)", freq_band);
+    em_printfout("Starting Backhaul AP Config (band=%d, webconfig_subdoc_type_mesh_backhaul)", freq_band);
 
     // Trigger OneWiFi to apply the configuration
     // Use "Private" subdoc type which handles VAP configuration
