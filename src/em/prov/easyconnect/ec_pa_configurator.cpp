@@ -197,6 +197,9 @@ bool ec_pa_configurator_t::process_proxy_encap_dpp_msg(em_encap_dpp_t *encap_tlv
 
     std::string dest_mac_str = util::mac_to_string(dest_mac);
 
+    em_printfout("process_proxy_encap_dpp_msg: frame_type=%d, dpp_frame_indicator=%d, enrollee_mac_addr_present=%d, dest_mac=" MACSTRFMT,
+                 ec_frame_type, encap_tlv->dpp_frame_indicator, encap_tlv->enrollee_mac_addr_present, MAC2STR(dest_mac));
+
     bool needs_fragmentation = (encap_frame_len > WIFI_MTU_SIZE);
     if (needs_fragmentation) {
         auto it = m_gas_session_dialog_tokens.find(dest_mac_str);
@@ -261,9 +264,12 @@ bool ec_pa_configurator_t::process_proxy_encap_dpp_msg(em_encap_dpp_t *encap_tlv
         // bit is set to one, then the Proxy Agent shall send the frame as a unicast Public Action frame to the Enrollee MAC
         // address
         if (!encap_tlv->dpp_frame_indicator && encap_tlv->enrollee_mac_addr_present) {
+            em_printfout("Sending action frame for frame_type=%d to '" MACSTRFMT "'", ec_frame_type, MAC2STR(dest_mac));
             bool sent = m_send_action_frame(dest_mac, encap_frame, encap_frame_len, 0, 0);
             if (!sent) {
                 em_printfout("Failed to send non-DPP unicast action frame to '" MACSTRFMT "'", MAC2STR(dest_mac));
+            } else {
+                em_printfout("Successfully sent action frame for frame_type=%d to '" MACSTRFMT "'", ec_frame_type, MAC2STR(dest_mac));
             }
             free(encap_frame);
             return sent;
@@ -294,6 +300,9 @@ bool ec_pa_configurator_t::process_proxy_encap_dpp_msg(em_encap_dpp_t *encap_tlv
             em_printfout("Proxied Encap DPP Message with DPP Frame Indicator set, but Enrollee MAC Addr Present false! Discarding.");
             free(encap_frame);
             return true;
+        } else {
+            em_printfout("WARNING: Unhandled condition for frame_type=%d, dpp_frame_indicator=%d, enrollee_mac_addr_present=%d. Falling through to switch statement.",
+                         ec_frame_type, encap_tlv->dpp_frame_indicator, encap_tlv->enrollee_mac_addr_present);
         }
     }
 

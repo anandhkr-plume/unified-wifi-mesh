@@ -939,7 +939,7 @@ bool em_agent_t::send_backhaul_action_frame(uint8_t dest_mac[ETH_ALEN], uint8_t 
 
 
     const em_bss_info_t *bss_info = m_data_model.get_backhaul_bss_info();
-    em_printfout("Sending backhaul AP action frame on frequency %d", frequency);
+    em_printfout("Sending backhaul station action frame on frequency %d", frequency);
     EM_ASSERT_NOT_NULL(bss_info, false, "No backhaul info found");
 
     return send_action_frame(dest_mac, action_frame, action_frame_len, bss_info->vap_index, frequency, wait_time_ms);
@@ -948,7 +948,7 @@ bool em_agent_t::send_backhaul_action_frame(uint8_t dest_mac[ETH_ALEN], uint8_t 
 bool em_agent_t::send_bsta_action_frame(uint8_t dest_mac[ETH_ALEN], uint8_t *action_frame, size_t action_frame_len, unsigned int frequency, unsigned int wait_time_ms) {
     const em_bss_info_t *bss_info = m_data_model.get_bsta_bss_info();
 
-    em_printfout("Sending backhaul station action frame on frequency %d", frequency);
+    em_printfout("Sending backhaul STA action frame on frequency %d", frequency);
     EM_ASSERT_NOT_NULL(bss_info, false, "No bsta info found");
 
     return send_action_frame(dest_mac, action_frame, action_frame_len, bss_info->vap_index, frequency, wait_time_ms);
