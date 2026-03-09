@@ -1571,8 +1571,6 @@ typedef uint8_t le16[2];
 #define WLAN_WNM_BTM_REQUEST 7
 #define WLAN_WNM_BTM_RESPONSE 8
 
-#define IEEE80211_FC(type, stype) ((le16)(type << 2) | (stype << 4))
-
 struct ieee80211_hdr {
     le16 frame_control;
     le16 duration;

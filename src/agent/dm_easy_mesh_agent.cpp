@@ -656,6 +656,7 @@ int dm_easy_mesh_agent_t::analyze_btm_request_action_frame(em_bus_event_t *evt, 
     em_bss_info_t *bss_info;
     em_op_class_info_t *op_class_info;
     char path[100] = {0};
+    uint16_t fc_val;
 
     len = sizeof(ieeeframe->u.action.category) + sizeof(ieeeframe->u.action.u.bss_tm_req) \
         + sizeof(em_80211_neighbor_report_t);
@@ -696,7 +697,9 @@ int dm_easy_mesh_agent_t::analyze_btm_request_action_frame(em_bus_event_t *evt, 
     ieeeframe = &frame_buf;
 
     //convert steering req to 802.11 bss tm req
-    ieeeframe->frame_control = IEEE80211_FC(WLAN_FC_TYPE_MGMT, WLAN_FC_STYPE_ACTION);
+    fc_val = (WLAN_FC_TYPE_MGMT << 2) | (WLAN_FC_STYPE_ACTION << 4);  // 0xD0
+    ieeeframe->frame_control[0] = fc_val & 0xFF;
+    ieeeframe->frame_control[1] = (fc_val >> 8) & 0xFF;
     memcpy(ieeeframe->sa, bss_info->bssid.mac, sizeof(mac_addr_t));
     memcpy(ieeeframe->da, steer_req->sta_mac_addr, sizeof(mac_addr_t));
     memcpy(ieeeframe->bssid, bss_info->bssid.mac, sizeof(mac_addr_t));

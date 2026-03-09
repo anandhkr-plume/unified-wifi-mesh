@@ -136,7 +136,7 @@ bus_error_t tr_181_t::ctrl_cmd_client_steer(const char *method_name, raw_data_t 
     em_ctrl_t *ctrl = em_ctrl_t::get_em_ctrl_instance();
 
     if(ctrl != NULL && ctrl->get_dm_ctrl() != NULL) {
-        return bus_method_cb_fwd(method_name, input_data, output_data, async_handle, ctrl->get_dm_ctrl()->ctrl_cmd_client_steer_inner);
+        return ctrl->get_dm_ctrl()->bus_method_cb_fwd(method_name, input_data, output_data, async_handle, ctrl->get_dm_ctrl()->ctrl_cmd_client_steer_inner);
     }
 
     return bus_error_general;

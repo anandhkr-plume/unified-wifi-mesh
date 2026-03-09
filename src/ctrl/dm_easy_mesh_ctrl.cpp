@@ -6208,8 +6208,8 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char    *meth
             cJSON_ArrayForEach(bss_item, bss_list) {
                 cJSON *sta_list = cJSON_GetObjectItem(bss_item, "STAList");
                 if (!cJSON_IsArray(sta_list)) continue;
-                cJSON *hit = find_target_sta(sta_list, sta_mac);
-                if (hit) { found_sta_entry = hit; break; }
+                cJSON *sta_json_found = tr_181_t::find_target_sta(sta_list, sta_mac);
+                if (sta_json_found) { found_sta_entry = sta_json_found; break; }
             }
             if (found_sta_entry) break;
         }
