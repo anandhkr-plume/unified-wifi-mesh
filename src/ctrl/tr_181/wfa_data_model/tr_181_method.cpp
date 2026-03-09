@@ -61,3 +61,81 @@ bus_error_t tr_181_t::setssid_handler(const char *method_name, raw_data_t *input
 
     return rc;
 }
+
+bus_error_t tr_181_t::bus_method_cb_fwd(const char *method_name, raw_data_t *input_data, raw_data_t *output_data, void *async_handle, bus_method_handler_t cb)
+{
+    uint32_t s_id;
+    em_event_t *req;
+    bus_error_t rc = -1;
+    bus_data_prop_t *input_props = static_cast<bus_data_prop_t *>(input_data->raw_data.bytes);
+    bus_data_prop_t *output_props = NULL;
+    bus_resp_get_t *resp = NULL;
+    uintptr_t buf;
+    em_ctrl_t *g_ctrl = em_ctrl_t::get_em_ctrl_instance();
+
+    if (!input_data || input_data->raw_data_len == 0) {
+        em_printfout("Invalid input_data or missing input_props");
+        if (output_data) {
+            tr_181_t::tr181_set_status_output(output_data, "Failure: missing input_props");
+        }
+        return bus_error_invalid_input;
+    }
+
+    if(!g_ctrl) {
+        em_printfout("Controller unavailable");
+        if (output_data) {
+            tr_181_t::tr181_set_status_output(output_data, "Failure: controller unavailable");
+        }
+        return bus_error_invalid_input;
+    }
+
+    em_printfout("Method='%s' input_len=%u", method_name ? method_name : "(null)", input_data->raw_data_len);
+    // Log all chained input properties
+    for (bus_data_prop_t *p = input_props; p; p = p->next_data) {
+        em_printfout("Prop='%s' type=%d len=%u", p->name, p->value.data_type, p->value.raw_data_len);
+    }
+
+    do {
+        req = (em_event_t *) malloc(sizeof(em_event_t));
+        if(!req) {
+            err = bus_error_out_of_resources;
+            break;
+        }
+
+        s_id = get_next_nb_evt_id();
+        req->type = em_event_type_nb;
+        req->u.nevt.id = s_id;
+        req->u.nevt.type = NB_REQTYPE_METHOD;
+        req->u.nevt.u.method.method = method_name;
+        req->u.nevt.u.method.in = input_props;
+        req->u.nevt.u.method.out = output_data ? &output_props : NULL;
+        req->u.nevt.u.method.async = async_handle;
+        req->u.nevt.cb = (void *) cb;
+
+        g_ctrl->push_to_queue(req);
+
+        ssize_t len = read(get_nb_pipe_rd(), &buf, sizeof(buf));
+        assert(len == sizeof(buf));
+        resp = (bus_resp_get_t *) buf;
+        assert(resp->id == s_id);
+        rc = resp->rc;
+
+        if (output_data && output_props) {
+            output_data->data_type = bus_data_type_property;
+            output_data->raw_data.bytes = output_props;
+            output_data->raw_data_len = sizeof(bus_data_prop_t);
+        }
+    } while(0);
+
+    return rc;
+}
+
+bus_error_t tr_181_t::ctrl_cmd_client_steer(const char *method_name, raw_data_t *input_data, raw_data_t *output_data, void *async_handle) {
+    em_ctrl_t *em_ctrl = em_ctrl_t::get_em_ctrl_instance();
+
+    if(em_ctrl != NULL && em_ctrl->get_dm_ctrl() != NULL) {
+        return bus_method_cb_fwd(method_name, input_data, output_data, async_handle, em_ctrl->get_dm_ctrl()->ctrl_cmd_client_steer_inner);
+    }
+
+    return bus_error_general;
+}

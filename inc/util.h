@@ -356,6 +356,24 @@ namespace util {
 	 */
 	bool set_net_uint16_from_host(const uint16_t host_val, void* const ptr);
 
+	/**
+	 * @brief Checks if a string is a valid MAC address
+	 *
+	 * @param[in] a The string to check
+	 * @param[in] b The string to check
+	 * @return bool true if both MAC address are same, false otherwise
+	 *
+	 * @note
+	 */
+	bool mac_equals(const char *a, const char *b);
+
+	/**
+	 * @brief Normalizes a MAC address string
+	 *
+	 * @param[in] mac The MAC address string to normalize
+	 * @return std::string The normalized MAC address string
+	 */
+	std::string normalize_mac(const char *mac);
 } // namespace util
 
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)

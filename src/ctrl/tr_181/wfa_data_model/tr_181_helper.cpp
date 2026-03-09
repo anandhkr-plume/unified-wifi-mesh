@@ -198,3 +198,158 @@ bool tr_181_t::tr181_copy_prop_string(const bus_data_prop_t *prop, char *dst, si
     dst[len] = '\0';
     return true;
 }
+
+bus_error_t tr_181_t::get_sta_mac_from_event_name(char *event_name, mac_addr_str_t sta_mac_out)
+{
+    dm_easy_mesh_ctrl_t *dm_ctrl;
+    const char *name;
+    char instance[MAX_INSTANCE_LEN] = {0};
+    bool is_num = false;
+
+    if (event_name == nullptr || em_ctrl_t::get_em_ctrl_instance() == nullptr) {
+        return bus_error_invalid_input;
+    }
+
+    dm_ctrl = em_ctrl_t::get_em_ctrl_instance()->get_dm_ctrl();
+    if (dm_ctrl == nullptr) {
+        return bus_error_invalid_input;
+    }
+
+    sta_mac_out[0] = '\0';
+
+    static constexpr const char *dataelements_network_prefix = DATAELEMS_NETWORK; // "Device.WiFi.DataElements.Network."
+    const size_t prefix_len = std::strlen(dataelements_network_prefix);
+
+    if (std::strncmp((const char *)event_name, dataelements_network_prefix, prefix_len) != 0) {
+        return bus_error_invalid_namespace;
+    }
+
+    // Expected suffix format:
+    // Device.<d>.Radio.<r>.BSS.<b>.STA.<s>.   (trailing '.' may exist)
+    name = (const char *)event_name + prefix_len;
+
+    // Device instance -> dm object
+    name = dm_ctrl->get_table_instance(name, instance, sizeof(instance), &is_num);
+    if (!is_num || instance[0] == '\0') {
+        return bus_error_invalid_namespace;
+    }
+
+    dm_easy_mesh_t *dm = dm_ctrl->get_dm_easy_mesh(instance, true);
+    if (dm == nullptr) {
+        return bus_error_invalid_namespace;
+    }
+
+    // Radio instance
+    name = dm_ctrl->get_table_instance(name, instance, sizeof(instance), &is_num);
+    const int radio_instance = std::atoi(instance);
+    if (radio_instance <= 0 || static_cast<unsigned int>(radio_instance) > dm->m_num_radios) {
+        return bus_error_invalid_namespace;
+    }
+
+    dm_radio_t *radio = &dm->m_radio[radio_instance - 1];
+    if (radio == nullptr) {
+        return bus_error_invalid_input;
+    }
+
+    em_radio_info_t *ri = radio->get_radio_info();
+    if (ri == nullptr) {
+        return bus_error_invalid_input;
+    }
+
+    // BSS instance (instance within selected radio)
+    name = dm_ctrl->get_table_instance(name, instance, sizeof(instance), &is_num);
+    if (!is_num || instance[0] == '\0') {
+        return bus_error_invalid_namespace;
+    }
+    const int bss_instance = std::atoi(instance);
+    if (bss_instance <= 0) {
+        return bus_error_invalid_namespace;
+    }
+
+    em_bss_info_t *bi = nullptr;
+    int bss_count_for_radio = 0;
+    for (unsigned int i = 0; i < dm->m_num_bss; i++) {
+        em_bss_info_t *cur_bss = dm->get_bss_info(i);
+        if (cur_bss == nullptr) {
+            continue;
+        }
+
+        if (std::memcmp(ri->id.ruid, cur_bss->ruid.mac, sizeof(mac_address_t)) == 0) {
+            ++bss_count_for_radio;
+            if (bss_count_for_radio == bss_instance) {
+                bi = cur_bss;
+                break;
+            }
+        }
+    }
+
+    if (bi == nullptr) {
+        return bus_error_invalid_namespace;
+    }
+
+    // STA instance (instance within selected BSS)
+    name = dm_ctrl->get_table_instance(name, instance, sizeof(instance), &is_num);
+    if (!is_num || instance[0] == '\0') {
+        return bus_error_invalid_namespace;
+    }
+    const int sta_instance = std::atoi(instance);
+    if (sta_instance <= 0) {
+        return bus_error_invalid_namespace;
+    }
+
+    dm_sta_t *sta = get_dm_sta(dm, bi, sta_instance);
+    if (sta == nullptr) {
+        return bus_error_invalid_namespace;
+    }
+
+    em_sta_info_t *si = sta->get_sta_info();
+    if (si == nullptr) {
+        return bus_error_invalid_input;
+    }
+
+    dm_easy_mesh_t::macbytes_to_string(si->id, sta_mac_out);
+
+    return bus_error_success;
+}
+
+cJSON *tr_181_t::find_target_sta(cJSON *sta_list_obj, const char *sta_mac)
+{
+    if (sta_list_obj == nullptr || sta_mac == nullptr) return nullptr;
+
+    // Case 1: STA list as array
+    if (cJSON_IsArray(sta_list_obj)) {
+        cJSON *sta = nullptr;
+        cJSON_ArrayForEach(sta, sta_list_obj) {
+            cJSON *mac = cJSON_GetObjectItemCaseSensitive(sta, "MACAddress");
+            if (cJSON_IsString(mac) && util::mac_equals(mac->valuestring, sta_mac)) {
+                return sta;
+            }
+        }
+        return nullptr;
+    }
+
+    // Case 2: object keyed by MAC
+    if (cJSON_IsObject(sta_list_obj)) {
+        for (cJSON *it = sta_list_obj->child; it != nullptr; it = it->next) {
+            // key is MAC
+            if (it->string != nullptr && util::mac_equals(it->string, sta_mac)) {
+                return it;
+            }
+            // value may be STA object with MACAddress
+            if (cJSON_IsObject(it)) {
+                cJSON *mac = cJSON_GetObjectItemCaseSensitive(it, "MACAddress");
+                if (cJSON_IsString(mac) && util::mac_equals(mac->valuestring, sta_mac)) {
+                    return it;
+                }
+            }
+        }
+
+        // Case 3: wrapper object { "STAList": [...] }
+        cJSON *inner_list = cJSON_GetObjectItemCaseSensitive(sta_list_obj, "STAList");
+        if (inner_list != nullptr) {
+            return find_target_sta(inner_list, sta_mac);
+        }
+    }
+
+    return nullptr;
+}

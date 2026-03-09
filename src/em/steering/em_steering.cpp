@@ -358,7 +358,7 @@ short em_steering_t::create_btm_request_tlv(unsigned char *buff)
     em_steering_req_t *req = reinterpret_cast<em_steering_req_t *> (buff);
     em_cmd_steer_params_t *params = &get_current_cmd()->m_param.u.steer_params;
 
-    memcpy(&req->bssid, get_data_model()->m_bss[0].m_bss_info.bssid.mac, sizeof(bssid_t));
+    memcpy(&req->bssid, params->source, sizeof(bssid_t));
     req->req_mode                           = static_cast<unsigned char>(params->request_mode) & 0x01;
     req->btm_dissoc_imminent                = params->disassoc_imminent;
     req->btm_abridged                       = params->btm_abridged;
@@ -431,7 +431,7 @@ int em_steering_t::handle_client_steering_req(unsigned char *buff, unsigned int 
     em_tlv_t *tlv;
     char *errors[EM_MAX_TLV_MEMBERS] = {0};
     em_steering_req_t *steer_req;
-    mac_addr_str_t mac_str;
+    mac_addr_str_t mac_str, bssid_str;
 
     if (em_msg_t(em_msg_type_client_steering_req, em_profile_type_2, buff, len).validate(errors) == 0) {
         printf("%s:%d:Client Steering Request message validation failed\n",__func__,__LINE__);
@@ -443,9 +443,11 @@ int em_steering_t::handle_client_steering_req(unsigned char *buff, unsigned int 
     em_cmdu_t *cmdu = reinterpret_cast<em_cmdu_t *> (buff + sizeof(em_raw_hdr_t));
 
     dm_easy_mesh_t::macbytes_to_string(steer_req->sta_mac_addr, mac_str);
-    printf("%s:%d Recived steer req for sta=%s\n", __func__, __LINE__, mac_str);
-    
-	get_mgr()->io_process(em_bus_event_type_bss_tm_req, reinterpret_cast<unsigned char *> (steer_req), sizeof(em_steering_req_t));
+    printf("%s:%d Recived steer req for sta=%s, bssid:%s target_op_class=%d, target_channel=%d target_bssids:%s \n", __func__,
+        __LINE__, mac_str, dm_easy_mesh_t::macbytes_to_string(steer_req->bssid, bssid_str), steer_req->target_bss_op_class,
+        steer_req->target_bss_channel_num, dm_easy_mesh_t::macbytes_to_string(steer_req->target_bssids, bssid_str));
+
+    get_mgr()->io_process(em_bus_event_type_bss_tm_req, reinterpret_cast<unsigned char *> (steer_req), sizeof(em_steering_req_t));
 
     send_1905_ack_message(steer_req->sta_mac_addr, ntohs(cmdu->id));
 

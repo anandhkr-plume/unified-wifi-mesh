@@ -492,3 +492,20 @@ bool util::set_net_uint16_from_host(const uint16_t host_val, void* const ptr) {
     memcpy(ptr, &net_val, sizeof(uint16_t));
     return true;
 }
+
+std::string util::normalize_mac(const char *mac)
+{
+    if (mac == nullptr) return {};
+    std::string out;
+    out.reserve(17);
+    for (const char *p = mac; *p; ++p) {
+        if (*p == '-') out.push_back(':');
+        else out.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(*p))));
+    }
+    return out;
+}
+
+bool util::mac_equals(const char *a, const char *b)
+{
+    return util::normalize_mac(a) == util::normalize_mac(b);
+}

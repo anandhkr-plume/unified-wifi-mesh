@@ -507,16 +507,16 @@ void em_ctrl_t::handle_nb_event(em_nb_event_t *evt)
             /* TODO: sending property only for now */
             resp->rc = cb(name, property, NULL);
         } break;
-#if 0
+
         case NB_REQTYPE_METHOD: {
             const char *method = evt->u.method.method;
-            rbusObject_t in = static_cast<rbusObject_t> (evt->u.method.in);
-            rbusObject_t out = static_cast<rbusObject_t> (evt->u.method.out);
-            rbusMethodAsyncHandle_t async = static_cast<rbusMethodAsyncHandle_t> (evt->u.method.async);
-            rbusMethodHandler_t cb = (rbusMethodHandler_t) evt->cb;
-            resp->rc = cb(NULL, method, in, out, async);
+            raw_data_t in = static_cast<raw_data_t *> (evt->u.method.in);
+            raw_data_t out = static_cast<raw_data_t *> (evt->u.method.out);
+            void *async = static_cast<rbusMethodAsyncHandle_t> (evt->u.method.async);
+            bus_method_handler_t cb = (bus_method_handler_t) evt->cb;
+            resp->rc = cb(method, in, out, async);
         } break;
-#endif
+
         default:
             break;
     }
@@ -1091,7 +1091,10 @@ void em_ctrl_t::start_complete()
             { bus_data_type_string, false, 0, 0, 0, NULL } },
         { const_cast<char*>(DEVICE_WIFI_DATAELEMENTS_NETWORK_SETSSID_CMD), bus_element_type_method,
             { NULL, NULL , NULL, NULL, NULL, tr_181_t::setssid_handler}, slow_speed, ZERO_TABLE,
-            { bus_data_type_property, false, 0, 0, 0, NULL } }
+            { bus_data_type_property, false, 0, 0, 0, NULL } },
+        { const_cast<char*>(DEVICE_WIFI_DATAELEMENTS_NETWORK_STA_CLIENT_STEER_CMD), bus_element_type_method,
+            { NULL, NULL, NULL, NULL, NULL, tr_181_t::ctrl_cmd_client_steer}, high_speed, ZERO_TABLE,
+            { bus_data_type_string, true, 0, 0, 0, NULL } }
         };
 
 	if (m_data_model.is_initialized() == false) {

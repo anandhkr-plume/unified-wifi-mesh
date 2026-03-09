@@ -463,6 +463,7 @@ void em_t::handle_ctrl_state()
     //printf("%s:%d: Cmd: %s State: %s\n", __func__, __LINE__,
         //em_cmd_t::get_cmd_type_str(m_cmd->m_type), em_t::state_2_str(get_state()));
     cmd_type = m_cmd->m_type;
+    em_printfout("cmd_type: %d\n", cmd_type);
     switch (cmd_type) {
         case em_cmd_type_set_ssid:
         case em_cmd_type_set_radio:

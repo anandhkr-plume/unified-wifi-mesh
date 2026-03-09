@@ -238,7 +238,7 @@ void dm_sta_t::encode(cJSON *obj, em_get_sta_list_reason_t reason)
         cJSON_AddFalseToObject(reason_obj, "LinkRemovalImminent");
         cJSON_AddNumberToObject(reason_obj, "SteeringOpportunityWindow", 1);
         cJSON_AddNumberToObject(reason_obj, "BTMDisassociationTimer", 5);
-        cJSON_AddNumberToObject(reason_obj, "TargetBSSOperatingClass", 81);
+        cJSON_AddNumberToObject(reason_obj, "TargetBSSOperatingClass", 12);
         cJSON_AddNumberToObject(reason_obj, "TargetBSSChannel", 6);
     } else if (reason == em_get_sta_list_reason_disassoc) {
         reason_obj = cJSON_CreateObject();

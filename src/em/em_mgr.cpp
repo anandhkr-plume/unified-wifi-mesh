@@ -567,6 +567,7 @@ int em_mgr_t::start()
 					start_complete();
 					started = true;
 				}
+                em_printfout("%s:%d: Timeout secs: %d\n", __func__, __LINE__, time_to_wait.tv_sec);
                 handle_timeout();
             }
             pthread_mutex_lock(&m_queue.lock);

@@ -30,6 +30,8 @@
 #define DEVICE_WIFI_DATAELEMENTS_NETWORK_CONTROLLERID       "Device.WiFi.DataElements.Network.ControllerID"
 //#define DEVICE_WIFI_DATAELEMENTS_NETWORK_SETSSID_CMD "Device.WiFi.DataElements.Network.SetSSID()"
 #define DEVICE_WIFI_DATAELEMENTS_NETWORK_SETSSID_CMD        "Device.WiFi.DataElements.Network.SetSSID"
+//#define DEVICE_WIFI_DATAELEMENTS_NETWORK_STA_CLIENT_STEER_CMD "Device.WiFi.DataElements.Network.Device.{i}.Radio.{i}.BSS.{i}.STA.{i}.ClientSteer()"
+#define DEVICE_WIFI_DATAELEMENTS_NETWORK_STA_CLIENT_STEER_CMD	"Device.WiFi.DataElements.Network.Device.{i}.Radio.{i}.BSS.{i}.STA.{i}.ClientSteer"
 //Orchestrator
 #define DEVICE_WIFI_DATAELEMENTS_NETWORK_TOPOLOGY           "Device.WiFi.DataElements.Network.Topology"
 #define DEVICE_WIFI_DATAELEMENTS_NETWORK_NODE_SYNC          "Device.WiFi.DataElements.Network.NodeSynchronize"
@@ -371,6 +373,7 @@ static const yang_to_tr181_map g_yang_map[] = {
 #define DE_STA_PAIRWSAKM        DE_BSS_STA              "PairwiseAKM"
 #define DE_STA_PAIRWSCIPHER     DE_BSS_STA              "PairwiseCipher"
 #define DE_STA_RSNCAPS          DE_BSS_STA              "RSNCapabilities"
+#define DE_STA_CLIENTSTEER      DE_BSS_STA              "ClientSteer()"
 /* Device.WiFi.DataElements.Network.Device.Radio.BSS.STA.WiFi6Capabilities */
 #define DE_STA_WIFI6CAPS        DE_BSS_STA              "WiFi6Capabilities."
 #define DE_STAWF6CAPS_HE160     DE_STA_WIFI6CAPS        "HE160"
@@ -656,6 +659,32 @@ public:
      */
     static bool tr181_copy_prop_string(const bus_data_prop_t *prop, char *dst, size_t dst_len);
 
+    /**!
+     * @brief Get the MAC address of a STA from an event name.
+     *
+     * @param event_name Event name.
+     * @param sta_mac_out Output MAC address.
+     *
+     * @returns bus_error_t
+     * @retval bus_error_success if the MAC address was found.
+     * @retval bus_error_invalid_input if the event name is invalid.
+     * @retval bus_error_invalid_namespace if the event name is not a valid STA name.
+     * @retval bus_error_invalid_input if the STA MAC address could not be resolved.
+     */
+    bus_error_t get_sta_mac_from_event_name(char *event_name, mac_addr_str_t sta_mac_out);
+
+    /**!
+     * @brief Find a target STA in a STA list.
+     *
+     * @param sta_list_obj STA list object.
+     * @param sta_mac STA MAC address.
+     *
+     * @returns cJSON*
+     * @retval non-null Pointer to the target STA object if found.
+     * @retval null if the STA was not found.
+     */
+    cJSON *find_target_sta(cJSON *sta_list_obj, const char *sta_mac);
+
     //Device Callbacks
     static bus_error_t device_get(char* event_name, raw_data_t* p_data, struct bus_user_data* user_data);
     static bus_error_t device_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
@@ -687,6 +716,7 @@ public:
     static bus_error_t sta_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t sta_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t sta_table_add_row_handler(const char* table_name, const char* alias_name, uint32_t* instance_number);
+    static bus_error_t ctrl_cmd_client_steer(const char *method_name, raw_data_t *input_data, raw_data_t *output_data, void *async_handle);
 
     //APMLD
     static bus_error_t apmld_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);

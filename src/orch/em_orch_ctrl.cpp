@@ -230,6 +230,7 @@ bool em_orch_ctrl_t::is_em_ready_for_orch_fini(em_cmd_t *pcmd, em_t *em)
             }
             break;
         case em_cmd_type_sta_steer:
+            em_printfout("em State: %d \n", em->get_state());
             if (em->get_client_steering_req_tx_count() >= EM_MAX_CLIENT_STEER_REQ_TX_THRESH
                 || (em->get_state() == em_state_ctrl_steer_btm_req_ack_rcvd)) {
                 em->set_client_steering_req_tx_count(0);
@@ -600,7 +601,10 @@ unsigned int em_orch_ctrl_t::build_candidates(em_cmd_t *pcmd)
                 break;
 
             case em_cmd_type_sta_steer:
+            em_printfout("sta mac: %s, source mac:%s \n", util::mac_to_string(pcmd->m_param.u.steer_params.sta_mac).c_str(),
+                util::mac_to_string(pcmd->m_param.u.steer_params.source).c_str());
                 if (em->find_sta(pcmd->m_param.u.steer_params.sta_mac, pcmd->m_param.u.steer_params.source) != NULL) {
+                    em_printfout("Sta Steer: %s found \n", util::mac_to_string(pcmd->m_param.u.steer_params.sta_mac).c_str());
                     queue_push(pcmd->m_em_candidates, em);
                     count++;
                 }

@@ -648,23 +648,65 @@ int dm_easy_mesh_agent_t::analyze_btm_request_action_frame(em_bus_event_t *evt, 
     struct ieee80211_mgmt *ieeeframe;
     action_frame_params_t *aframe;
     raw_data_t l_bus_data;
-    int len = 0;
+    int len = 0, j = 0;
     mac_addr_str_t mac_str;
+    dm_easy_mesh_agent_t dm = *this;
     em_steering_req_t *steer_req = reinterpret_cast<em_steering_req_t *> (&evt->u.raw_buff);
+    struct ieee80211_mgmt frame_buf;
+    em_bss_info_t *bss_info;
+    em_op_class_info_t *op_class_info;
+    char path[100] = {0};
 
     len = sizeof(ieeeframe->u.action.category) + sizeof(ieeeframe->u.action.u.bss_tm_req) \
         + sizeof(em_80211_neighbor_report_t);
     aframe = static_cast<action_frame_params_t *> (malloc(sizeof(action_frame_params_t) + len));
+    if (aframe == NULL) {
+        printf("%s:%d malloc failed\n", __func__, __LINE__);
+        return -1;
+    }
+    bss_info = dm_easy_mesh_t::get_bss_info_with_mac(steer_req->bssid);
+
+    if(bss_info == NULL ||  dm.get_device_info() == NULL) {
+        printf("%s:%d: dm is NULL or bss_info is NULL or device_info is NULL\n", __func__, __LINE__);
+        return -1;
+    }
+
+    for (j = 0; j < dm.get_num_op_class(); j++) {
+        op_class_info = &dm.m_op_class[j].m_op_class_info;
+        if (op_class_info == NULL) {
+            printf("%s:%d: Cannot find op_class info for index %d\n", __func__, __LINE__, j);
+            continue;
+        }
+        if ((memcmp(op_class_info->id.ruid, bss_info->ruid.mac, sizeof(mac_address_t)) == 0) &&
+            (op_class_info->id.type == em_op_class_type_current)) {
+            printf("%s:%d op_class: %d, channel: %d source_mac:%s country:%s \n", __func__, __LINE__, op_class_info->op_class,
+                op_class_info->channel, util::mac_to_string(bss_info->bssid.mac).c_str(), dm.get_device_info()->country_code);
+            break;
+        }
+    }
+
+    if (!op_class_info) {
+        printf("%s:%d: No matching current op_class found\n", __func__, __LINE__);
+        return -1;
+    }
+
     // Point ieeeframe to aframe->frame_data
-    ieeeframe = reinterpret_cast<struct ieee80211_mgmt *> (aframe->frame_data);
+    //ieeeframe = reinterpret_cast<struct ieee80211_mgmt *> (aframe->frame_data);
+    memset(&frame_buf, 0, sizeof(frame_buf));
+    ieeeframe = &frame_buf;
 
     //convert steering req to 802.11 bss tm req
+    ieeeframe->frame_control = IEEE80211_FC(WLAN_FC_TYPE_MGMT, WLAN_FC_STYPE_ACTION);
+    memcpy(ieeeframe->sa, bss_info->bssid.mac, sizeof(mac_addr_t));
+    memcpy(ieeeframe->da, steer_req->sta_mac_addr, sizeof(mac_addr_t));
+    memcpy(ieeeframe->bssid, bss_info->bssid.mac, sizeof(mac_addr_t));
+
     ieeeframe->u.action.category = WLAN_ACTION_WNM;
-    ieeeframe->u.action.u.bss_tm_req.action = WLAN_ACTION_HT;
+    ieeeframe->u.action.u.bss_tm_req.action = WLAN_WNM_BTM_REQUEST;
     ieeeframe->u.action.u.bss_tm_req.dialog_token = 1;
 
     em_80211_btm_req_reqmode_t req_mode;
-    req_mode.pref_candidate_list_inc = 0;
+    req_mode.pref_candidate_list_inc = 1;
     req_mode.btm_abridged = steer_req->btm_abridged;
     req_mode.btm_disassoc_imminent = steer_req->btm_dissoc_imminent;
     //todo: check what is this
@@ -675,7 +717,7 @@ int dm_easy_mesh_agent_t::analyze_btm_request_action_frame(em_bus_event_t *evt, 
     ieeeframe->u.action.u.bss_tm_req.req_mode = *reinterpret_cast<uint8_t *> (&req_mode);
     memcpy(&ieeeframe->u.action.u.bss_tm_req.disassoc_timer, &steer_req->btm_dissoc_timer, sizeof(steer_req->btm_dissoc_timer));
     //todo: check this
-    ieeeframe->u.action.u.bss_tm_req.validity_interval = 0;
+    ieeeframe->u.action.u.bss_tm_req.validity_interval = (steer_req->steering_opportunity_window > 0) ? steer_req->steering_opportunity_window : 255;
 
     // Copy the variable part
     em_80211_btm_req_var_t *bss_list = (em_80211_btm_req_var_t *)&ieeeframe->u.action.u.bss_tm_req.variable;
@@ -683,33 +725,43 @@ int dm_easy_mesh_agent_t::analyze_btm_request_action_frame(em_bus_event_t *evt, 
     bss_list->bss_transition_cand_list[0].length = 13;
     memcpy(bss_list->bss_transition_cand_list[0].bssid, steer_req->target_bssids, sizeof(bssid_t));
     //todo: capabilities mapping tbd
-    bss_list->bss_transition_cand_list[0].bssid_info = 0;
+    bss_list->bss_transition_cand_list[0].bssid_info = 0x3;
         bss_list->bss_transition_cand_list[0].op_class = steer_req->target_bss_op_class;
     bss_list->bss_transition_cand_list[0].channel_num = steer_req->target_bss_channel_num;
     //todo: check how to get this
     bss_list->bss_transition_cand_list[0].phy_type = 0;
 
     dm_easy_mesh_t::macbytes_to_string(steer_req->sta_mac_addr, mac_str);
-    printf("%s:%d STA MAC for BTM request %s\n", __func__, __LINE__, mac_str);
+    printf("%s:%d STA MAC for BTM request %s mld_mac:%s\n", __func__, __LINE__, mac_str, util::mac_to_string(bss_info->mld_mac).c_str());
     memcpy(aframe->dest_addr, steer_req->sta_mac_addr, sizeof(mac_addr_t));
-    aframe->frequency = 2412;
-    aframe->ap_index = 0;
+
+    aframe->frequency = util::em_chan_to_freq(op_class_info->op_class, op_class_info->channel, dm.get_device_info()->country_code);
+    aframe->ap_index = (bss_info != NULL) ? bss_info->vap_index : 0;
     //here sendng only the btm_req union to onewifi as header is dealt internally
     aframe->frame_len = len;
     memcpy(aframe->frame_data, &ieeeframe->u.action, len);
+    aframe->wait_time_ms = 0;
 
     l_bus_data.data_type = bus_data_type_bytes;
     l_bus_data.raw_data.bytes = (void *)aframe;
     l_bus_data.raw_data_len = len + sizeof(action_frame_params_t);
 
-    if (desc->bus_set_fn(bus_hdl, "Device.WiFi.AccessPoint.1.RawFrame.Mgmt.Action.Tx", &l_bus_data)== 0) {
+    em_printfout("Sending action frame: VAP Idx (%d), Dest (" MACSTRFMT "), Frequency (%d), Dwell Time (%d), Length (%d)", aframe->ap_index,
+        MAC2STR(aframe->dest_addr), aframe->frequency, aframe->wait_time_ms, aframe->frame_len);
+    util::print_hex_dump(aframe->frame_len, aframe->frame_data);
+
+    snprintf(path, sizeof(path), "Device.WiFi.AccessPoint.%d.RawFrame.Mgmt.Action.Tx", aframe->ap_index + 1);
+
+    if (desc->bus_set_fn(bus_hdl, path, &l_bus_data)== 0) {
         printf("%s:%d Frame subdoc send successfull\n",__func__, __LINE__);
     }
     else {
         printf("%s:%d Frame subdoc send fail\n",__func__, __LINE__);
+        free(aframe);
         return -1;
     }
 
+    free(aframe);
     return 1;
 }
 

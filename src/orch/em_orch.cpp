@@ -279,7 +279,7 @@ bool em_orch_t::orchestrate(em_cmd_t *pcmd, em_t *em)
             orch_transient(pcmd, em);
         }
 
-    } else if (orch_state == em_orch_state_fini) {
+    } else if (orch_state == em_orch_state_fini || orch_state == em_orch_state_cancel) {
         //printf("%s:%d: em:%s Detected in fini state\n", __func__, __LINE__, mac_str);
         done = true;
     }
@@ -455,7 +455,6 @@ void em_orch_t::handle_timeout()
     signed int i, j; 
     unsigned int cnt;
     bool eligible_to_move = false;
-    bool ret = true;
 
     // go through pending queue and check if the commands can be moved to active
     for (i = static_cast<int>(queue_count(m_pending)) - 1; i >= 0; i--) {
@@ -488,11 +487,13 @@ void em_orch_t::handle_timeout()
 
     // go through active queue and check command states
     for (i = static_cast<int>(queue_count(m_active)) - 1; i >= 0; i--) {
+        bool ret = true;
         pcmd = static_cast<em_cmd_t *>(queue_peek(m_active, static_cast<unsigned int>(i)));
 		//printf("%s:%d: Cmd: %s, em candidates: %d\n", __func__, __LINE__, 
 					//em_cmd_t::get_cmd_type_str(pcmd->m_type), queue_count(pcmd->m_em_candidates));
         for (j = static_cast<int>(queue_count(pcmd->m_em_candidates)) - 1; j >= 0; j--) {
             em = static_cast<em_t *>(queue_peek(pcmd->m_em_candidates, static_cast<unsigned int>(j)));
+            em_printfout("em: %s, orch_state: %d m_type:%d\n", dm_easy_mesh_t::macbytes_to_string(em->get_radio_interface_mac(), mac_str), em->get_orch_state(), pcmd->m_type);
             ret &= orchestrate(pcmd, em);
         }
 
