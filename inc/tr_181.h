@@ -560,6 +560,23 @@ public:
      */
     static bus_error_t setssid_handler(const char *method_name, raw_data_t *input_data, raw_data_t *output_data, void *async_handle);
 
+    /**
+     * @brief Forward a method call to the EasyMesh controller.
+     *
+     * @param method_name Method name.
+     * @param input_data Input data.
+     * @param output_data Output data.
+     * @param async_handle Async handle.
+     * @param cb Callback function.
+     *
+     * @returns bus_error_t
+     * @retval bus_error_none on successful method handling.
+     * @retval bus_error_failed on validation or controller execution failure.
+     *
+     * @note Caller owns the returned property and must free it.
+     */
+    bus_error_t bus_method_cb_fwd(const char *method_name, raw_data_t *input_data, raw_data_t *output_data, void *async_handle, bus_method_handler_t cb);
+
     //Methods helper utilities
 
     /**!

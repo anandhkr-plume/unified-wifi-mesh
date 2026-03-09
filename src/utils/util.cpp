@@ -493,6 +493,22 @@ bool util::set_net_uint16_from_host(const uint16_t host_val, void* const ptr) {
     return true;
 }
 
+bool util::str_is_mac_address(const char *mac)
+{
+    int i;
+    for (i = 0; i < 6; i++)
+    {
+        if (!isxdigit(*mac++))
+            return false;
+        if (!isxdigit(*mac++))
+            return false;
+        if (i < 5 && *mac++ != ':')
+            return false;
+    }
+
+    return true;
+}
+
 std::string util::normalize_mac(const char *mac)
 {
     if (mac == nullptr) return {};

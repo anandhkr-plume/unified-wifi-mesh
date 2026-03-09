@@ -455,6 +455,7 @@ void em_orch_t::handle_timeout()
     signed int i, j; 
     unsigned int cnt;
     bool eligible_to_move = false;
+    mac_addr_str_t      mac_str;
 
     // go through pending queue and check if the commands can be moved to active
     for (i = static_cast<int>(queue_count(m_pending)) - 1; i >= 0; i--) {

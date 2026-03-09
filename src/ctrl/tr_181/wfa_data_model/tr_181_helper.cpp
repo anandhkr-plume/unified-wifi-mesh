@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "em_ctrl.h"
 
 // Utility: Trim leading/trailing whitespace from a string (in-place)
 void tr_181_t::tr181_trim_whitespace(char *str)
@@ -202,6 +203,7 @@ bool tr_181_t::tr181_copy_prop_string(const bus_data_prop_t *prop, char *dst, si
 bus_error_t tr_181_t::get_sta_mac_from_event_name(char *event_name, mac_addr_str_t sta_mac_out)
 {
     dm_easy_mesh_ctrl_t *dm_ctrl;
+    dm_easy_mesh_t *dm;
     const char *name;
     char instance[MAX_INSTANCE_LEN] = {0};
     bool is_num = false;
@@ -234,7 +236,7 @@ bus_error_t tr_181_t::get_sta_mac_from_event_name(char *event_name, mac_addr_str
         return bus_error_invalid_namespace;
     }
 
-    dm_easy_mesh_t *dm = dm_ctrl->get_dm_easy_mesh(instance, true);
+    dm = dm_ctrl->get_dm_easy_mesh(instance, true);
     if (dm == nullptr) {
         return bus_error_invalid_namespace;
     }
@@ -297,7 +299,7 @@ bus_error_t tr_181_t::get_sta_mac_from_event_name(char *event_name, mac_addr_str
         return bus_error_invalid_namespace;
     }
 
-    dm_sta_t *sta = get_dm_sta(dm, bi, sta_instance);
+    dm_sta_t *sta = dm_ctrl->get_dm_sta(dm, bi, sta_instance);
     if (sta == nullptr) {
         return bus_error_invalid_namespace;
     }
