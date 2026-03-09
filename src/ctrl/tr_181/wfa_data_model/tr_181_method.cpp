@@ -17,6 +17,7 @@
  */
 #include "em_ctrl.h"
 #include "tr_181.h"
+#include <assert.h>
 
 bus_error_t tr_181_t::setssid_handler(const char *method_name, raw_data_t *input_data, raw_data_t *output_data, void *async_handle)
 {
@@ -66,12 +67,13 @@ bus_error_t tr_181_t::bus_method_cb_fwd(const char *method_name, raw_data_t *inp
 {
     uint32_t s_id;
     em_event_t *req;
-    bus_error_t rc = -1;
+    bus_error_t rc;
     bus_data_prop_t *input_props = static_cast<bus_data_prop_t *>(input_data->raw_data.bytes);
     bus_data_prop_t *output_props = NULL;
     bus_resp_get_t *resp = NULL;
     uintptr_t buf;
-    em_ctrl_t *g_ctrl = em_ctrl_t::get_em_ctrl_instance();
+    em_ctrl_t *ctrl = em_ctrl_t::get_em_ctrl_instance();
+    dm_easy_mesh_ctrl_t *dm_ctrl = ctrl->get_dm_ctrl();
 
     if (!input_data || input_data->raw_data_len == 0) {
         em_printfout("Invalid input_data or missing input_props");
@@ -81,7 +83,7 @@ bus_error_t tr_181_t::bus_method_cb_fwd(const char *method_name, raw_data_t *inp
         return bus_error_invalid_input;
     }
 
-    if(!g_ctrl) {
+    if(!ctrl || !dm_ctrl) {
         em_printfout("Controller unavailable");
         if (output_data) {
             tr_181_t::tr181_set_status_output(output_data, "Failure: controller unavailable");
@@ -98,11 +100,11 @@ bus_error_t tr_181_t::bus_method_cb_fwd(const char *method_name, raw_data_t *inp
     do {
         req = (em_event_t *) malloc(sizeof(em_event_t));
         if(!req) {
-            err = bus_error_out_of_resources;
+            rc = bus_error_out_of_resources;
             break;
         }
 
-        s_id = get_next_nb_evt_id();
+        s_id = dm_ctrl->get_next_nb_evt_id();
         req->type = em_event_type_nb;
         req->u.nevt.id = s_id;
         req->u.nevt.type = NB_REQTYPE_METHOD;
@@ -112,9 +114,9 @@ bus_error_t tr_181_t::bus_method_cb_fwd(const char *method_name, raw_data_t *inp
         req->u.nevt.u.method.async = async_handle;
         req->u.nevt.cb = (void *) cb;
 
-        g_ctrl->push_to_queue(req);
+        ctrl->push_to_queue(req);
 
-        ssize_t len = read(get_nb_pipe_rd(), &buf, sizeof(buf));
+        ssize_t len = read(dm_ctrl->get_nb_pipe_rd(), &buf, sizeof(buf));
         assert(len == sizeof(buf));
         resp = (bus_resp_get_t *) buf;
         assert(resp->id == s_id);
@@ -131,10 +133,10 @@ bus_error_t tr_181_t::bus_method_cb_fwd(const char *method_name, raw_data_t *inp
 }
 
 bus_error_t tr_181_t::ctrl_cmd_client_steer(const char *method_name, raw_data_t *input_data, raw_data_t *output_data, void *async_handle) {
-    em_ctrl_t *em_ctrl = em_ctrl_t::get_em_ctrl_instance();
+    em_ctrl_t *ctrl = em_ctrl_t::get_em_ctrl_instance();
 
-    if(em_ctrl != NULL && em_ctrl->get_dm_ctrl() != NULL) {
-        return bus_method_cb_fwd(method_name, input_data, output_data, async_handle, em_ctrl->get_dm_ctrl()->ctrl_cmd_client_steer_inner);
+    if(ctrl != NULL && ctrl->get_dm_ctrl() != NULL) {
+        return bus_method_cb_fwd(method_name, input_data, output_data, async_handle, ctrl->get_dm_ctrl()->ctrl_cmd_client_steer_inner);
     }
 
     return bus_error_general;

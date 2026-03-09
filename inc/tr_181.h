@@ -688,7 +688,7 @@ public:
      * @retval bus_error_invalid_namespace if the event name is not a valid STA name.
      * @retval bus_error_invalid_input if the STA MAC address could not be resolved.
      */
-    bus_error_t get_sta_mac_from_event_name(char *event_name, mac_addr_str_t sta_mac_out);
+    static bus_error_t get_sta_mac_from_event_name(char *event_name, mac_addr_str_t sta_mac_out);
 
     /**!
      * @brief Find a target STA in a STA list.
@@ -700,7 +700,7 @@ public:
      * @retval non-null Pointer to the target STA object if found.
      * @retval null if the STA was not found.
      */
-    cJSON *find_target_sta(cJSON *sta_list_obj, const char *sta_mac);
+    static cJSON *find_target_sta(cJSON *sta_list_obj, const char *sta_mac);
 
     //Device Callbacks
     static bus_error_t device_get(char* event_name, raw_data_t* p_data, struct bus_user_data* user_data);
