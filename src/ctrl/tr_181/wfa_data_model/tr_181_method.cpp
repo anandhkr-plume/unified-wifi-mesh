@@ -36,7 +36,7 @@ bus_error_t tr_181_t::setssid_handler(const char *method_name, raw_data_t *input
     bus_data_prop_t *input_props = static_cast<bus_data_prop_t *>(input_data->raw_data.bytes);
     bus_data_prop_t *output_props = NULL;
 
-    em_printfout("Method='%s' input_len=%u", method_name ? method_name : "(null)", input_data->raw_data_len);
+    em_printfout("Method='%s' input_data:%s input_len=%u", method_name ? method_name : "(null)", (char *)input_data->raw_data.bytes, input_data->raw_data_len);
     // Log all chained input properties
     for (bus_data_prop_t *p = input_props; p; p = p->next_data) {
         em_printfout("Prop='%s' type=%d len=%u", p->name, p->value.data_type, p->value.raw_data_len);
