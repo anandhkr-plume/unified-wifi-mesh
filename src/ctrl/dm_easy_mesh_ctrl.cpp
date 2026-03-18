@@ -100,6 +100,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
     //Mandatory parameters: SSID and AddRemoveChange.
     if (!ssid[0] || !addremove[0]) {
         if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+        em_printfout("ERROR: SSID and AddRemoveChange is required\n");
         return bus_error_invalid_input;
     }
 
@@ -112,12 +113,14 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
     em_ctrl_t *em_ctrl = em_ctrl_t::get_em_ctrl_instance();
     if (!em_ctrl) {
         if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+        em_printfout("ERROR: em_ctrl is NULL\n");
         return bus_error_invalid_input;
     }
     em_ctrl->get_dm_ctrl()->get_config(const_cast<char *>(GLOBAL_NET_ID), subdoc);
     json = cJSON_Parse(subdoc->buff);
     if (!json) {
         if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+        em_printfout("ERROR: Failed to parse JSON from subdoc\n");
         return bus_error_invalid_input;
     }
 
@@ -129,6 +132,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
         cJSON_Delete(new_json);
         cJSON_Delete(json);
         if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+        em_printfout("ERROR: Failed to create JSON object\n");
         return bus_error_out_of_resources;
     }
     if (!cJSON_AddStringToObject(new_json, "ID", GLOBAL_NET_ID)) {
@@ -136,6 +140,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
         cJSON_Delete(new_json);
         cJSON_Delete(json);
         if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+        em_printfout("ERROR: Failed to add ID to JSON object\n");
         return bus_error_out_of_resources;
     }
 
@@ -158,6 +163,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
     if (!ssid_list || !cJSON_IsArray(ssid_list)) {
         cJSON_Delete(root);
         if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+        em_printfout("ERROR: NetworkSSIDList not found or is not an array\n");
         return bus_error_invalid_input;
     }
 
@@ -168,6 +174,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
     if (!is_add && !is_remove && !is_change) {
         cJSON_Delete(root);
         if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+        em_printfout("ERROR: Invalid AddRemoveChange value\n");
         return bus_error_invalid_input;
     }
 
@@ -178,6 +185,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
         if (!haul_arr) {
             cJSON_Delete(root);
             if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+            em_printfout("ERROR: Failed to create HaulType array\n");
             return bus_error_invalid_input;
         }
     }
@@ -215,6 +223,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
                     if (haul_arr) cJSON_Delete(haul_arr);
                     cJSON_Delete(root);
                     if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+                    em_printfout("ERROR: Failed to create SSID item\n");
                     return bus_error_out_of_resources;
                 }
                 cJSON_ReplaceItemInObject(target, "SSID", ssid_item_new);
@@ -225,6 +234,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
                     if (haul_arr) cJSON_Delete(haul_arr);
                     cJSON_Delete(root);
                     if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+                    em_printfout("ERROR: Failed to create PassPhrase item\n");
                     return bus_error_out_of_resources;
                 }
                 cJSON_ReplaceItemInObject(target, "PassPhrase", passphrase_item);
@@ -235,6 +245,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
                     if (haul_arr) cJSON_Delete(haul_arr);
                     cJSON_Delete(root);
                     if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+                    em_printfout("ERROR: Failed to create Band array\n");
                     return bus_error_out_of_resources;
                 }
                 cJSON *band_item = cJSON_CreateString(band);
@@ -243,6 +254,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
                     if (haul_arr) cJSON_Delete(haul_arr);
                     cJSON_Delete(root);
                     if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+                    em_printfout("ERROR: Failed to create Band item\n");
                     return bus_error_out_of_resources;
                 }
                 cJSON_AddItemToArray(band_arr, band_item);
@@ -259,6 +271,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
             if (haul_arr) cJSON_Delete(haul_arr);
             cJSON_Delete(root);
             if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+            em_printfout("ERROR: Failed to create target item\n");
             return bus_error_out_of_resources;
         }
         cJSON_AddItemToArray(ssid_list, target);
@@ -266,12 +279,14 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
             if (haul_arr) cJSON_Delete(haul_arr);
             cJSON_Delete(root);
             if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+            em_printfout("ERROR: Failed to add SSID item\n");
             return bus_error_out_of_resources;
         }
         if (passphrase[0] && !cJSON_AddStringToObject(target, "PassPhrase", passphrase)) {
             if (haul_arr) cJSON_Delete(haul_arr);
             cJSON_Delete(root);
             if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+            em_printfout("ERROR: Failed to add PassPhrase item\n");
             return bus_error_out_of_resources;
         }
         if (band[0]) {
@@ -280,6 +295,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
                 if (haul_arr) cJSON_Delete(haul_arr);
                 cJSON_Delete(root);
                 if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+                em_printfout("ERROR: Failed to create Band array\n");
                 return bus_error_out_of_resources;
             }
             cJSON *band_item = cJSON_CreateString(band);
@@ -288,6 +304,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
                 if (haul_arr) cJSON_Delete(haul_arr);
                 cJSON_Delete(root);
                 if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+                em_printfout("ERROR: Failed to create Band item\n");
                 return bus_error_out_of_resources;
             }
             cJSON_AddItemToArray(band_arr, band_item);
@@ -301,6 +318,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
         if (haul_arr) cJSON_Delete(haul_arr);
         cJSON_Delete(root);
         if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+        em_printfout("ERROR: Failed to create target item\n");
         return bus_error_invalid_input;
     }
 
@@ -309,6 +327,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
     if (!updated_json) {
         cJSON_Delete(root);
         if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+        em_printfout("ERROR: Failed to create updated JSON\n");
         return bus_error_out_of_resources;
     }
 
@@ -318,6 +337,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
         free(updated_json);
         cJSON_Delete(root);
         if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Failure");
+        em_printfout("ERROR: JSON too large for buffer\n");
         return bus_error_invalid_input;
     }
 
@@ -342,6 +362,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
     cJSON_Delete(root);
 
     if (output_params) *output_params = tr_181_t::tr181_set_status_output_prop("Success");
+    em_printfout("ERROR: Success\n");
     return bus_error_success;
 }
 
@@ -5755,6 +5776,81 @@ bus_error_t dm_easy_mesh_ctrl_t::bus_get_cb_fwd(char *event_name, raw_data_t *p_
     return err;
 }
 
+bus_error_t dm_easy_mesh_ctrl_t::bus_method_cb_fwd(const char *method_name, bus_data_prop_t *input_data, bus_data_prop_t *output_data, void *async_handle, bus_method_handler_t cb)
+{
+    uint32_t s_id;
+    em_event_t *req;
+    bus_error_t rc;
+    bus_data_prop_t *input_props = input_data;
+    //bus_data_prop_t *output_props = NULL;
+    bus_resp_get_t *resp = NULL;
+    uintptr_t buf;
+    em_ctrl_t *ctrl = em_ctrl_t::get_em_ctrl_instance();
+    dm_easy_mesh_ctrl_t *dm_ctrl = ctrl->get_dm_ctrl();
+
+    if (!input_data || input_data->value.raw_data_len == 0) {
+        em_printfout("Invalid input_data or missing input_props");
+        if (output_data) {
+            tr_181_t::tr181_set_status_output(output_data, "Failure: missing input_props");
+        }
+        return bus_error_invalid_input;
+    }
+
+    if(!ctrl || !dm_ctrl) {
+        em_printfout("Controller unavailable");
+        if (output_data) {
+            tr_181_t::tr181_set_status_output(output_data, "Failure: controller unavailable");
+        }
+        return bus_error_invalid_input;
+    }
+
+    em_printfout("Method='%s' name:%s input_len=%u", method_name ? method_name : "(null)", input_data->name, input_data->value.raw_data_len);
+    // Log all chained input properties
+    for (bus_data_prop_t *p = input_props; p; p = p->next_data) {
+        em_printfout("Prop='%s' type=%d len=%u", p->name, p->value.data_type, p->value.raw_data_len);
+    }
+
+    do {
+        req = (em_event_t *) malloc(sizeof(em_event_t));
+        if(!req) {
+            rc = bus_error_out_of_resources;
+            break;
+        }
+
+        s_id = dm_ctrl->get_next_nb_evt_id();
+        req->type = em_event_type_nb;
+        req->u.nevt.id = s_id;
+        req->u.nevt.type = NB_REQTYPE_METHOD;
+        req->u.nevt.u.method.method = method_name;
+        req->u.nevt.u.method.in = input_props;
+        req->u.nevt.u.method.out = output_data //? output_props : NULL;
+        req->u.nevt.u.method.async = async_handle;
+        req->u.nevt.cb = (void *) cb;
+
+        ctrl->push_to_queue(req);
+
+        ssize_t len = read(dm_ctrl->get_nb_pipe_rd(), &buf, sizeof(buf));
+        assert(len == sizeof(buf));
+        resp = (bus_resp_get_t *) buf;
+        assert(resp->id == s_id);
+        rc = resp->rc;
+
+        /*if (output_data && output_props) {
+            *output_data = *output_props;
+            output_data->ref_count = 1;
+
+            for (bus_data_prop_t *p = output_data->next_data; p; p = p->next_data) {
+                em_printfout("Prop='%s' type=%d len=%u", p->name, p->value.data_type, p->value.raw_data_len);
+                p->ref_count = 1;
+            }
+
+            free(output_props);
+        }*/
+    } while(0);
+
+    return rc;
+}
+
 void dm_easy_mesh_ctrl_t::update_network_topology()
 {
     dm_easy_mesh_t *dm;
@@ -6080,10 +6176,12 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char    *meth
     /* ── 0. Sanity ─────────────────────────────────────────────── */
     if (!g_ctrl) {
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: controller unavailable");
+        em_printfout("%s:%d ERROR: controller unavailable\n", __func__, __LINE__);
         return bus_error_general;
     }
     if (!input_data || (!input_data->is_data_set)) {
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: missing input");
+        em_printfout("%s:%d ERROR: missing input\n", __func__, __LINE__);
         return bus_error_invalid_input;
     }
 
@@ -6097,6 +6195,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char    *meth
     if(input_data->next_data == NULL) {
         if(strcmp((char *)input_data->name, "TargetBSSID") != 0) {
             if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: missing TargetBSSID");
+            em_printfout("%s:%d ERROR: missing TargetBSSID\n", __func__, __LINE__);
             return bus_error_invalid_input;
         }
     }
@@ -6107,6 +6206,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char    *meth
     cs_input = cJSON_CreateObject();
     if (!cs_input) {
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: out of memory");
+        em_printfout("%s:%d ERROR: out of memory\n", __func__, __LINE__);
         return bus_error_out_of_resources;
     }
 
@@ -6140,6 +6240,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char    *meth
     if (!dm_ctrl) {
         cJSON_Delete(cs_input);
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: dm_ctrl unavailable");
+        em_printfout("%s:%d ERROR: dm_ctrl unavailable\n", __func__, __LINE__);
         return bus_error_general;
     }
 
@@ -6161,6 +6262,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char    *meth
     if (subdoc->buff[0] == '\0') {
         cJSON_Delete(cs_input);
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: config empty");
+        em_printfout("%s:%d ERROR: config empty\n", __func__, __LINE__);
         return bus_error_invalid_input;
     }
 
@@ -6168,6 +6270,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char    *meth
     if (!parsed_subdoc_json) {
         cJSON_Delete(cs_input);
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: subdoc parse error");
+        em_printfout("%s:%d ERROR: subdoc parse error\n", __func__, __LINE__);
         return bus_error_invalid_input;
     }
 
@@ -6178,6 +6281,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char    *meth
         cJSON_Delete(root); cJSON_Delete(new_subdoc_json);
         cJSON_Delete(parsed_subdoc_json); cJSON_Delete(cs_input);
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: out of memory");
+        em_printfout("%s:%d ERROR: out of memory\n", __func__, __LINE__);
         return bus_error_out_of_resources;
     }
 
@@ -6200,6 +6304,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char    *meth
     if (!device_list_obj || !cJSON_IsArray(device_list_obj)) {
         cJSON_Delete(root); cJSON_Delete(cs_input);
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: DeviceList not found");
+        em_printfout("%s:%d ERROR: DeviceList not found\n", __func__, __LINE__);
         return bus_error_invalid_input;
     }
 
@@ -6227,6 +6332,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char    *meth
         em_printfout("ERROR: STA %s not found\n", sta_mac);
         cJSON_Delete(root); cJSON_Delete(cs_input);
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: STA not found");
+        em_printfout("%s:%d ERROR: STA not found\n", __func__, __LINE__);
         return bus_error_invalid_input;
     }
 
@@ -6234,6 +6340,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char    *meth
     if (!tget_sta_obj) {
         cJSON_Delete(root); cJSON_Delete(cs_input);
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: ClientSteer missing");
+        em_printfout("%s:%d ERROR: ClientSteer missing\n", __func__, __LINE__);
         return bus_error_invalid_input;
     }
 
@@ -6261,6 +6368,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char    *meth
     if (json_len >= EM_IO_BUFF_SZ) {
         free(serialized); cJSON_Delete(root); cJSON_Delete(cs_input);
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: JSON too large");
+        em_printfout("%s:%d ERROR: JSON too large\n", __func__, __LINE__);
         return bus_error_invalid_input;
     }
 

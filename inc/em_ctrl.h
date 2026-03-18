@@ -666,7 +666,7 @@ public:
 	 *
 	 * @note Input property ownership remains with the caller; this function does not free them.
 	 */
-	static bus_error_t cmd_setssid (const char *event_name, const bus_data_prop_t *input_params, bus_data_prop_t **output_params, void *async_handle);
+	static bus_error_t cmd_setssid (const char *event_name, bus_data_prop_t *input_params, bus_data_prop_t **output_params, void *async_handle);
 
 	/**!
 	 *
