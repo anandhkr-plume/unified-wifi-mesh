@@ -71,19 +71,19 @@ bus_error_t tr_181_t::setssid_handler(const char *method_name, bus_data_prop_t *
     return rc;
 }
 
-bus_error_t tr_181_t::bus_method_cb_fwd(const char *method_name, raw_data_t *input_data, raw_data_t *output_data, void *async_handle, bus_method_handler_t cb)
+bus_error_t tr_181_t::bus_method_cb_fwd(const char *method_name, bus_data_prop_t *input_data, bus_data_prop_t *output_data, void *async_handle, bus_method_handler_t cb)
 {
     uint32_t s_id;
     em_event_t *req;
     bus_error_t rc;
-    bus_data_prop_t *input_props = static_cast<bus_data_prop_t *>(input_data->raw_data.bytes);
+    bus_data_prop_t *input_props = input_data;
     bus_data_prop_t *output_props = NULL;
     bus_resp_get_t *resp = NULL;
     uintptr_t buf;
     em_ctrl_t *ctrl = em_ctrl_t::get_em_ctrl_instance();
     dm_easy_mesh_ctrl_t *dm_ctrl = ctrl->get_dm_ctrl();
 
-    if (!input_data || input_data->raw_data_len == 0) {
+    if (!input_data || input_data->value.raw_data_len == 0) {
         em_printfout("Invalid input_data or missing input_props");
         if (output_data) {
             tr_181_t::tr181_set_status_output(output_data, "Failure: missing input_props");
@@ -99,7 +99,7 @@ bus_error_t tr_181_t::bus_method_cb_fwd(const char *method_name, raw_data_t *inp
         return bus_error_invalid_input;
     }
 
-    em_printfout("Method='%s' input_len=%u", method_name ? method_name : "(null)", input_data->raw_data_len);
+    em_printfout("Method='%s' input_len=%u", method_name ? method_name : "(null)", input_data->value.raw_data_len);
     // Log all chained input properties
     for (bus_data_prop_t *p = input_props; p; p = p->next_data) {
         em_printfout("Prop='%s' type=%d len=%u", p->name, p->value.data_type, p->value.raw_data_len);

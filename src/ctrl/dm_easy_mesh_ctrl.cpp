@@ -6082,7 +6082,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char    *meth
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: controller unavailable");
         return bus_error_general;
     }
-    if (!input_data (!input_data->is_data_set)) {
+    if (!input_data || (!input_data->is_data_set)) {
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: missing input");
         return bus_error_invalid_input;
     }

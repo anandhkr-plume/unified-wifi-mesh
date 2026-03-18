@@ -558,7 +558,7 @@ public:
      *
      * @note Ownership of input and output buffers remains with the caller.
      */
-    static bus_error_t setssid_handler(const char *method_name, raw_data_t *input_data, raw_data_t *output_data, void *async_handle);
+    static bus_error_t setssid_handler(const char *method_name, bus_data_prop_t *input_data, bus_data_prop_t *output_data, void *async_handle);
 
     /**
      * @brief Forward a method call to the EasyMesh controller.
@@ -575,7 +575,7 @@ public:
      *
      * @note Caller owns the returned property and must free it.
      */
-    bus_error_t bus_method_cb_fwd(const char *method_name, raw_data_t *input_data, raw_data_t *output_data, void *async_handle, bus_method_handler_t cb);
+    bus_error_t bus_method_cb_fwd(const char *method_name, bus_data_prop_t *input_data, bus_data_prop_t *output_data, void *async_handle, bus_method_handler_t cb);
 
     //Methods helper utilities
 
@@ -733,7 +733,7 @@ public:
     static bus_error_t sta_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t sta_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t sta_table_add_row_handler(const char* table_name, const char* alias_name, uint32_t* instance_number);
-    static bus_error_t ctrl_cmd_client_steer(const char *method_name, raw_data_t *input_data, raw_data_t *output_data, void *async_handle);
+    static bus_error_t ctrl_cmd_client_steer(const char *method_name, bus_data_prop_t *input_data, bus_data_prop_t *output_data, void *async_handle);
 
     //APMLD
     static bus_error_t apmld_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
