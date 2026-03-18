@@ -325,7 +325,6 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
     subdoc->buff[json_len] = '\0';
 
     // uncomment below line to log the updated JSON before sending to DM; can be helpful for debugging.
-    /*
     cJSON *json_obj;
     json_obj = cJSON_Parse(subdoc->buff);
     if (json_obj) {
@@ -336,7 +335,7 @@ bus_error_t em_ctrl_t::cmd_setssid(const char *event_name, const bus_data_prop_t
     } else {
         em_printfout("Invalid JSON in subdoc->buff");
     }
-    */
+    
 
     em_ctrl->io_process(em_bus_event_type_set_ssid, subdoc->buff, json_len);
     free(updated_json);
@@ -6062,8 +6061,8 @@ static bus_error_t validate_clientsteer_input(cJSON *item, const char *name)
 }
 
 bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char    *method_name,
-                                                               raw_data_t    *input_data,
-                                                               raw_data_t    *output_data,
+                                                               bus_data_prop_t    *input_data,
+                                                               bus_data_prop_t    *output_data,
                                                                void          *async_handle)
 {
     (void)async_handle;
@@ -6083,18 +6082,26 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char    *meth
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: controller unavailable");
         return bus_error_general;
     }
-    if (!input_data || input_data->raw_data_len == 0) {
+    if (!input_data (!input_data->is_data_set)) {
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: missing input");
         return bus_error_invalid_input;
     }
 
-    const bus_data_prop_t *input_props =
-        static_cast<const bus_data_prop_t *>(input_data->raw_data.bytes);
+    em_printfout("%s:%d AUTOCONFIG_DEBUG method_name:%s input_name:%s input_value:%s input_len:%u\n",
+        __func__, __LINE__,
+        method_name ? method_name : "(null)",
+        input_data->name,
+        (char *)input_data->value.raw_data.bytes,
+        input_data->value.raw_data_len);
 
-    em_printfout("%s:%d AUTOCONFIG_DEBUG method_name:%s input_len:%u\n",
-                    __func__, __LINE__,
-                    method_name ? method_name : "(null)",
-                    input_data->raw_data_len);
+    if(input_data->next_data == NULL) {
+        if(strcmp((char *)input_data->name, "TargetBSSID") != 0) {
+            if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: missing TargetBSSID");
+            return bus_error_invalid_input;
+        }
+    }
+
+    const bus_data_prop_t *input_props = input_data;
 
     /* ── 1. Single loop: props → validated cJSON ───────────────── */
     cs_input = cJSON_CreateObject();

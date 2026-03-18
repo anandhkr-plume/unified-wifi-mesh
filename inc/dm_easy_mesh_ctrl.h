@@ -151,7 +151,7 @@ public:
     static bus_error_t stamld_tget_params(dm_easy_mesh_t *dm, const char *root, em_ap_mld_info_t *ami, bus_data_prop_t **property);
     static bus_error_t wifi7caps_get_inner(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t stamldcfg_get_inner(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
-	static bus_error_t ctrl_cmd_client_steer_inner(const char *method_name, raw_data_t *input_data, raw_data_t *output_data, void *async_handle);
+	static bus_error_t ctrl_cmd_client_steer_inner(const char *method_name, bus_data_prop_t *input_data, bus_data_prop_t *output_data, void *async_handle);
 
     bus_error_t affsta_get(char *event_name, raw_data_t *p_data);
     bus_error_t affsta_tget(char *event_name, raw_data_t *p_data);

@@ -661,7 +661,7 @@ public:
      *
      * @note On success, output_data takes ownership of the allocated property.
      */
-    static void tr181_set_status_output(raw_data_t *output_data, const char *status);
+    static void tr181_set_status_output(bus_data_prop_t *output_data, const char *status);
 
     /**!
      * @brief Copy a string property value into a destination buffer.
