@@ -5823,7 +5823,7 @@ bus_error_t dm_easy_mesh_ctrl_t::bus_method_cb_fwd(const char *method_name, bus_
         req->u.nevt.type = NB_REQTYPE_METHOD;
         req->u.nevt.u.method.method = method_name;
         req->u.nevt.u.method.in = input_props;
-        req->u.nevt.u.method.out = output_data //? output_props : NULL;
+        req->u.nevt.u.method.out = output_data; //? output_props : NULL;
         req->u.nevt.u.method.async = async_handle;
         req->u.nevt.cb = (void *) cb;
 

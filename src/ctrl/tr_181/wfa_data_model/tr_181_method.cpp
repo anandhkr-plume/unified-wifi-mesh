@@ -55,7 +55,7 @@ bus_error_t tr_181_t::setssid_handler(const char *method_name, bus_data_prop_t *
     }
 
     const char *event = method_name ? method_name : DEVICE_WIFI_DATAELEMENTS_NETWORK_SETSSID_CMD;
-    bus_error_t rc = ctrl->cmd_setssid(event, input_props, output_data ? &output_props : NULL, async_handle);
+    bus_error_t rc = ctrl->cmd_setssid(event, (const bus_data_prop_t*)input_props, output_data ? &output_props : NULL, async_handle);
 
     if (output_data && output_props) {
         *output_data = *output_props;
