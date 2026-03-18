@@ -99,7 +99,7 @@ bus_error_t tr_181_t::bus_method_cb_fwd(const char *method_name, bus_data_prop_t
         return bus_error_invalid_input;
     }
 
-    em_printfout("Method='%s' input_len=%u", method_name ? method_name : "(null)", input_data->value.raw_data_len);
+    em_printfout("Method='%s' name:%s input_len=%u", method_name ? method_name : "(null)", input_data->name, input_data->value.raw_data_len);
     // Log all chained input properties
     for (bus_data_prop_t *p = input_props; p; p = p->next_data) {
         em_printfout("Prop='%s' type=%d len=%u", p->name, p->value.data_type, p->value.raw_data_len);
@@ -131,9 +131,15 @@ bus_error_t tr_181_t::bus_method_cb_fwd(const char *method_name, bus_data_prop_t
         rc = resp->rc;
 
         if (output_data && output_props) {
-            output_data->data_type = bus_data_type_property;
-            output_data->raw_data.bytes = output_props;
-            output_data->raw_data_len = sizeof(bus_data_prop_t);
+            *output_data = *output_props;
+            output_data->ref_count = 1;
+
+            for (bus_data_prop_t *p = output_data->next_data; p; p = p->next_data) {
+                em_printfout("Prop='%s' type=%d len=%u", p->name, p->value.data_type, p->value.raw_data_len);
+                p->ref_count = 1;
+            }
+
+            free(output_props);
         }
     } while(0);
 

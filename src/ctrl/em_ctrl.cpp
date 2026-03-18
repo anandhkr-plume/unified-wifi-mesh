@@ -510,8 +510,8 @@ void em_ctrl_t::handle_nb_event(em_nb_event_t *evt)
 
         case NB_REQTYPE_METHOD: {
             const char *method = evt->u.method.method;
-            raw_data_t *in = static_cast<raw_data_t *> (evt->u.method.in);
-            raw_data_t *out = static_cast<raw_data_t *> (evt->u.method.out);
+            bus_data_prop_t *in = evt->u.method.in;
+            bus_data_prop_t *out = evt->u.method.out;
             void *async = evt->u.method.async;
             bus_method_handler_t cb = (bus_method_handler_t) evt->cb;
             resp->rc = cb(method, in, out, async);
