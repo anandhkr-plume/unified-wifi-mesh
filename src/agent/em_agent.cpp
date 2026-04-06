@@ -165,7 +165,7 @@ void em_agent_t::handle_dev_init(em_bus_event_t *evt)
 // TODO: TEMP CODE: 
 //  Since HE-BUS can only subscribe to one index path at a time, we will only be subscribing to the backhaul BSSs
 //  Once HE-BUS supports multiple index paths or is no-longer used, this can be removed...
-        if (bss_info->id.haul_type != em_haul_type_backhaul) {
+        if (bss_info->id.haul_type != em_haul_type_backhaul && bss_info->id.haul_type != em_haul_type_fronthaul) {
             continue; // Only subscribe for backhaul BSSs
         }
         // TODO: Will need to come back to once Mediatek supports sending off-channel action frames in STA mode
@@ -181,10 +181,6 @@ void em_agent_t::handle_dev_init(em_bus_event_t *evt)
             continue;
         }
         em_printfout("Subscribed to receive management action frames for VAP %d", vap_index);
-
-        // TEMP CODE:
-        break;
-        // END TEMP CODE
     }
 
     if (do_start_dpp_onboarding) {
@@ -379,15 +375,28 @@ void em_agent_t::handle_autoconfig_renew(em_bus_event_t *evt)
 
 void em_agent_t::handle_btm_request_action_frame(em_bus_event_t *evt)
 {
-    unsigned int num;
+    em_t *al_node = get_al_node();
+    unsigned int num, state;
     wifi_bus_desc_t *desc;
 
     if((desc = get_bus_descriptor()) == NULL) {
        printf("descriptor is null");
     }
 
-    if ((num = m_data_model.analyze_btm_request_action_frame(evt, desc, &m_bus_hdl)) == 0) {
-	    printf("analyze_btm_request_action_frame failed\n");
+    m_data_model.dialog_token++;
+    for(int i = 0; i < EM_MAX_BTM_REQ_COUNT; i++) {
+        if(al_node != NULL) {
+            state = al_node->get_state();
+        }
+
+        if(state == em_state_agent_steer_btm_rpt_pending) {
+            printf("BTM Response received for Req:%d\n", i);
+            return;
+        }
+
+        if ((num = m_data_model.analyze_btm_request_action_frame(evt, desc, &m_bus_hdl)) == 0) {
+	        printf("analyze_btm_request_action_frame failed\n");
+        }
     }
 }
 
@@ -554,6 +563,43 @@ void em_agent_t::handle_recv_gas_frame(em_bus_event_t *evt)
     }
 }
 
+void em_agent_t::handle_disassoc_client(em_bus_event_t *evt)
+{
+    em_cmd_disassoc_params_t *disassoc_stas = reinterpret_cast<em_cmd_disassoc_params_t *>(evt->u.raw_buff);
+    wifi_bus_desc_t *desc;
+    raw_data_t raw;
+    mac_addr_str_t sta_mac_str, bssid_str;
+
+    if (disassoc_stas == NULL) {
+        em_printfout("handle_disassoc_client: NULL disassoc_stas");
+        return;
+    }
+
+    if ((desc = get_bus_descriptor()) == NULL) {
+        em_printfout("handle_disassoc_client: bus descriptor is null");
+        return;
+    }
+
+    for(int i = 0; i < disassoc_stas->num; i++) {
+        dm_easy_mesh_t::macbytes_to_string(disassoc_stas->params[i].sta_mac, sta_mac_str);
+        dm_easy_mesh_t::macbytes_to_string(disassoc_stas->params[i].bssid, bssid_str);
+
+        em_printfout("Disassoc client STA=%s BSSID=%s reason=%u silent=%d",
+            sta_mac_str, bssid_str, disassoc_stas->params[i].reason, disassoc_stas->params[i].silent);
+
+        memset(&raw, 0, sizeof(raw_data_t));
+        raw.data_type = bus_data_type_bytes;
+        raw.raw_data.bytes = reinterpret_cast<void *>(&disassoc_stas->params[i]);
+        raw.raw_data_len = sizeof(em_disassoc_params_t);
+
+        if (desc->bus_set_fn(&m_bus_hdl, WIFI_EM_DISASSOC_CLIENT, &raw) != 0) {
+            em_printfout("Failed to send disassoc client to OneWifi via bus");
+            return;
+        }
+        em_printfout("Sent disassoc client STA=%s BSSID=%s to OneWifi", sta_mac_str, bssid_str);        
+    }
+}
+
 void em_agent_t::handle_recv_wfa_action_frame(em_bus_event_t *evt)
 {
     uint8_t* mgmt_frame_buff = reinterpret_cast<uint8_t*>(evt->u.raw_buff);
@@ -636,6 +682,13 @@ void em_agent_t::handle_recv_wfa_action_frame(em_bus_event_t *evt)
     }
 }
 
+void em_agent_t::handle_btm_query_action_frame(em_bus_event_t *evt)
+{
+    if (m_data_model.analyze_btm_query_action_frame(evt, NULL, &m_bus_hdl) == 0) {
+        printf("analyze_btm_query_action_frame failed\n");
+    }
+}
+
 void em_agent_t::handle_btm_response_action_frame(em_bus_event_t *evt)
 {
     em_cmd_t *pcmd[EM_MAX_CMD] = {NULL};
@@ -648,6 +701,38 @@ void em_agent_t::handle_btm_response_action_frame(em_bus_event_t *evt)
     } else if (m_orch->submit_commands(pcmd, num) > 0) {
         printf("submitted handle_btm_response_action_frame command for orchestration\n");
     }
+}
+
+void em_agent_t::handle_client_assoc_ctrl_req(em_bus_event_t *evt)
+{
+    wifi_bus_desc_t *desc;
+    raw_data_t raw;
+    client_assoc_ctrl_req_t req_data;
+
+    em_client_assoc_ctrl_req_t *steer_req = reinterpret_cast<em_client_assoc_ctrl_req_t*> (&evt->u.raw_buff);
+
+    if ((desc = get_bus_descriptor()) == NULL) {
+        em_printfout("bus descriptor is null");
+        return;
+    }
+
+    memset(&req_data, 0, sizeof(client_assoc_ctrl_req_t));
+
+    memcpy(req_data.bssid, steer_req->bssid, sizeof(bssid_t));
+    req_data.assoc_control = steer_req->assoc_control;
+    req_data.validity_period = ntohs(steer_req->validity_period);
+    req_data.count = steer_req->count;
+    memcpy(req_data.sta_mac, steer_req->sta_mac, sizeof(mac_address_t));
+
+    memset(&raw, 0, sizeof(raw_data_t));
+    raw.data_type = bus_data_type_bytes;
+    raw.raw_data.bytes = (void *)&req_data;
+    raw.raw_data_len = sizeof(client_assoc_ctrl_req_t);
+
+    if (desc->bus_set_fn(&m_bus_hdl,WIFI_EM_CLIENT_ASSOC_CTRL_REQ, &raw) != 0) {
+        printf("%s:%d Failed to send client assoc ctrl request to bus\n",__func__, __LINE__);
+    }
+    printf("%s:%d Sent client assoc ctrl request to bus, OneWifi will process the bus event\n",__func__, __LINE__);
 }
 
 void em_agent_t::handle_channel_scan_result(em_bus_event_t *evt)
@@ -793,6 +878,200 @@ void em_agent_t::handle_link_stats_report(em_bus_event_t *evt)
     }
 }
 
+void em_agent_t::add_sta_timer(em_sta_timer_t *sta_timer_params)
+{
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    long time_sec  = sta_timer_params->duration_ms / 1000;
+    long time_nsec = (long)(sta_timer_params->duration_ms % 1000) * 1000000L;
+    sta_timer_params->expire_time.tv_sec  = now.tv_sec  + time_sec;
+    sta_timer_params->expire_time.tv_nsec = now.tv_nsec + time_nsec;
+    if (sta_timer_params->expire_time.tv_nsec >= 1000000000L) {
+        sta_timer_params->expire_time.tv_sec++;
+        sta_timer_params->expire_time.tv_nsec -= 1000000000L;
+    }
+
+    em_sta_timer_t *new_timer_entry = (em_sta_timer_t *)malloc(sizeof(em_sta_timer_t));
+    if (new_timer_entry == NULL) {
+        em_printfout("Failed to allocate sta_timer entry\n");
+        return;
+    }
+    memcpy(new_timer_entry, sta_timer_params, sizeof(em_sta_timer_t));
+
+    em_sta_timer_t **new_sta_timers_ptr = (em_sta_timer_t **)realloc(m_data_model.m_sta_timers, (m_data_model.m_sta_timer_count + 1) * sizeof(em_sta_timer_t *));
+    if(new_sta_timers_ptr == NULL) {
+        em_printfout("Failed to allocate sta_timer array\n");
+        free(new_timer_entry);
+        return;
+    }
+    m_data_model.m_sta_timers = new_sta_timers_ptr;
+    m_data_model.m_sta_timers[m_data_model.m_sta_timer_count] = new_timer_entry;
+    ++m_data_model.m_sta_timer_count;
+
+    em_printfout("Added timer type %d for STA %s, %u ms (total timers: %u)\n", sta_timer_params->type, util::mac_to_string(sta_timer_params->sta_mac).c_str(),
+        sta_timer_params->duration_ms, m_data_model.m_sta_timer_count);
+}
+
+void em_agent_t::remove_sta_timer(unsigned int idx)
+{
+    unsigned int sta_timer_count = m_data_model.m_sta_timer_count, last_entry_idx = m_data_model.m_sta_timer_count - 1;
+    dm_sta_t *sta = NULL;
+    em_sta_info_t *sta_info = NULL;
+    if (sta_timer_count == 0 || idx >= sta_timer_count) {
+        em_printfout("Invalid index for removing sta timer: %u\n", idx);
+        return;
+    }
+
+    sta = m_data_model.find_sta(m_data_model.m_sta_timers[idx]->sta_mac, m_data_model.m_sta_timers[idx]->source_bssid);
+    sta_info = &sta->m_sta_info;
+    if(sta_info != NULL) {
+        em_printfout("Removed timer type %d for STA %s\n", m_data_model.m_sta_timers[idx]->type, util::mac_to_string(m_data_model.m_sta_timers[idx]->sta_mac).c_str());
+        sta_info->sta_timer_active = em_sta_timer_type_none;
+    }
+
+    if(idx != last_entry_idx) {
+        em_sta_timer_t *tmp_sta_entry = m_data_model.m_sta_timers[last_entry_idx];
+        m_data_model.m_sta_timers[last_entry_idx] = m_data_model.m_sta_timers[idx];
+        m_data_model.m_sta_timers[idx]  = tmp_sta_entry;
+    }
+
+    free(m_data_model.m_sta_timers[last_entry_idx]);
+    m_data_model.m_sta_timers[last_entry_idx] = NULL;
+
+    --m_data_model.m_sta_timer_count;
+    if (m_data_model.m_sta_timer_count == 0) {
+        free(m_data_model.m_sta_timers);
+        m_data_model.m_sta_timers = NULL;
+    } else {
+        em_sta_timer_t **new_ptr = (em_sta_timer_t **)realloc(m_data_model.m_sta_timers, (m_data_model.m_sta_timer_count) * sizeof(em_sta_timer_t *));
+        if(new_ptr == NULL) {
+            em_printfout("Failed to allocate sta_timer array\n");
+            return;
+        }
+        m_data_model.m_sta_timers = new_ptr;
+    }
+}
+
+void em_agent_t::cancel_sta_timer(em_sta_timer_type_t type, mac_address_t sta_mac)
+{
+    em_sta_info_t *sta_info = NULL;
+    dm_sta_t *sta = NULL;
+
+    for (int idx = (int)m_data_model.m_sta_timer_count - 1; idx >= 0; idx--) {
+        em_sta_timer_t *sta_timer = m_data_model.m_sta_timers[idx];
+        sta = m_data_model.find_sta(m_data_model.m_sta_timers[idx]->sta_mac, m_data_model.m_sta_timers[idx]->source_bssid);
+        sta_info = &sta->m_sta_info;
+        if ((sta_timer->type & type) && memcmp(sta_timer->sta_mac, sta_mac, sizeof(mac_address_t)) == 0) {
+            em_printfout("Cancelled timer type %d for STA %s\n", type, util::mac_to_string(sta_mac).c_str());
+            remove_sta_timer((unsigned int)idx);
+            if((sta_info != NULL) && (sta_info->sta_timer_active == (em_sta_timer_type_disassoc | em_sta_timer_type_steer_opp))) {
+                sta_info->sta_timer_active = static_cast<em_sta_timer_type_t>(sta_info->sta_timer_active - sta_timer->type);
+                continue;
+            }
+            return;
+        }
+    }
+}
+
+void em_agent_t::start_sta_timer(em_bus_event_t *evt)
+{
+    em_sta_timer_t *params = reinterpret_cast<em_sta_timer_t *>(evt->u.raw_buff);
+
+    add_sta_timer(params);
+}
+
+void em_agent_t::process_sta_timer()
+{
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    for (int idx = (int)m_data_model.m_sta_timer_count - 1; idx >= 0; idx--) {
+        em_sta_timer_t *sta_timer = m_data_model.m_sta_timers[idx];
+
+        /*if (sta_timer->remaining_ticks > 0) {
+            sta_timer->remaining_ticks--;
+            continue;
+        }*/
+        if (now.tv_sec < sta_timer->expire_time.tv_sec ||
+            (now.tv_sec == sta_timer->expire_time.tv_sec &&
+             now.tv_nsec < sta_timer->expire_time.tv_nsec)) {
+            continue;
+        }
+
+        em_printfout("Timer type %d expired: STA %s BSS %s\n", sta_timer->type, util::mac_to_string(sta_timer->sta_mac).c_str(),
+            util::mac_to_string(sta_timer->source_bssid).c_str());
+
+        em_event_t *evt = static_cast<em_event_t *>(malloc(sizeof(em_event_t)));
+        if (evt) {
+            memset(evt, 0, sizeof(em_event_t));
+            evt->type = em_event_type_bus;
+            evt->u.bevt.type = (sta_timer->type == em_sta_timer_type_disassoc) ? 
+                em_bus_event_type_disassoc_timer_expired : em_bus_event_type_steering_window_expired;
+
+            memcpy(evt->u.bevt.u.raw_buff,reinterpret_cast<unsigned char *>(sta_timer), sizeof(em_sta_timer_t));
+            evt->u.bevt.data_len = sizeof(em_sta_timer_t);
+
+            em_printfout("Timer %d expired for STA %s from BSS %s, pushing event", sta_timer->type,
+                util::mac_to_string(sta_timer->sta_mac).c_str(),
+                util::mac_to_string(sta_timer->source_bssid).c_str());
+
+            push_to_queue(evt);
+        } else {
+            em_printfout("Failed to allocate memory for event %d for STA %s from BSS %s", sta_timer->type, util::mac_to_string(sta_timer->sta_mac).c_str(),
+                util::mac_to_string(sta_timer->source_bssid).c_str());
+        }
+
+        remove_sta_timer((unsigned int)idx);
+    }
+}
+
+void em_agent_t::handle_disassoc_timer_expired(em_bus_event_t *evt)
+{
+    em_sta_timer_t *sta_timer_params = reinterpret_cast<em_sta_timer_t *>(evt->u.raw_buff);
+    mac_addr_str_t sta_mac_str, bssid_str;
+    unsigned char buff[MAX_EM_BUFF_SZ];
+    em_cmd_disassoc_params_t *disassoc_param;
+    disassoc_param = reinterpret_cast<em_cmd_disassoc_params_t *> (buff);
+    memset(disassoc_param, 0, sizeof(em_cmd_disassoc_params_t));
+
+    dm_easy_mesh_t::macbytes_to_string(sta_timer_params->sta_mac, sta_mac_str);
+    dm_easy_mesh_t::macbytes_to_string(sta_timer_params->source_bssid, bssid_str);
+
+    em_printfout("Handling disassoc timer expired for STA %s, BSS %s\n",
+        sta_mac_str, bssid_str);
+
+    disassoc_param->num = 1;
+    disassoc_param->params[0].reason = WLAN_REASON_BSS_TRANSITION_DISASSOC;
+    disassoc_param->params[0].silent = false;
+    disassoc_param->params[0].disassoc_time = 0;
+    memcpy(disassoc_param->params[0].sta_mac, sta_timer_params->sta_mac, sizeof(mac_address_t));
+    memcpy(disassoc_param->params[0].bssid, sta_timer_params->source_bssid, sizeof(bssid_t));
+
+    g_agent.io_process(em_bus_event_type_disassoc_sta,
+        reinterpret_cast<unsigned char *> (disassoc_param), sizeof(em_cmd_disassoc_params_t));
+
+    em_printfout("Disassoc timer expired for STA %s, BSS %s, pushing event\n", sta_mac_str, bssid_str);
+}
+
+void em_agent_t::handle_steering_window_expired(em_bus_event_t *evt)
+{
+    em_sta_timer_t *sta_timer_params = reinterpret_cast<em_sta_timer_t *>(evt->u.raw_buff);
+    em_cmd_t *pcmd[EM_MAX_CMD] = {NULL};
+    unsigned int num;
+
+    if (m_orch->is_cmd_type_in_progress(evt) == true) {
+        printf("analyze_steering_window_expired in progress\n");
+    } else if ((num = m_data_model.analyze_steering_window_expired(evt, pcmd)) == 0) {
+        printf("analyze_steering_window_expired failed\n");
+    } else if (m_orch->submit_commands(pcmd, num) > 0) {
+        printf("submitted handle_steering_window_expired command for orchestration\n");
+    }
+
+    em_printfout("%s:%d Steering Window expired for sta:%s from BSS:%s\n", __func__, __LINE__,
+        util::mac_to_string(sta_timer_params->sta_mac).c_str(), util::mac_to_string(sta_timer_params->source_bssid).c_str());    
+}
+
 void em_agent_t::handle_bus_event(em_bus_event_t *evt)
 {   
     
@@ -850,14 +1129,27 @@ void em_agent_t::handle_bus_event(em_bus_event_t *evt)
             break;
 
         case em_bus_event_type_bss_tm_req:
+        case em_bus_event_type_bss_tm_req_profile_2:
             handle_btm_request_action_frame(evt);
+            break;
+
+        case em_bus_event_type_btm_query:
+            handle_btm_query_action_frame(evt);
             break;
 
         case em_bus_event_type_btm_response:
             handle_btm_response_action_frame(evt);
             break;
 
-		case em_bus_event_type_channel_scan_params:
+        case em_bus_event_type_disassoc_sta:
+            handle_disassoc_client(evt);
+            break;
+
+        case em_bus_event_type_client_assoc_ctrl_req:
+            handle_client_assoc_ctrl_req(evt);
+            break;
+
+            case em_bus_event_type_channel_scan_params:
 			handle_channel_scan_params(evt);
 			break;
 
@@ -896,6 +1188,18 @@ void em_agent_t::handle_bus_event(em_bus_event_t *evt)
             handle_link_stats_report(evt);
             break;
 
+        case em_bus_event_type_start_sta_timer:
+            start_sta_timer(evt);
+            break;
+
+        case em_bus_event_type_disassoc_timer_expired:
+            handle_disassoc_timer_expired(evt);
+            break;
+
+        case em_bus_event_type_steering_window_expired:
+            handle_steering_window_expired(evt);
+            break;
+            
         default:
             break;
     }    
@@ -943,6 +1247,9 @@ void em_agent_t::handle_1s_tick()
 void em_agent_t::handle_250ms_tick()
 {
     m_orch->handle_timeout();
+    if (m_data_model.is_sta_timer_pending()) {
+        process_sta_timer();
+    }
 }
 
 int em_agent_t::refresh_onewifi_subdoc(const char * log_name, const webconfig_subdoc_type_t type)
@@ -1275,15 +1582,23 @@ int em_agent_t::mgmt_action_frame_cb(char *event_name, bus_data_prop_t *data, vo
 
     struct ieee80211_mgmt *mgmt_frame = (struct ieee80211_mgmt *)mgmt_frame_data;
     
-    
+    util::print_hex_dump(data->value.raw_data_len, (uint8_t*)data->value.raw_data.bytes);
+    if (mgmt_frame->u.action.category == WLAN_ACTION_WNM) {
+        switch (mgmt_frame->u.action.u.bss_tm_resp.action) {
+            case WLAN_WNM_BTM_RESPONSE:
+                g_agent.io_process(em_bus_event_type_btm_response, mgmt_frame_data, mgmt_hdr_len);
+                if(mgmt_frame->u.action.u.bss_tm_resp.status_code == BTM_STATUS_ACCEPT) {
+                    em_printfout("%s:%d BTM Response accepted for STA %s, cancelling timers\n", __func__, __LINE__, util::mac_to_string(mgmt_frame->sa).c_str());
+                    g_agent.cancel_sta_timer(static_cast<em_sta_timer_type_t>(em_sta_timer_type_disassoc | em_sta_timer_type_steer_opp), mgmt_frame->sa);
+                }
+                return 1;
 
-    //util::print_hex_dump(data->value.raw_data_len, (uint8_t*)data->value.raw_data.bytes);
-
-    //printf("Received Frame data for event %s \n", event_name);
-    if (mgmt_frame->u.action.u.bss_tm_resp.action == WLAN_WNM_BTM_RESPONSE) {
-        g_agent.io_process(em_bus_event_type_btm_response, mgmt_frame_data, mgmt_hdr_len);
-
-        return 1;
+            case WLAN_WNM_BTM_QUERY:
+                g_agent.io_process(em_bus_event_type_btm_query, mgmt_frame_data, mgmt_hdr_len);
+                return 1;
+            default:
+                break;
+        }
     }
 
     if (mgmt_frame->u.action.u.vs_public_action.action == WLAN_PA_VENDOR_SPECIFIC) {
@@ -1670,11 +1985,23 @@ em_t *em_agent_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em
         case em_msg_type_autoconf_search:
         case em_msg_type_topo_resp:
         case em_msg_type_channel_pref_rprt:
-        case em_msg_type_1905_ack:
         case em_msg_type_map_policy_config_req:
             em = (em_t *)hash_map_get_first(m_em_map);
             while (em != NULL) {
                 if ((em->is_al_interface_em() == false)) {
+                    break;
+                }
+                em = (em_t *)hash_map_get_next(m_em_map, em);
+            }
+            break;
+
+        case em_msg_type_1905_ack:
+            em = (em_t *)hash_map_get_first(m_em_map);
+            while (em != NULL) {
+                em_printfout("%s:%d: em:%s state:%d\n", __func__, __LINE__, dm_easy_mesh_t::macbytes_to_string(em->get_al_interface_mac(), mac_str1), em->get_state());
+                if ((em->get_state() == em_state_agent_steer_complete) ||
+                    (em->get_state() == em_state_agent_steer_btm_rpt_pending)) {
+                    em->set_state(em_state_agent_configured);
                     break;
                 }
                 em = (em_t *)hash_map_get_next(m_em_map, em);
@@ -1714,6 +2041,21 @@ em_t *em_agent_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em
             break;
 
         case em_msg_type_bh_sta_cap_rprt:
+            break;
+
+        case em_msg_type_client_assoc_ctrl_req:
+            em = (em_t *)hash_map_get_first(m_em_map);
+            while (em != NULL) {
+	        if ((em->is_al_interface_em() == true)) {
+	            em_printfout("Rceived client assoc ctrl request from controller");
+	            break;
+	        }
+	        em = (em_t *)hash_map_get_next(m_em_map, em);
+           }
+           break;
+
+        case em_msg_type_steering_complete:
+            em_printfout("%s:%d: Received steering complete message\n", __func__, __LINE__);
             break;
 
         default:

@@ -4874,7 +4874,7 @@ uint32_t em_configuration_t::get_Auth_type_hex(const char *security_mode) {
         }
     }
     // Return the default value.
-    return EM_AUTH_WPA3_PERSONAL;
+    return EM_AUTH_WPA2;
 }
 
 int em_configuration_t::create_authenticator(unsigned char *buff)

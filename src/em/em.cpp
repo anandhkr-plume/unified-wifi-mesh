@@ -212,7 +212,7 @@ void em_t::orch_execute(em_cmd_t *pcmd)
             break;
 
         case em_cmd_type_btm_report:
-            m_sm.set_state(em_state_agent_steer_btm_res_pending);
+            m_sm.set_state(em_state_agent_steer_btm_rpt_pending);
             break;
 
         case em_cmd_type_sta_disassoc:
@@ -249,6 +249,11 @@ void em_t::orch_execute(em_cmd_t *pcmd)
 
         case em_cmd_type_get_link_quality_report:
             m_sm.set_state(em_state_agent_link_quality_report_pending);
+            break;
+
+        case em_cmd_type_steer_opp_complete:
+            em_printfout("%s:%d: Set state to %d\n", __func__, __LINE__, em_state_agent_steer_complete);
+            m_sm.set_state(em_state_agent_steer_complete);
             break;
 
         default:
@@ -339,10 +344,13 @@ void em_t::proto_process(unsigned char *data, unsigned int len)
             break;
         case em_msg_type_client_steering_req:
         case em_msg_type_client_steering_btm_rprt:
+        case em_msg_type_client_assoc_ctrl_req:
+        case em_msg_type_steering_complete:
         case em_msg_type_1905_ack:
+            em_printfout("%s:%d: Received msg:%u \n", __func__, __LINE__, htons(cmdu->type));
             if (m_sm.get_state() == em_state_ctrl_ap_mld_configured) {
                 em_configuration_t::process_msg(data, len);
-            } else if (m_sm.get_state() == em_state_ctrl_sta_steer_pending) {
+            } else {
                 em_steering_t::process_msg(data, len);
             }
             break;
@@ -412,6 +420,8 @@ void em_t::handle_agent_state()
             break;
 
         case em_cmd_type_btm_report:
+        case em_cmd_type_steer_opp_complete:
+            em_printfout("%s:%d: Process agent state: %d\n", __func__, __LINE__, m_sm.get_state());
             if (m_sm.get_state() >= em_state_agent_configured) {
                 em_steering_t::process_agent_state();
             }
@@ -691,6 +701,8 @@ int em_t::send_frame(unsigned char *buff, unsigned int len, bool multicast)
     AlServiceDataUnit sdu;
     //override destination and source mac addresses
     MacAddress src_mac, dest_mac;
+    em_printfout("ORIGINAL_ETH_FRAME:\t");
+    util::print_hex_dump(len, buff);
     std::copy(hdr->dst, hdr->dst + ETH_ALEN, dest_mac.begin());
     std::copy(hdr->src, hdr->src + ETH_ALEN, src_mac.begin());
 
@@ -2426,7 +2438,7 @@ const char *em_t::state_2_str(em_state_t state)
         EM_STATE_2S(em_state_ctrl_sta_cap_pending)
         EM_STATE_2S(em_state_ctrl_sta_cap_confirmed)
         EM_STATE_2S(em_state_ctrl_sta_link_metrics_pending)
-        EM_STATE_2S(em_state_ctrl_steer_btm_req_ack_rcvd)
+        EM_STATE_2S(em_state_ctrl_steer_req_ack_rcvd)
         EM_STATE_2S(em_state_ctrl_sta_steer_pending)
         EM_STATE_2S(em_state_ctrl_sta_disassoc_pending)
         EM_STATE_2S(em_state_ctrl_set_policy_pending)
@@ -2440,7 +2452,7 @@ const char *em_t::state_2_str(em_state_t state)
         EM_STATE_2S(em_state_agent_unconfigured)
         EM_STATE_2S(em_state_agent_autoconfig_rsp_pending)
         EM_STATE_2S(em_state_agent_wsc_m2_pending)
-        EM_STATE_2S(em_state_agent_steer_btm_res_pending)
+        EM_STATE_2S(em_state_agent_steer_btm_rpt_pending)
         EM_STATE_2S(em_state_agent_owconfig_pending)
         EM_STATE_2S(em_state_agent_onewifi_bssconfig_ind)
         EM_STATE_2S(em_state_agent_autoconfig_renew_pending)
