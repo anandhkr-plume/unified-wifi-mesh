@@ -5928,23 +5928,28 @@ void dm_easy_mesh_ctrl_t::update_network_topology()
 static cJSON *cs_prop_to_cjson(const bus_data_prop_t *p)
 {
     if (!p || !p->value.raw_data.bytes) return NULL;
+    em_printfout("%s:%d cs_prop_to_cjson name:%s\n", __func__, __LINE__, p->name);
     char val[256] = {0};
 
     switch (p->value.data_type) {
         case bus_data_type_boolean:
-            return cJSON_CreateBool(
-                *static_cast<const bool *>(p->value.raw_data.bytes));
+            em_printfout("%s:%d cs_prop_to_cjson boolean value:%d\n", __func__, __LINE__, p->value.raw_data.b);
+            return cJSON_CreateBool(p->value.raw_data.b);
         case bus_data_type_uint32:
-            return cJSON_CreateNumber(
-                *static_cast<const uint32_t *>(p->value.raw_data.bytes));
+            em_printfout("%s:%d cs_prop_to_cjson uint32 value:%u\n", __func__, __LINE__, p->value.raw_data.u32);
+            return cJSON_CreateNumber(p->value.raw_data.u32);
         case bus_data_type_int32:
-            return cJSON_CreateNumber(
-                *static_cast<const int32_t *>(p->value.raw_data.bytes));
+            em_printfout("%s:%d cs_prop_to_cjson int32 value:%d\n", __func__, __LINE__, p->value.raw_data.i32);
+            return cJSON_CreateNumber(p->value.raw_data.i32);
         case bus_data_type_string:
-            if (tr_181_t::tr181_copy_prop_string(p, val, sizeof(val)))
+            em_printfout("%s:%d cs_prop_to_cjson string value:%s\n", __func__, __LINE__, (char *)p->value.raw_data.bytes);
+            if (tr_181_t::tr181_copy_prop_string(p, val, sizeof(val))) {
+                em_printfout("%s:%d cs_prop_to_cjson string value:%s\n", __func__, __LINE__, val);
                 return cJSON_CreateString(val);
+            }
             return NULL;
         default:
+            em_printfout("%s:%d cs_prop_to_cjson default name:%s\n", __func__, __LINE__, p->name);
             return NULL;
     }
 }
@@ -5957,6 +5962,7 @@ static bus_error_t validate_clientsteer_input(cJSON *item, const char *name)
 {
     if (!item || !name) return bus_error_invalid_input;
 
+    em_printfout("%s:%d validate_clientsteer_input name:%s\n", __func__, __LINE__, name);
     if (strcmp(name, "TargetBSSID") == 0) {
         if (!cJSON_IsString(item) || !util::str_is_mac_address(item->valuestring))
             return bus_error_invalid_input;
@@ -6028,7 +6034,10 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
         if (!prop->name[0]) continue;
 
         cJSON *val = cs_prop_to_cjson(prop);
-        if (!val) continue;
+        if (val == NULL) {
+            em_printfout("%s:%d cs_prop_to_cjson failed to convert prop to cJSON\n", __func__, __LINE__);
+            continue;
+        }
 
         if (validate_clientsteer_input(val, prop->name) != bus_error_success) {
             em_printfout("%s:%d Invalid value for '%s'\n", __func__, __LINE__, prop->name);

@@ -342,35 +342,12 @@ cJSON *tr_181_t::find_target_sta(cJSON *sta_list_obj, const char *sta_mac)
         cJSON *sta = nullptr;
         cJSON_ArrayForEach(sta, sta_list_obj) {
             cJSON *mac = cJSON_GetObjectItemCaseSensitive(sta, "MACAddress");
-            if (cJSON_IsString(mac) && util::mac_equals(mac->valuestring, sta_mac)) {
+            cJSON *associated = cJSON_GetObjectItemCaseSensitive(sta, "Associated");
+            if (cJSON_IsString(mac) && util::mac_equals(mac->valuestring, sta_mac) && associated->valueint == 1) {
+                em_printfout("%s:%d STA List is an Array. STA found: %s Associated\n", __func__, __LINE__, sta_mac);
                 return sta;
             }
         }
-        return nullptr;
     }
-
-    // Case 2: object keyed by MAC
-    if (cJSON_IsObject(sta_list_obj)) {
-        for (cJSON *it = sta_list_obj->child; it != nullptr; it = it->next) {
-            // key is MAC
-            if (it->string != nullptr && util::mac_equals(it->string, sta_mac)) {
-                return it;
-            }
-            // value may be STA object with MACAddress
-            if (cJSON_IsObject(it)) {
-                cJSON *mac = cJSON_GetObjectItemCaseSensitive(it, "MACAddress");
-                if (cJSON_IsString(mac) && util::mac_equals(mac->valuestring, sta_mac)) {
-                    return it;
-                }
-            }
-        }
-
-        // Case 3: wrapper object { "STAList": [...] }
-        cJSON *inner_list = cJSON_GetObjectItemCaseSensitive(sta_list_obj, "STAList");
-        if (inner_list != nullptr) {
-            return find_target_sta(inner_list, sta_mac);
-        }
-    }
-
     return nullptr;
 }
