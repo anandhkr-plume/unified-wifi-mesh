@@ -66,6 +66,7 @@ libemcli_la_SOURCES = \
  $(top_srcdir)/src/cmd/em_cmd_sta_list.cpp \
  $(top_srcdir)/src/cmd/em_cmd_start_dpp.cpp \
  $(top_srcdir)/src/cmd/em_cmd_sta_steer.cpp \
+ $(top_srcdir)/src/cmd/em_cmd_steer_opp_complete.cpp \
  $(top_srcdir)/src/cmd/em_cmd_topo_sync.cpp \
  $(top_srcdir)/src/cmd/em_cmd_beacon_report.cpp \
  $(top_srcdir)/src/cmd/em_cmd_bsta_cap.cpp \

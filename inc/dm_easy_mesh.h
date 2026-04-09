@@ -92,6 +92,8 @@ public:
     dm_assoc_sta_mld_t m_assoc_sta_mld[EM_MAX_ASSOC_STA_MLD];
     dm_tid_to_link_t m_tid_to_link;
 
+	em_sta_timer_t  **m_sta_timers;
+	unsigned int      m_sta_timer_count;
 public:
 
 	bool get_topo_state() { return m_topo_changed; }
@@ -102,6 +104,7 @@ public:
 	unsigned int get_ssid_mismatch_check_time() const { return ssid_mismatch_check_time; }
 	void set_last_topo_query_sent_time(unsigned int time) { last_topo_query_sent_time = time; }
 	unsigned int get_last_topo_query_sent_time() const { return last_topo_query_sent_time; }
+	bool is_sta_timer_pending() const { return m_sta_timer_count > 0;}
 
 	static em_e4_table_t m_e4_table[];
 	
@@ -151,6 +154,17 @@ public:
 	 */
 	em_op_class_info_t* get_opclass_info_for_bss(mac_address_t bssid, unsigned int* op_class = NULL);
 	
+	/**!
+	 * @brief Retrieves the PHY type for a given BSS.
+	 *
+	 * This function retrieves the PHY type for a given BSS based on the radio capabilities.
+	 *
+	 * @param[in] target_bssid The MAC address of the BSS for which the PHY type is requested.
+	 *
+	 * @returns The PHY type for the given BSS.
+	 */
+	unsigned char get_phy_type_for_bss(mac_address_t target_bssid);
+
 	/**!
 	 * @brief Retrieves the BSS information associated with a given MAC address.
 	 *
@@ -2130,7 +2144,18 @@ public:
 	 */
 	static void put_sta_info(void *dm, em_sta_info_t *info, em_target_sta_map_t target) { (static_cast<dm_easy_mesh_t *>(dm))->put_sta_info(info, target); }
 
-    
+    /**!
+     * @brief Checks if a station is associated with a given BSSID.
+     *
+     * This function checks if a station is associated with a given BSSID.
+     *
+     * @param[in] bssid The BSSID of the network to check.
+     * @param[in] sta_mac The MAC address of the station to check.
+     *
+     * @returns True if the station is associated with the given BSSID, false otherwise.
+     */
+	bool is_sta_associated(bssid_t bssid, mac_address_t sta_mac);
+
 	/**!
 	 * @brief Finds a station (STA) based on its MAC address and BSSID.
 	 *

@@ -752,7 +752,7 @@ public:
     // virtual bus_error_t bss_tget_impl(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) = 0;
     // virtual bus_error_t ssid_tget_impl(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data) = 0;
 
-    static bus_error_t ctrl_cmd_client_steer(const char *method_name, bus_data_prop_t *input_data, bus_data_prop_t *output_data, void *async_handle);
+    static bus_error_t ctrl_cmd_client_steer_method(const char *method_name, bus_data_prop_t *input_data, bus_data_prop_t *output_data, void *async_handle);
 
     // Data model access
     bus_error_t wifi_elem_num_of_table_row(char* event_name, uint32_t* table_row_size);

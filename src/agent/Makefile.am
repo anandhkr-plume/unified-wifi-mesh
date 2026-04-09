@@ -91,6 +91,7 @@ onewifi_em_agent_SOURCES =  \
      $(top_srcdir)/src/cmd/em_cmd_sta_list.cpp \
      $(top_srcdir)/src/cmd/em_cmd_start_dpp.cpp \
      $(top_srcdir)/src/cmd/em_cmd_sta_steer.cpp \
+     $(top_srcdir)/src/cmd/em_cmd_steer_opp_complete.cpp \
      $(top_srcdir)/src/cmd/em_cmd_topo_sync.cpp \
      $(top_srcdir)/src/cmd/em_cmd_scan_result.cpp \
      $(top_srcdir)/src/cmd/em_cmd_btm_report.cpp \

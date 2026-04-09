@@ -1477,7 +1477,7 @@ struct ieee80211_duration {
 #define __bitwise
 
 typedef uint16_t __bitwise be16;
-typedef uint8_t le16[2];
+typedef uint16_t __bitwise le16;
 
 #define WLAN_SA_QUERY_TR_ID_LEN 2
 
@@ -1570,6 +1570,8 @@ typedef uint8_t le16[2];
 #define WLAN_WNM_BTM_QUERY 6
 #define WLAN_WNM_BTM_REQUEST 7
 #define WLAN_WNM_BTM_RESPONSE 8
+
+#define IEEE80211_FC(type, stype) ((le16)(type << 2) | (stype << 4))
 
 struct ieee80211_hdr {
     le16 frame_control;

@@ -52,6 +52,7 @@
 #include "em_cmd_sta_link_metrics.h"
 #include "em_cmd_ap_metrics_report.h"
 #include "em_cmd_link_stats_report.h"
+#include "em_cmd_steer_opp_complete.h"
 
 #ifdef AL_SAP
 #include "al_service_access_point.h"
@@ -749,71 +750,293 @@ int dm_easy_mesh_agent_t::analyze_sta_link_metrics(em_bus_event_t *evt, em_cmd_t
 
 int dm_easy_mesh_agent_t::analyze_btm_request_action_frame(em_bus_event_t *evt, wifi_bus_desc_t *desc, bus_handle_t *bus_hdl)
 {
-    struct ieee80211_mgmt *ieeeframe;
+    struct ieee80211_mgmt *ieeeframe, frame_buf;
     action_frame_params_t *aframe;
     raw_data_t l_bus_data;
-    int len = 0;
+    int len = 0, j = 0;
     mac_addr_str_t mac_str;
-    em_steering_req_t *steer_req = reinterpret_cast<em_steering_req_t *> (&evt->u.raw_buff);
+    dm_easy_mesh_agent_t *dm = this;
+    em_steering_req_t *steer_req = NULL;
+    em_profile2_steering_req_t *steer_req_p2 = NULL;
+    em_bss_info_t *bss_info;
+    em_op_class_info_t *op_class_info;
+    char path[100] = {0};
+    bool is_profile2 = (evt->type == em_bus_event_type_bss_tm_req_profile_2);
+    unsigned int disassoc_timer;
 
-    len = sizeof(ieeeframe->u.action.category) + sizeof(ieeeframe->u.action.u.bss_tm_req) \
-        + sizeof(em_80211_neighbor_report_t);
+    // Cast to Profile-2 struct if applicable (common fields share the same layout)
+    if (is_profile2) {
+        steer_req_p2 = reinterpret_cast<em_profile2_steering_req_t *>(&evt->u.raw_buff);
+    } else {
+        steer_req = reinterpret_cast<em_steering_req_t *>(&evt->u.raw_buff);
+    }
+    disassoc_timer = (is_profile2 ? ntohs(steer_req_p2->btm_dissoc_timer) : ntohs(steer_req->btm_dissoc_timer));
+
+    int num_candidates = is_profile2 ? steer_req_p2->target_bssid_list_count : 1;
+    len = sizeof(ieeeframe->u.action.category) + sizeof(ieeeframe->u.action.u.bss_tm_req)
+        + num_candidates * (sizeof(em_80211_neighbor_report_t) + EM_BSS_TRANS_CAND_PREF_SIZE);
+
     aframe = static_cast<action_frame_params_t *> (malloc(sizeof(action_frame_params_t) + len));
-    // Point ieeeframe to aframe->frame_data
-    ieeeframe = reinterpret_cast<struct ieee80211_mgmt *> (aframe->frame_data);
+    if (aframe == NULL) {
+        printf("%s:%d malloc failed\n", __func__, __LINE__);
+        return -1;
+    }
+    bss_info = dm_easy_mesh_t::get_bss_info_with_mac(is_profile2 ? steer_req_p2->bssid : steer_req->bssid);
 
-    //convert steering req to 802.11 bss tm req
+    if(bss_info == NULL ||  dm->get_device_info() == NULL) {
+        printf("%s:%d: dm is NULL or bss_info is NULL or device_info is NULL\n", __func__, __LINE__);
+        return -1;
+    }
+
+    for (j = 0; j < dm->get_num_op_class(); j++) {
+        op_class_info = &dm->m_op_class[j].m_op_class_info;
+        if (op_class_info == NULL) {
+            printf("%s:%d: Cannot find op_class info for index %d\n", __func__, __LINE__, j);
+            continue;
+        }
+        if ((memcmp(op_class_info->id.ruid, bss_info->ruid.mac, sizeof(mac_address_t)) == 0) &&
+            (op_class_info->id.type == em_op_class_type_current)) {
+            printf("%s:%d op_class: %d, channel: %d source_mac:%s country:%s \n", __func__, __LINE__, op_class_info->op_class,
+                op_class_info->channel, util::mac_to_string(bss_info->bssid.mac).c_str(), dm->get_device_info()->country_code);
+            break;
+        }
+    }
+
+    if (!op_class_info) {
+        printf("%s:%d: No matching current op_class found\n", __func__, __LINE__);
+        return -1;
+    }
+
+    memset(&frame_buf, 0, sizeof(frame_buf));
+    ieeeframe = &frame_buf;
+    ieeeframe->frame_control = IEEE80211_FC(WLAN_FC_TYPE_MGMT, WLAN_FC_STYPE_ACTION);
+
+    memcpy(ieeeframe->sa, bss_info->bssid.mac, sizeof(mac_addr_t));
+    memcpy(ieeeframe->da, is_profile2 ? steer_req_p2->sta_mac_addr : steer_req->sta_mac_addr, sizeof(mac_addr_t));
+    memcpy(ieeeframe->bssid, bss_info->bssid.mac, sizeof(mac_addr_t));
+
     ieeeframe->u.action.category = WLAN_ACTION_WNM;
-    ieeeframe->u.action.u.bss_tm_req.action = WLAN_ACTION_HT;
+    ieeeframe->u.action.u.bss_tm_req.action = WLAN_WNM_BTM_REQUEST;
     ieeeframe->u.action.u.bss_tm_req.dialog_token = 1;
 
     em_80211_btm_req_reqmode_t req_mode;
-    req_mode.pref_candidate_list_inc = 0;
-    req_mode.btm_abridged = steer_req->btm_abridged;
-    req_mode.btm_disassoc_imminent = steer_req->btm_dissoc_imminent;
-    //todo: check what is this
-    req_mode.bss_termination_inc = steer_req->btm_dissoc_timer;
-    //todo: check what is this
-    req_mode.ess_disassoc_imminent = steer_req->btm_dissoc_imminent;
+    req_mode.pref_candidate_list_inc = EM_BSS_TRANS_PREFER_CAND_LIST_INC;
+    req_mode.btm_abridged = is_profile2 ? steer_req_p2->btm_abridged : steer_req->btm_abridged;
+    req_mode.btm_disassoc_imminent = is_profile2 ? steer_req_p2->btm_dissoc_imminent : steer_req->btm_dissoc_imminent;
+    req_mode.bss_termination_inc = EM_BSS_TRANSITION_TERMINATION_INC;
+    req_mode.ess_disassoc_imminent = EM_BSS_TRANS_ESS_DISASSOC_IMMINENT;
 
     ieeeframe->u.action.u.bss_tm_req.req_mode = *reinterpret_cast<uint8_t *> (&req_mode);
-    memcpy(&ieeeframe->u.action.u.bss_tm_req.disassoc_timer, &steer_req->btm_dissoc_timer, sizeof(steer_req->btm_dissoc_timer));
-    //todo: check this
-    ieeeframe->u.action.u.bss_tm_req.validity_interval = 0;
-
+    memcpy(&ieeeframe->u.action.u.bss_tm_req.disassoc_timer, &disassoc_timer, sizeof(unsigned short));
+    ieeeframe->u.action.u.bss_tm_req.validity_interval = EM_BSS_TRANSITION_VALIDITY_INTERVAL;
+    
     // Copy the variable part
     em_80211_btm_req_var_t *bss_list = (em_80211_btm_req_var_t *)&ieeeframe->u.action.u.bss_tm_req.variable;
-    bss_list->bss_transition_cand_list[0].elem_id = 52;
-    bss_list->bss_transition_cand_list[0].length = 13;
-    memcpy(bss_list->bss_transition_cand_list[0].bssid, steer_req->target_bssids, sizeof(bssid_t));
-    //todo: capabilities mapping tbd
-    bss_list->bss_transition_cand_list[0].bssid_info = 0;
-        bss_list->bss_transition_cand_list[0].op_class = steer_req->target_bss_op_class;
-    bss_list->bss_transition_cand_list[0].channel_num = steer_req->target_bss_channel_num;
-    //todo: check how to get this
-    bss_list->bss_transition_cand_list[0].phy_type = 0;
+    if(!is_profile2) {
+        em_80211_neighbor_report_t *bss_cand_entry = &bss_list->bss_transition_cand_list[0];
+        bss_cand_entry->elem_id = 52;
+        bss_cand_entry->length = sizeof(em_80211_neighbor_report_t) + EM_BSS_TRANS_CAND_PREF_SIZE;
 
-    dm_easy_mesh_t::macbytes_to_string(steer_req->sta_mac_addr, mac_str);
-    printf("%s:%d STA MAC for BTM request %s\n", __func__, __LINE__, mac_str);
-    memcpy(aframe->dest_addr, steer_req->sta_mac_addr, sizeof(mac_addr_t));
-    aframe->frequency = 2412;
-    aframe->ap_index = 0;
+        memcpy(bss_cand_entry->bssid, steer_req->target_bssids, sizeof(bssid_t));
+        bss_cand_entry->bssid_info = 0x1c03;
+        bss_cand_entry->op_class = steer_req->target_bss_op_class;
+        bss_cand_entry->channel_num = steer_req->target_bss_channel_num;
+        bss_cand_entry->phy_type = get_phy_type_for_bss(steer_req->target_bssids);
+
+        bss_cand_entry->var[0] = EM_BSS_TRANS_CAND_PREF_SUBELEM_ID;   // 3
+        bss_cand_entry->var[1] = EM_BSS_TRANS_CAND_PREF_SUBELEM_LEN;   // 1
+        bss_cand_entry->var[2] = EM_BSS_TRANS_CAND_PREF_VALUE;          // 255
+    } else {
+        uint8_t *itr_bss_cand_entry = (uint8_t *)bss_list;
+
+        for(int i = 0; i < steer_req_p2->target_bssid_list_count; i++) {
+            em_80211_neighbor_report_t *bss_cand_entry = (em_80211_neighbor_report_t *)itr_bss_cand_entry;
+            bss_cand_entry->elem_id = 52;
+            bss_cand_entry->length = sizeof(em_80211_neighbor_report_t) + EM_BSS_TRANS_CAND_PREF_SIZE - 2;
+
+            memcpy(bss_cand_entry->bssid, steer_req_p2->target_bss_info.target_bssid, sizeof(bssid_t));
+            bss_cand_entry->bssid_info = 0x1c03;
+            bss_cand_entry->op_class = steer_req_p2->target_bss_info.target_bss_op_class;
+            bss_cand_entry->channel_num = steer_req_p2->target_bss_info.target_bss_channel_num;
+            bss_cand_entry->phy_type = get_phy_type_for_bss(steer_req_p2->target_bss_info.target_bssid);
+
+            bss_cand_entry->var[0] = EM_BSS_TRANS_CAND_PREF_SUBELEM_ID;   // 3
+            bss_cand_entry->var[1] = EM_BSS_TRANS_CAND_PREF_SUBELEM_LEN;   // 1
+            bss_cand_entry->var[2] = EM_BSS_TRANS_CAND_PREF_VALUE;          // 255
+
+            itr_bss_cand_entry += sizeof(em_80211_neighbor_report_t) + EM_BSS_TRANS_CAND_PREF_SIZE - 2;
+        }
+    }
+
+    dm_easy_mesh_t::macbytes_to_string(is_profile2 ? steer_req_p2->sta_mac_addr : steer_req->sta_mac_addr, mac_str);
+    printf("%s:%d STA MAC for BTM request %s mld_mac:%s\n", __func__, __LINE__, mac_str, util::mac_to_string(bss_info->mld_mac).c_str());
+    memcpy(aframe->dest_addr, is_profile2 ? steer_req_p2->sta_mac_addr : steer_req->sta_mac_addr, sizeof(mac_addr_t));
+
+    aframe->frequency = util::em_chan_to_freq(op_class_info->op_class, op_class_info->channel, dm->get_device_info()->country_code);
+    aframe->ap_index = (bss_info != NULL) ? bss_info->vap_index : 0;
     //here sendng only the btm_req union to onewifi as header is dealt internally
     aframe->frame_len = len;
     memcpy(aframe->frame_data, &ieeeframe->u.action, len);
+    aframe->wait_time_ms = 0;
 
     l_bus_data.data_type = bus_data_type_bytes;
     l_bus_data.raw_data.bytes = (void *)aframe;
     l_bus_data.raw_data_len = len + sizeof(action_frame_params_t);
 
-    if (desc->bus_set_fn(bus_hdl, "Device.WiFi.AccessPoint.1.RawFrame.Mgmt.Action.Tx", &l_bus_data)== 0) {
+    em_printfout("Sending action frame: VAP Idx (%d), Dest (" MACSTRFMT "), Frequency (%d), Dwell Time (%d), Length (%d)", aframe->ap_index,
+        MAC2STR(aframe->dest_addr), aframe->frequency, aframe->wait_time_ms, aframe->frame_len);
+    util::print_hex_dump(aframe->frame_len, aframe->frame_data);
+
+    snprintf(path, sizeof(path), "Device.WiFi.AccessPoint.%d.RawFrame.Mgmt.Action.Tx", aframe->ap_index + 1);
+
+    if (desc->bus_set_fn(bus_hdl, path, &l_bus_data)== 0) {
         printf("%s:%d Frame subdoc send successfull\n",__func__, __LINE__);
     }
     else {
         printf("%s:%d Frame subdoc send fail\n",__func__, __LINE__);
+        free(aframe);
         return -1;
     }
 
+    free(aframe);
+    return 1;
+}
+
+int dm_easy_mesh_agent_t::analyze_btm_query_action_frame(em_bus_event_t *evt, em_cmd_t *pcmd[], bus_handle_t *bus_hdl)
+{
+    struct ieee80211_mgmt *query_frame;
+    struct ieee80211_mgmt frame_buf;
+    struct ieee80211_mgmt *ieeeframe;
+    action_frame_params_t *aframe;
+    raw_data_t l_bus_data;
+    em_bss_info_t *bss_info;
+    em_op_class_info_t *op_class_info = NULL;
+    dm_easy_mesh_agent_t dm = *this;
+    mac_addr_str_t sta_mac_str, bssid_str;
+    char path[100] = {0};
+    int len = 0;
+    wifi_bus_desc_t *desc;
+
+    (void)pcmd;
+
+    if (evt == NULL) {
+        return 0;
+    }
+
+    query_frame = reinterpret_cast<struct ieee80211_mgmt *>(&evt->u.raw_buff);
+
+    dm_easy_mesh_t::macbytes_to_string(query_frame->sa, sta_mac_str);
+    dm_easy_mesh_t::macbytes_to_string(query_frame->bssid, bssid_str);
+
+    em_printfout("%s:%d BTM Query from STA=%s BSSID=%s query_reason=%u dialog_token=%u",
+        __func__, __LINE__, sta_mac_str, bssid_str,
+        query_frame->u.action.u.bss_tm_query.query_reason,
+        query_frame->u.action.u.bss_tm_query.dialog_token);
+
+    // Look up serving BSS from the query frame's BSSID
+    bss_info = dm_easy_mesh_t::get_bss_info_with_mac(query_frame->bssid);
+    if (bss_info == NULL || dm.get_device_info() == NULL) {
+        em_printfout("%s:%d bss_info or device_info is NULL for BSSID=%s", __func__, __LINE__, bssid_str);
+        return 0;
+    }
+
+    // Find current op_class for the serving BSS's radio
+    for (int j = 0; j < dm.get_num_op_class(); j++) {
+        op_class_info = &dm.m_op_class[j].m_op_class_info;
+        if (op_class_info == NULL) {
+            continue;
+        }
+        if ((memcmp(op_class_info->id.ruid, bss_info->ruid.mac, sizeof(mac_address_t)) == 0) &&
+            (op_class_info->id.type == em_op_class_type_current)) {
+            break;
+        }
+        op_class_info = NULL;
+    }
+
+    if (op_class_info == NULL) {
+        em_printfout("%s:%d No current op_class found for BSSID=%s", __func__, __LINE__, bssid_str);
+        return 0;
+    }
+
+    // Build a fresh BTM Request with preferred candidate list = serving BSS itself
+    len = sizeof(ieeeframe->u.action.category) + sizeof(ieeeframe->u.action.u.bss_tm_req)
+        + sizeof(em_80211_neighbor_report_t);
+
+    aframe = static_cast<action_frame_params_t *>(malloc(sizeof(action_frame_params_t) + len));
+    if (aframe == NULL) {
+        em_printfout("%s:%d malloc failed", __func__, __LINE__);
+        return 0;
+    }
+
+    memset(&frame_buf, 0, sizeof(frame_buf));
+    ieeeframe = &frame_buf;
+
+    ieeeframe->frame_control = IEEE80211_FC(WLAN_FC_TYPE_MGMT, WLAN_FC_STYPE_ACTION);
+    memcpy(ieeeframe->sa, bss_info->bssid.mac, sizeof(mac_addr_t));
+    memcpy(ieeeframe->da, query_frame->sa, sizeof(mac_addr_t));
+    memcpy(ieeeframe->bssid, bss_info->bssid.mac, sizeof(mac_addr_t));
+
+    ieeeframe->u.action.category = WLAN_ACTION_WNM;
+    ieeeframe->u.action.u.bss_tm_req.action = WLAN_WNM_BTM_REQUEST;
+    // Echo the dialog token from the query so the STA can correlate
+    ieeeframe->u.action.u.bss_tm_req.dialog_token = query_frame->u.action.u.bss_tm_query.dialog_token;
+
+    em_80211_btm_req_reqmode_t req_mode = {};
+    req_mode.pref_candidate_list_inc = 1;
+    // Query-triggered request: no disassociation pressure
+    req_mode.btm_disassoc_imminent = 0;
+    req_mode.btm_abridged = 0;
+    req_mode.bss_termination_inc = 0;
+    req_mode.ess_disassoc_imminent = 0;
+
+    ieeeframe->u.action.u.bss_tm_req.req_mode = *reinterpret_cast<uint8_t *>(&req_mode);
+    ieeeframe->u.action.u.bss_tm_req.disassoc_timer = 0;
+    ieeeframe->u.action.u.bss_tm_req.validity_interval = 50;
+
+    // Populate neighbor report with serving BSS as preferred candidate
+    em_80211_btm_req_var_t *bss_list =
+        (em_80211_btm_req_var_t *)&ieeeframe->u.action.u.bss_tm_req.variable;
+    bss_list->bss_transition_cand_list[0].elem_id = 52;
+    bss_list->bss_transition_cand_list[0].length = 13;
+    memcpy(bss_list->bss_transition_cand_list[0].bssid, bss_info->bssid.mac, sizeof(bssid_t));
+    bss_list->bss_transition_cand_list[0].bssid_info = 0x1c03;
+    bss_list->bss_transition_cand_list[0].op_class = op_class_info->op_class;
+    bss_list->bss_transition_cand_list[0].channel_num = op_class_info->channel;
+    bss_list->bss_transition_cand_list[0].phy_type = 0;
+
+    memcpy(aframe->dest_addr, query_frame->sa, sizeof(mac_addr_t));
+    aframe->frequency = util::em_chan_to_freq(op_class_info->op_class, op_class_info->channel,
+        dm.get_device_info()->country_code);
+    aframe->ap_index = bss_info->vap_index;
+    aframe->frame_len = len;
+    memcpy(aframe->frame_data, &ieeeframe->u.action, len);
+    aframe->wait_time_ms = 0;
+
+    em_printfout("%s:%d Sending BTM Request in response to Query: STA=%s VAP=%d freq=%d",
+        __func__, __LINE__, sta_mac_str, aframe->ap_index, aframe->frequency);
+
+    l_bus_data.data_type = bus_data_type_bytes;
+    l_bus_data.raw_data.bytes = (void *)aframe;
+    l_bus_data.raw_data_len = len + sizeof(action_frame_params_t);
+
+    snprintf(path, sizeof(path), "Device.WiFi.AccessPoint.%d.RawFrame.Mgmt.Action.Tx",
+        aframe->ap_index + 1);
+
+    desc = get_bus_descriptor();
+    if (desc == NULL) {
+        em_printfout("%s:%d bus descriptor is NULL", __func__, __LINE__);
+        free(aframe);
+        return 0;
+    }
+
+    if (desc->bus_set_fn(bus_hdl, path, &l_bus_data) != 0) {
+        em_printfout("%s:%d BTM Request send failed for STA=%s", __func__, __LINE__, sta_mac_str);
+        free(aframe);
+        return 0;
+    }
+
+    em_printfout("%s:%d BTM Request sent successfully for STA=%s", __func__, __LINE__, sta_mac_str);
+    free(aframe);
     return 1;
 }
 
@@ -829,10 +1052,16 @@ int dm_easy_mesh_agent_t::analyze_btm_response_action_frame(em_bus_event_t *evt,
     struct ieee80211_mgmt *btm_frame = (struct ieee80211_mgmt *)&evt->u.raw_buff;
 
     em_cmd_btm_report_params_t  btm_report_param;
+
+    memset(&btm_report_param, 0, sizeof(em_cmd_btm_report_params_t));
     memcpy(btm_report_param.source, btm_frame->bssid, sizeof(mac_addr_t));
     memcpy(btm_report_param.sta_mac, btm_frame->sa, sizeof(mac_addr_t));
     btm_report_param.status_code = btm_frame->u.action.u.bss_tm_resp.status_code;
-    memcpy(btm_report_param.target, &btm_frame->u.action.u.bss_tm_resp.variable, sizeof(mac_addr_t));
+
+    // Per IEEE 802.11-2020: Target BSSID is only present in variable[] when status_code == 0
+    if (btm_report_param.status_code == BTM_STATUS_ACCEPT) {
+        memcpy(btm_report_param.target, &btm_frame->u.action.u.bss_tm_resp.variable, sizeof(mac_addr_t));
+    }
 
     pcmd[num] = new em_cmd_btm_report_t(btm_report_param);
     tmp = pcmd[num];
@@ -843,6 +1072,24 @@ int dm_easy_mesh_agent_t::analyze_btm_response_action_frame(em_bus_event_t *evt,
         num++;
     }
 
+    return num;
+}
+
+int dm_easy_mesh_agent_t::analyze_steering_window_expired(em_bus_event_t *evt, em_cmd_t *pcmd[])
+{
+    unsigned int num = 0;
+    em_cmd_t *tmp;
+
+    pcmd[num] = new em_cmd_steer_opp_complete_t();
+    tmp = pcmd[num];
+    num++;
+
+    while ((pcmd[num] = tmp->clone_for_next()) != NULL) {
+        tmp = pcmd[num];
+        num++;
+    }
+
+    em_printfout("%s:%d analyze_steering_window_expired: num:%d", __func__, __LINE__, num);
     return num;
 }
 

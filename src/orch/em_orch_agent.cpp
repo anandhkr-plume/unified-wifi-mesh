@@ -116,6 +116,7 @@ bool em_orch_agent_t::is_em_ready_for_orch_fini(em_cmd_t *pcmd, em_t *em)
             break;
 
         case em_cmd_type_btm_report:
+        case em_cmd_type_steer_opp_complete:
             if (em->get_state() == em_state_agent_configured) {
                 return true;
             }
@@ -191,6 +192,10 @@ bool em_orch_agent_t::is_em_ready_for_orch_exec(em_cmd_t *pcmd, em_t *em)
     } else if (pcmd->m_type == em_cmd_type_ap_metrics_report) {
         if ((em->get_state() == em_state_agent_configured) ||
             ((em->get_state() == em_state_agent_ap_metrics_pending))) {
+            return true;
+        }
+    } else if (pcmd->m_type == em_cmd_type_steer_opp_complete) {
+        if (em->get_state() == em_state_agent_configured) {
             return true;
         }
     } else if (pcmd->m_type == em_cmd_type_get_link_quality_report) {
@@ -497,6 +502,15 @@ unsigned int em_orch_agent_t::build_candidates(em_cmd_t *pcmd)
 
             case em_cmd_type_get_link_quality_report:
                 if ((em->is_al_interface_em() == true)) {
+                    queue_push(pcmd->m_em_candidates, em);
+                    count++;
+                }
+                break;
+
+            case em_cmd_type_steer_opp_complete:
+                em_printfout("Check EM to push to queue em:%s name:%s mac:%s \n", dm_easy_mesh_t::macbytes_to_string(em->get_al_interface_mac(), dst_mac_str), em->get_radio_interface_name(), dm_easy_mesh_t::macbytes_to_string(em->get_radio_interface_mac(), src_mac_str));
+                if(!em->is_al_interface_em()) {
+                    em_printfout("Check EM to push to queue em:%s \n", dm_easy_mesh_t::macbytes_to_string(em->get_al_interface_mac(), dst_mac_str));
                     queue_push(pcmd->m_em_candidates, em);
                     count++;
                 }

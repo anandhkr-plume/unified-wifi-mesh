@@ -279,7 +279,7 @@ bool em_orch_t::orchestrate(em_cmd_t *pcmd, em_t *em)
             orch_transient(pcmd, em);
         }
 
-    } else if (orch_state == em_orch_state_fini) {
+    } else if (orch_state == em_orch_state_fini || orch_state == em_orch_state_cancel) {
         //printf("%s:%d: em:%s Detected in fini state\n", __func__, __LINE__, mac_str);
         done = true;
     }

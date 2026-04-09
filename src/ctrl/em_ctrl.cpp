@@ -983,8 +983,17 @@ em_t *em_ctrl_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em_
             }
             break;
 
+        case em_msg_type_steering_complete:
+            em = static_cast<em_t *> (hash_map_get_first(m_em_map));
+            while(em != NULL) {
+                if ((em->is_al_interface_em() == false) && (em->has_at_least_one_associated_sta() == true)) {
+                    break;
+                }
+                em = static_cast<em_t *> (hash_map_get_next(m_em_map, em));
+            }
+            break;
+
         case em_msg_type_ap_mld_config_resp:
-        case em_msg_type_1905_ack:
             em = static_cast<em_t *> (hash_map_get_first(m_em_map));
             while(em != NULL) {
                 if ((em->is_al_interface_em() == false)) {
@@ -993,6 +1002,29 @@ em_t *em_ctrl_t::find_em_for_msg_type(unsigned char *data, unsigned int len, em_
                 em = static_cast<em_t *> (hash_map_get_next(m_em_map, em));
             }
             break;
+
+        case em_msg_type_1905_ack:
+        em = static_cast<em_t *> (hash_map_get_first(m_em_map));
+        while(em != NULL) {
+            if ((em->is_al_interface_em() == false) &&
+                (em->get_state() == em_state_ctrl_sta_steer_pending ||
+                 em->get_state() == em_state_ctrl_sta_disassoc_pending ||
+                 em->get_state() == em_state_ctrl_ap_mld_config_pending)) {
+                break;
+            }
+            em = static_cast<em_t *> (hash_map_get_next(m_em_map, em));
+        }
+        // Fallback: if no pending em found, use first non-AL
+        if (em == NULL) {
+            em = static_cast<em_t *> (hash_map_get_first(m_em_map));
+            while(em != NULL) {
+                if ((em->is_al_interface_em() == false)) {
+                    break;
+                }
+                em = static_cast<em_t *> (hash_map_get_next(m_em_map, em));
+            }
+        }
+        break;
 
         case em_msg_type_beacon_metrics_rsp:
             em = static_cast<em_t *> (hash_map_get_first(m_em_map));
@@ -1093,7 +1125,7 @@ void em_ctrl_t::start_complete()
             { NULL, NULL , NULL, NULL, NULL, tr_181_t::setssid_handler}, slow_speed, ZERO_TABLE,
             { bus_data_type_property, false, 0, 0, 0, NULL } },
         { const_cast<char*>(DEVICE_WIFI_DATAELEMENTS_NETWORK_STA_CLIENT_STEER_CMD), bus_element_type_method,
-            { NULL, NULL, NULL, NULL, NULL, tr_181_t::ctrl_cmd_client_steer}, high_speed, ZERO_TABLE,
+            { NULL, NULL, NULL, NULL, NULL, tr_181_t::ctrl_cmd_client_steer_method}, high_speed, ZERO_TABLE,
             { bus_data_type_string, true, 0, 0, 0, NULL } }
         };
 
