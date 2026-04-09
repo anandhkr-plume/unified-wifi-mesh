@@ -709,6 +709,10 @@ int dm_easy_mesh_ctrl_t::analyze_command_steer(em_bus_event_t *evt, em_cmd_t *cm
                     channel_obj = cJSON_GetObjectItem(steer_obj, "TargetBSSChannel");
                     steer_param.target_channel = static_cast<unsigned int> (cJSON_GetNumberValue(channel_obj));
 
+                    em_printfout("%s:%d sta_mac:%s bss_id_obj:%s target:%s req_mode:%d disassoc_imminent:%d btm_abridged:%d tar_op_class:%d tar_channel:%d\n", __func__, __LINE__, 
+                        cJSON_GetStringValue(sta_mac_obj), cJSON_GetStringValue(bss_id_obj), cJSON_GetStringValue(target_obj), steer_param.request_mode,
+                        steer_param.disassoc_imminent, steer_param.btm_abridged, steer_param.target_op_class, steer_param.target_channel);
+
                     num += analyze_sta_steer(steer_param, &cmd[num]);
                 }
             }
@@ -5967,9 +5971,9 @@ static bus_error_t validate_clientsteer_input(cJSON *item, const char *name)
         if (!cJSON_IsString(item) || !util::str_is_mac_address(item->valuestring))
             return bus_error_invalid_input;
     } else if (strcmp(name, "RequestMode") == 0) {
-        if (!cJSON_IsString(item) ||
-            (strcmp(item->valuestring, "Steering_Mandate")     != 0 &&
-            strcmp(item->valuestring, "Steering_Opportunity") != 0))
+        if (!cJSON_IsObject(item) ||
+            (cJSON_GetObjectItemCaseSensitive(item, "Steering_Mandate") == NULL &&
+            cJSON_GetObjectItemCaseSensitive(item, "Steering_Opportunity") == NULL))
             return bus_error_invalid_input;
     } else if (strcmp(name, "BTMDisassociationImminent") == 0 ||
                strcmp(name, "BTMAbridged")               == 0 ||
@@ -6011,7 +6015,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
         return bus_error_invalid_input;
     }
 
-    em_printfout("%s:%d AUTOCONFIG_DEBUG method_name:%s input_name:%s input_value:%s input_len:%u\n", __func__, __LINE__, method_name ? method_name : "(null)",
+    em_printfout("%s:%d method_name:%s input_name:%s input_value:%s input_len:%u\n", __func__, __LINE__, method_name ? method_name : "(null)",
         input_data->name, (char *)input_data->value.raw_data.bytes, input_data->value.raw_data_len);
 
     if(input_data->next_data == NULL) {
@@ -6074,7 +6078,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: cannot resolve STA MAC");
         return rc;
     }
-    em_printfout("%s:%d AUTOCONFIG_DEBUG STA MAC: %s\n", __func__, __LINE__, sta_mac);
+    em_printfout("%s:%d STA MAC: %s\n", __func__, __LINE__, sta_mac);
 
     /* ── 3. Fetch config ───────────────────────────────────────── */
     subdoc = reinterpret_cast<em_subdoc_info_t *>(buff);
@@ -6146,7 +6150,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
                 if (sta_json_found != NULL && found_sta_entry == NULL) {
                     char *sta_printf_str = cJSON_Print(sta_json_found);
                     cJSON *found_sta_entry_array = NULL, *detached_sta_entry = NULL;
-                    em_printfout("%s:%d AUTOCONFIG_DEBUG sta_json_found: %s\n", __func__, __LINE__, sta_printf_str);
+                    em_printfout("%s:%d sta_json_found: %s\n", __func__, __LINE__, sta_printf_str);
                     free(sta_printf_str);
                     found_sta_entry = sta_json_found;
                     found_sta_entry_array = cJSON_CreateArray();
@@ -6182,13 +6186,6 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
         strncpy(key, cs_input->child->string, sizeof(key) - 1);
         cJSON *item = cJSON_DetachItemFromObject(cs_input, key);
         if (!item) break;
-         /* RequestMode: "Steering_Mandate" → {"Steering_Mandate": 1} */
-        if (strcmp(key, "RequestMode") == 0 && cJSON_IsString(item)) {
-            cJSON *conv = cJSON_CreateObject();
-            cJSON_AddNumberToObject(conv, item->valuestring, strcmp(item->valuestring, "Steering_Mandate") == 0 ? 1 : 0);
-            cJSON_Delete(item);
-            item = conv;
-        }
         cJSON_DeleteItemFromObject(tget_sta_obj, key);
         cJSON_AddItemToObject(tget_sta_obj, key, item);
     }
@@ -6210,9 +6207,9 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
 
     cJSON *dbg_json = cJSON_Parse(subdoc->buff);
     if (dbg_json) {
-        char *s = cJSON_Print(dbg_json);
-        em_printfout("%s:%d AUTOCONFIG_DEBUG subdoc:\n%s\n", __func__, __LINE__, s);
-        free(s);
+        char *formatted_subdoc = cJSON_Print(dbg_json);
+        em_printfout("%s:%d Updated and formatted subdoc:\n%s\n", __func__, __LINE__, formatted_subdoc);
+        free(formatted_subdoc);
         cJSON_Delete(dbg_json);
     }
 
@@ -6223,7 +6220,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
     cJSON_Delete(cs_input);
 
     if (output_data) tr_181_t::tr181_set_status_output(output_data, "Success");
-    em_printfout("%s:%d AUTOCONFIG_DEBUG returning bus_error_success\n", __func__, __LINE__);
+    em_printfout("%s:%d returning bus_error_success\n", __func__, __LINE__);
     return bus_error_success;
 }
 
