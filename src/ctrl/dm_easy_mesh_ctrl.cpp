@@ -5949,10 +5949,17 @@ static cJSON *cs_prop_to_cjson(const bus_data_prop_t *p)
             em_printfout("%s:%d cs_prop_to_cjson string value:%s\n", __func__, __LINE__, (char *)p->value.raw_data.bytes);
             if (tr_181_t::tr181_copy_prop_string(p, val, sizeof(val))) {
                 em_printfout("%s:%d cs_prop_to_cjson string value:%s\n", __func__, __LINE__, val);
+                if (strcmp(p->name, "RequestMode") == 0) {
+                    cJSON *parsed = cJSON_Parse(val);
+                    if (parsed && cJSON_IsObject(parsed))
+                        return parsed;
+                    cJSON_Delete(parsed);
+                    return NULL;
+                }
                 return cJSON_CreateString(val);
             }
             return NULL;
-        default:
+    default:
             em_printfout("%s:%d cs_prop_to_cjson default name:%s\n", __func__, __LINE__, p->name);
             return NULL;
     }
