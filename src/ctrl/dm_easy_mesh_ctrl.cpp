@@ -6175,14 +6175,29 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
         return bus_error_invalid_input;
     }
 
-    for (std::string client_steer_arg : client_steer_args_list) {
+    char* sta_steer_input_str = cJSON_Print(sta_steer_input);
+    em_printfout("%s:%d sta_steer_input: %s\n", __func__, __LINE__, sta_steer_input_str);
+    free(sta_steer_input_str);
+
+    for (const std::string &client_steer_arg : client_steer_args_list) {
+        cJSON *input_item = cJSON_DetachItemFromObjectCaseSensitive(sta_steer_input, client_steer_arg.c_str());
+        em_printfout("%s:%d input_item: %s\n", __func__, __LINE__, cJSON_Print(input_item));
+        if (!input_item) {
+            continue;
+        }
+        if (cJSON_HasObjectItem(tget_sta_obj, client_steer_arg.c_str())) {
+            cJSON_ReplaceItemInObject(tget_sta_obj, client_steer_arg.c_str(), input_item);
+        }
+    }
+
+    /*for (std::string client_steer_arg : client_steer_args_list) {
         cJSON *input_item = cJSON_GetObjectItem(sta_steer_input, client_steer_arg.c_str());
         if (!input_item) {
             em_printfout("%s:%d ERROR: %s not found in sta_steer_input\n", __func__, __LINE__, client_steer_arg.c_str());
             continue;
         }
         cJSON_ReplaceItemInObject(tget_sta_obj, client_steer_arg.c_str(), input_item);
-    }
+    }*/
 
     serialized = cJSON_PrintUnformatted(root);
     json_len   = static_cast<unsigned int>(strlen(serialized));
