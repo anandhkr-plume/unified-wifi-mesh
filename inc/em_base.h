@@ -104,6 +104,8 @@ extern "C"
 
 #define EM_CLI_MAX_ARGS 5
 
+#define EM_MAX_BTM_REQ_COUNT  5
+
 /* Authentication Type Flags */
 #define EM_AUTH_OPEN 0x0001
 #define EM_AUTH_WPAPSK 0x0002

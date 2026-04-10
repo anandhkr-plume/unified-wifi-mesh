@@ -1563,7 +1563,7 @@ int em_agent_t::mgmt_action_frame_cb(char *event_name, bus_data_prop_t *data, vo
 
     struct ieee80211_mgmt *mgmt_frame = (struct ieee80211_mgmt *)mgmt_frame_data;
     
-    util::print_hex_dump(data->raw_data_len, (uint8_t*)data->raw_data.bytes);
+    util::print_hex_dump(data->value.raw_data_len, (uint8_t*)data->value.raw_data.bytes);
     if (mgmt_frame->u.action.category == WLAN_ACTION_WNM) {
         switch (mgmt_frame->u.action.u.bss_tm_resp.action) {
             case WLAN_WNM_BTM_RESPONSE:
