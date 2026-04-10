@@ -5995,7 +5995,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
     cJSON *sta_steer_input = NULL, *root = NULL, *parsed_subdoc_json = NULL, *new_subdoc_json = NULL, *found_sta_entry = NULL, *child = NULL, *dev_item = NULL,
         *tget_sta_obj = NULL, *dbg_json = NULL, *network_obj = NULL, *device_list_obj = NULL;
     bus_data_prop_t *input_props = input_data;
-    unsigned char     buff[EM_IO_BUFF_SZ];
+    unsigned char     buff[EM_LONG_IO_BUFF_SZ];
     char             *serialized  = NULL;
     std::vector<std::string> client_steer_args_list = {"TargetBSSID", "RequestMode", "BTMAbridged", "LinkRemovalImminent", "SteeringOpportunityWindow",
                                                     "BTMDisassociationImminent", "BTMDisassociationTimer", "TargetBSSOperatingClass", "TargetBSSChannel"};
@@ -6209,7 +6209,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
     serialized = cJSON_PrintUnformatted(root);
     json_len   = static_cast<unsigned int>(strlen(serialized));
 
-    if (json_len >= EM_IO_BUFF_SZ) {
+    if (json_len >= EM_LONG_IO_BUFF_SZ) {
         free(serialized); cJSON_Delete(root); cJSON_Delete(sta_steer_input);
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: JSON too large");
         em_printfout("%s:%d ERROR: JSON too large\n", __func__, __LINE__);
