@@ -6080,7 +6080,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
     em_printfout("%s:%d STA MAC: %s\n", __func__, __LINE__, sta_mac);
 
     subdoc = reinterpret_cast<em_subdoc_info_t *>(buff);
-    snprintf(subdoc->name, sizeof(subdoc->name), "STAListSummary@Steer");
+    snprintf(subdoc->name, sizeof(subdoc->name), "%s", "STAListSummary@Steer");
     dm_ctrl->get_config("OneWifiMesh", subdoc);
 
     em_printfout("%s:%d Got subdoc for steer\n", __func__, __LINE__);
