@@ -2448,7 +2448,7 @@ unsigned char dm_easy_mesh_t::get_phy_type_for_bss(mac_address_t target_bssid)
     if (cap != NULL) {
         em_radio_cap_info_t *cap_info = cap->get_radio_cap_info();
         if (cap_info != NULL) {
-            if (cap_info->eht_cap[0] != '\0')  return 15; // EHT (802.11be)
+            if (cap_info->eht_ops.radios_num > 0)  return 15; // EHT (802.11be)
             if (cap_info->he_cap.sprt_mcs_len) return 14; // HE  (802.11ax)
             if (cap_info->vht_cap.sprt_tx_mcs) return 9;  // VHT (802.11ac)
             if (cap_info->ht_cap.max_sprt_tx_streams ||
