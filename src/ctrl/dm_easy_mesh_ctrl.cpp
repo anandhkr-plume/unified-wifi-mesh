@@ -6098,6 +6098,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
         return bus_error_invalid_input;
     }
 
+    em_printfout("%s:%d Create root and new_subdoc_json\n", __func__, __LINE__);
     root            = cJSON_CreateObject();
     new_subdoc_json = cJSON_CreateObject();
     if (!root || !new_subdoc_json) {
@@ -6120,6 +6121,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
     parsed_subdoc_json = new_subdoc_json;
     cJSON_AddItemToObject(root, "wfa-dataelements:ClientSteer", parsed_subdoc_json);
 
+    em_printfout("%s:%d Get network info from subdoc\n", __func__, __LINE__);
     network_obj     = cJSON_GetObjectItem(parsed_subdoc_json, "Network");
     device_list_obj = network_obj ? cJSON_GetObjectItem(network_obj, "DeviceList") : NULL;
 
@@ -6130,14 +6132,15 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
         return bus_error_invalid_input;
     }
 
+    em_printfout("%s:%d Get sta info from subdoc\n", __func__, __LINE__);
     cJSON_ArrayForEach(dev_item, device_list_obj) {
         cJSON *radio_list = cJSON_GetObjectItem(dev_item, "RadioList");
         if (!cJSON_IsArray(radio_list)) continue;
         cJSON *radio_item = NULL;
         cJSON_ArrayForEach(radio_item, radio_list) {
             cJSON *bss_list = cJSON_GetObjectItem(radio_item, "BSSList");
-            cJSON *bss_item = NULL;
             if (!cJSON_IsArray(bss_list)) continue;
+            cJSON *bss_item = NULL;
             cJSON_ArrayForEach(bss_item, bss_list) {
                 cJSON *sta_list = cJSON_GetObjectItem(bss_item, "STAList");
                 if (!cJSON_IsArray(sta_list)) continue;
@@ -6181,10 +6184,12 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
 
     for (const std::string &client_steer_arg : client_steer_args_list) {
         cJSON *input_item = cJSON_DetachItemFromObjectCaseSensitive(sta_steer_input, client_steer_arg.c_str());
-        em_printfout("%s:%d input_item: %s\n", __func__, __LINE__, cJSON_Print(input_item));
         if (!input_item) {
             continue;
         }
+        char *dbg_str = cJSON_Print(input_item);
+        em_printfout("%s:%d input_item: %s\n", __func__, __LINE__, dbg_str ? dbg_str : "(null)");
+        free(dbg_str);
         if (cJSON_HasObjectItem(tget_sta_obj, client_steer_arg.c_str())) {
             cJSON_ReplaceItemInObject(tget_sta_obj, client_steer_arg.c_str(), input_item);
         }
