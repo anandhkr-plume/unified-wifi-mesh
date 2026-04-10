@@ -6083,6 +6083,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
     snprintf(subdoc->name, sizeof(subdoc->name), "STAListSummary@Steer");
     dm_ctrl->get_config("OneWifiMesh", subdoc);
 
+    em_printfout("%s:%d Got subdoc for steer\n", __func__, __LINE__);
     if (subdoc->buff[0] == '\0') {
         cJSON_Delete(sta_steer_input);
         if (output_data) tr_181_t::tr181_set_status_output(output_data, "Failure: config empty");
@@ -6090,6 +6091,7 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
         return bus_error_invalid_input;
     }
 
+    em_printfout("%s:%d Parse subdoc for steer\n", __func__, __LINE__);
     parsed_subdoc_json = cJSON_Parse(subdoc->buff);
     if (!parsed_subdoc_json) {
         cJSON_Delete(sta_steer_input);
