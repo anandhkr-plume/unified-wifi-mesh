@@ -350,7 +350,7 @@ void em_t::proto_process(unsigned char *data, unsigned int len)
             em_printfout("%s:%d: Received msg:%u \n", __func__, __LINE__, htons(cmdu->type));
             if (m_sm.get_state() == em_state_ctrl_ap_mld_configured) {
                 em_configuration_t::process_msg(data, len);
-            } else if (m_sm.get_state() == em_state_ctrl_sta_steer_pending) {
+            } else {
                 em_steering_t::process_msg(data, len);
             }
             break;
