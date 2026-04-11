@@ -1914,7 +1914,7 @@ void dm_easy_mesh_ctrl_t::get_config(em_long_string_t net_id, em_subdoc_info_t *
 
     tmp = cJSON_Print(parent);
     em_printfout("Subdoc: %s", tmp);
-    strncpy(subdoc->buff, tmp, strlen(tmp) + 1);
+    strncpy(subdoc->buff, tmp, EM_LONG_IO_BUFF_SZ);
     cJSON_free(parent);
 }
 
