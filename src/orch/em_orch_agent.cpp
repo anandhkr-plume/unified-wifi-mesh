@@ -467,6 +467,7 @@ unsigned int em_orch_agent_t::build_candidates(em_cmd_t *pcmd)
                         printf("%s:%d BTM report build candidate sta mac=%s\n", __func__, __LINE__, src_mac_str);
                         queue_push(pcmd->m_em_candidates, em);
                         count++;
+                        break;
                     }
                 }
                 break;
@@ -508,11 +509,11 @@ unsigned int em_orch_agent_t::build_candidates(em_cmd_t *pcmd)
                 break;
 
             case em_cmd_type_steer_opp_complete:
-                em_printfout("Check EM to push to queue em:%s name:%s mac:%s \n", dm_easy_mesh_t::macbytes_to_string(em->get_al_interface_mac(), dst_mac_str), em->get_radio_interface_name(), dm_easy_mesh_t::macbytes_to_string(em->get_radio_interface_mac(), src_mac_str));
                 if(!em->is_al_interface_em()) {
-                    em_printfout("Check EM to push to queue em:%s \n", dm_easy_mesh_t::macbytes_to_string(em->get_al_interface_mac(), dst_mac_str));
+                    em_printfout("%s:%d Sending steer opportunity complete message to \n", __func__, __LINE__);
                     queue_push(pcmd->m_em_candidates, em);
                     count++;
+                    break;
                 }
                 break;
 
