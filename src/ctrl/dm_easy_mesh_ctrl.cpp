@@ -1913,9 +1913,10 @@ void dm_easy_mesh_ctrl_t::get_config(em_long_string_t net_id, em_subdoc_info_t *
     }
 
     tmp = cJSON_Print(parent);
-    em_printfout("Subdoc: %s", tmp);
-    strncpy(subdoc->buff, tmp, EM_LONG_IO_BUFF_SZ);
+    printf("%s:%d: Subdoc: %s\n", __func__, __LINE__, tmp);
+    strncpy(subdoc->buff, tmp, strlen(tmp) + 1);
     cJSON_free(parent);
+    printf("%s:%d returning\n", __func__, __LINE__);
 }
 
 int dm_easy_mesh_ctrl_t::copy_config(dm_easy_mesh_t *dm, em_long_string_t net_id)
