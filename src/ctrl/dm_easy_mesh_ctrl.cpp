@@ -6169,10 +6169,8 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
                     detached_sta_entry = cJSON_DetachItemViaPointer(sta_list, found_sta_entry);
                     cJSON_AddItemToArray(found_sta_entry_array, detached_sta_entry);
                     cJSON_ReplaceItemInObject(bss_item, "STAList", found_sta_entry_array);
-                } else if (found_sta_entry == NULL) {
-                    cJSON_DeleteItemFromArray(bss_list, b_idx);
                 } else {
-                    cJSON_ReplaceItemInObject(bss_item, "STAList", cJSON_CreateArray());
+                    cJSON_DeleteItemFromArray(bss_list, b_idx);
                 }
             }
 
