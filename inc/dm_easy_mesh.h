@@ -91,6 +91,7 @@ public:
     unsigned int    m_num_assoc_sta_mld;
     dm_assoc_sta_mld_t m_assoc_sta_mld[EM_MAX_ASSOC_STA_MLD];
     dm_tid_to_link_t m_tid_to_link;
+	unsigned int dialog_token;
 
 	em_sta_timer_t  **m_sta_timers;
 	unsigned int      m_sta_timer_count;

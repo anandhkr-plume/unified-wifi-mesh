@@ -233,7 +233,7 @@ static const mac_address_t EM_GLOBAL_MAC_ADDRESS = {0xff, 0xff, 0xff, 0xff, 0xff
 #define EM_BSS_TRANS_CAND_PREF_SIZE         3
 #define EM_BSS_TRANS_ESS_DISASSOC_IMMINENT  0
 
-#define EM_CAC_REQ_VALIDITY_PERIOD 120
+#define EM_CAC_REQ_VALIDITY_PERIOD 300
 
 #define EM_MIN_OP_CLASS_24 81
 #define EM_MAX_OP_CLASS_24 84
@@ -2418,6 +2418,11 @@ typedef struct {
     unsigned int    remaining_ticks;
 } em_disassoc_timer_t;
 
+typedef enum {
+    em_sta_timer_type_disassoc = 1,
+    em_sta_timer_type_steer_opp,
+} em_sta_timer_type_t;
+
 typedef struct {
     mac_address_t   id;
     mac_address_t   bssid;
@@ -2471,12 +2476,8 @@ typedef struct {
 
     wifi_BeaconReport_t beacon_reports[EM_MAX_BEACON_REPORTS_PER_SCAN];
     em_link_report_t link_stats_report;
+    em_sta_timer_type_t sta_timer_active;
 } em_sta_info_t;
-
-typedef enum {
-    em_sta_timer_type_disassoc,
-    em_sta_timer_type_steer_opp,
-} em_sta_timer_type_t;
 
 typedef struct {
     em_sta_timer_type_t type;

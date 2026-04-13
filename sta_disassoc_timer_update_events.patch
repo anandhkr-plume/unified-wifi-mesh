@@ -1,0 +1,189 @@
+diff --git a/inc/dm_easy_mesh.h b/inc/dm_easy_mesh.h
+index e662ce6..4ee1e60 100644
+--- a/inc/dm_easy_mesh.h
++++ b/inc/dm_easy_mesh.h
+@@ -91,6 +91,7 @@ public:
+     unsigned int    m_num_assoc_sta_mld;
+     dm_assoc_sta_mld_t m_assoc_sta_mld[EM_MAX_ASSOC_STA_MLD];
+     dm_tid_to_link_t m_tid_to_link;
++	unsigned int dialog_token;
+ 
+ 	em_sta_timer_t  **m_sta_timers;
+ 	unsigned int      m_sta_timer_count;
+diff --git a/inc/em_base.h b/inc/em_base.h
+index ab0281f..077f9c9 100644
+--- a/inc/em_base.h
++++ b/inc/em_base.h
+@@ -233,7 +233,7 @@ static const mac_address_t EM_GLOBAL_MAC_ADDRESS = {0xff, 0xff, 0xff, 0xff, 0xff
+ #define EM_BSS_TRANS_CAND_PREF_SIZE         3
+ #define EM_BSS_TRANS_ESS_DISASSOC_IMMINENT  0
+ 
+-#define EM_CAC_REQ_VALIDITY_PERIOD 120
++#define EM_CAC_REQ_VALIDITY_PERIOD 300
+ 
+ #define EM_MIN_OP_CLASS_24 81
+ #define EM_MAX_OP_CLASS_24 84
+@@ -2418,6 +2418,11 @@ typedef struct {
+     unsigned int    remaining_ticks;
+ } em_disassoc_timer_t;
+ 
++typedef enum {
++    em_sta_timer_type_disassoc = 1,
++    em_sta_timer_type_steer_opp,
++} em_sta_timer_type_t;
++
+ typedef struct {
+     mac_address_t   id;
+     mac_address_t   bssid;
+@@ -2471,13 +2476,9 @@ typedef struct {
+ 
+     wifi_BeaconReport_t beacon_reports[EM_MAX_BEACON_REPORTS_PER_SCAN];
+     em_link_report_t link_stats_report;
++    em_sta_timer_type_t sta_timer_active;
+ } em_sta_info_t;
+ 
+-typedef enum {
+-    em_sta_timer_type_disassoc,
+-    em_sta_timer_type_steer_opp,
+-} em_sta_timer_type_t;
+-
+ typedef struct {
+     em_sta_timer_type_t type;
+     mac_address_t       sta_mac;
+diff --git a/src/agent/dm_easy_mesh_agent.cpp b/src/agent/dm_easy_mesh_agent.cpp
+index de9c1ea..3884f8e 100644
+--- a/src/agent/dm_easy_mesh_agent.cpp
++++ b/src/agent/dm_easy_mesh_agent.cpp
+@@ -770,7 +770,7 @@ int dm_easy_mesh_agent_t::analyze_btm_request_action_frame(em_bus_event_t *evt,
+     } else {
+         steer_req = reinterpret_cast<em_steering_req_t *>(&evt->u.raw_buff);
+     }
+-    disassoc_timer = (is_profile2 ? ntohs(steer_req_p2->btm_dissoc_timer) : ntohs(steer_req->btm_dissoc_timer));
++    disassoc_timer = (is_profile2 ? ntohs(steer_req_p2->btm_dissoc_timer) : ntohs(steer_req->btm_dissoc_timer))/100;
+ 
+     int num_candidates = is_profile2 ? steer_req_p2->target_bssid_list_count : 1;
+     len = sizeof(ieeeframe->u.action.category) + sizeof(ieeeframe->u.action.u.bss_tm_req)
+@@ -817,7 +817,7 @@ int dm_easy_mesh_agent_t::analyze_btm_request_action_frame(em_bus_event_t *evt,
+ 
+     ieeeframe->u.action.category = WLAN_ACTION_WNM;
+     ieeeframe->u.action.u.bss_tm_req.action = WLAN_WNM_BTM_REQUEST;
+-    ieeeframe->u.action.u.bss_tm_req.dialog_token = 1;
++    ieeeframe->u.action.u.bss_tm_req.dialog_token =  (unsigned short)(dm->dialog_token & 0xff);
+ 
+     em_80211_btm_req_reqmode_t req_mode;
+     req_mode.pref_candidate_list_inc = EM_BSS_TRANS_PREFER_CAND_LIST_INC;
+@@ -1050,9 +1050,13 @@ int dm_easy_mesh_agent_t::analyze_btm_response_action_frame(em_bus_event_t *evt,
+     em_steering_btm_rprt_t btm;
+     mac_addr_str_t mac_str;
+     struct ieee80211_mgmt *btm_frame = (struct ieee80211_mgmt *)&evt->u.raw_buff;
+-
+     em_cmd_btm_report_params_t  btm_report_param;
+ 
++    if(btm_frame->u.action.u.bss_tm_resp.dialog_token <= dialog_token) {
++        em_printfout("%s:%d BTM Response dialog token does not match with expected dialog token", __func__, __LINE__);
++        return 0;
++    }
++
+     memset(&btm_report_param, 0, sizeof(em_cmd_btm_report_params_t));
+     memcpy(btm_report_param.source, btm_frame->bssid, sizeof(mac_addr_t));
+     memcpy(btm_report_param.sta_mac, btm_frame->sa, sizeof(mac_addr_t));
+@@ -1061,6 +1065,7 @@ int dm_easy_mesh_agent_t::analyze_btm_response_action_frame(em_bus_event_t *evt,
+     // Per IEEE 802.11-2020: Target BSSID is only present in variable[] when status_code == 0
+     if (btm_report_param.status_code == BTM_STATUS_ACCEPT) {
+         memcpy(btm_report_param.target, &btm_frame->u.action.u.bss_tm_resp.variable, sizeof(mac_addr_t));
++        em_printfout("%s:%d BTM Response accepted for STA %s\n", __func__, __LINE__, util::mac_to_string(btm_report_param.sta_mac).c_str());
+     }
+ 
+     pcmd[num] = new em_cmd_btm_report_t(btm_report_param);
+diff --git a/src/agent/em_agent.cpp b/src/agent/em_agent.cpp
+index 90fd14f..055214c 100644
+--- a/src/agent/em_agent.cpp
++++ b/src/agent/em_agent.cpp
+@@ -383,6 +383,7 @@ void em_agent_t::handle_btm_request_action_frame(em_bus_event_t *evt)
+        printf("descriptor is null");
+     }
+ 
++    m_data_model.dialog_token++;
+     for(int i = 0; i < EM_MAX_BTM_REQ_COUNT; i++) {
+         if(al_node != NULL) {
+             state = al_node->get_state();
+@@ -915,6 +916,7 @@ void em_agent_t::add_sta_timer(em_sta_timer_t *sta_timer_params)
+ void em_agent_t::remove_sta_timer(unsigned int idx)
+ {
+     unsigned int sta_timer_count = m_data_model.m_sta_timer_count, last_entry_idx = m_data_model.m_sta_timer_count - 1;
++    em_sta_info_t *sta_info = m_data_model.get_sta_info(m_data_model.m_sta_timers[idx]->sta_mac);
+     if (sta_timer_count == 0 || idx >= sta_timer_count) {
+         em_printfout("Invalid index for removing sta timer: %u\n", idx);
+         return;
+@@ -926,6 +928,10 @@ void em_agent_t::remove_sta_timer(unsigned int idx)
+         m_data_model.m_sta_timers[idx]  = tmp_sta_entry;
+     }
+ 
++    if(sta_info != NULL) {
++        em_printfout("Removed timer type %d for STA %s\n", m_data_model.m_sta_timers[idx]->type, util::mac_to_string(m_data_model.m_sta_timers[idx]->sta_mac).c_str());
++        sta_info->sta_timer_active = 0;
++    }
+     free(m_data_model.m_sta_timers[last_entry_idx]);
+     m_data_model.m_sta_timers[last_entry_idx] = NULL;
+ 
+@@ -947,7 +953,7 @@ void em_agent_t::cancel_sta_timer(em_sta_timer_type_t type, mac_address_t sta_ma
+ {
+     for (int i = (int)m_data_model.m_sta_timer_count - 1; i >= 0; i--) {
+         em_sta_timer_t *sta_timer = m_data_model.m_sta_timers[i];
+-        if (sta_timer->type == type && memcmp(sta_timer->sta_mac, sta_mac, sizeof(mac_address_t)) == 0) {
++        if ((sta_timer->type & type) && memcmp(sta_timer->sta_mac, sta_mac, sizeof(mac_address_t)) == 0) {
+             em_printfout("Cancelled timer type %d for STA %s\n", type, util::mac_to_string(sta_mac).c_str());
+             remove_sta_timer((unsigned int)i);
+             return;
+@@ -1568,6 +1574,10 @@ int em_agent_t::mgmt_action_frame_cb(char *event_name, bus_data_prop_t *data, vo
+         switch (mgmt_frame->u.action.u.bss_tm_resp.action) {
+             case WLAN_WNM_BTM_RESPONSE:
+                 g_agent.io_process(em_bus_event_type_btm_response, mgmt_frame_data, mgmt_hdr_len);
++                if(mgmt_frame->u.action.u.bss_tm_resp.status_code == BTM_STATUS_ACCEPT) {
++                    em_printfout("%s:%d BTM Response accepted for STA %s, cancelling timers\n", __func__, __LINE__, util::mac_to_string(mgmt_frame->sa).c_str());
++                    cancel_sta_timer(em_sta_timer_type_disassoc | em_sta_timer_type_steer_opp, mgmt_frame->sa);
++                }
+                 return 1;
+ 
+             case WLAN_WNM_BTM_QUERY:
+diff --git a/src/em/steering/em_steering.cpp b/src/em/steering/em_steering.cpp
+index dc6b72f..b7fb514 100644
+--- a/src/em/steering/em_steering.cpp
++++ b/src/em/steering/em_steering.cpp
+@@ -901,17 +901,27 @@ int em_steering_t::handle_client_steering_req(unsigned char *buff, unsigned int
+     if (req_mode == 0x01 && disassoc_imminent && disassoc_timer > 0) {
+         em_sta_timer_t start_disassoc_timer_params;
+ 
++        if(sta_info->sta_timer_active == em_sta_timer_type_disassoc) {
++            em_printfout("%s:%d Disassoc timer already active for STA %s\n", __func__, __LINE__, util::mac_to_string(sta_info->id).c_str());
++            return 0;
++        }
+         memset(&start_disassoc_timer_params, 0, sizeof(start_disassoc_timer_params));
+         start_disassoc_timer_params.type = em_sta_timer_type_disassoc;
+         memcpy(start_disassoc_timer_params.sta_mac, sta_info->id, sizeof(mac_address_t));
+         memcpy(start_disassoc_timer_params.source_bssid, source_bssid, sizeof(bssid_t));
+-        start_disassoc_timer_params.duration_ms = (unsigned int)(disassoc_timer * 102);
++        start_disassoc_timer_params.duration_ms = (unsigned int)(disassoc_timer * 1.024);
+ 
+         get_mgr()->io_process(em_bus_event_type_start_sta_timer, reinterpret_cast<unsigned char *>(&start_disassoc_timer_params), sizeof(em_sta_timer_t));
++        sta_info->sta_timer_active = em_sta_timer_type_disassoc;
++
+         em_printfout("Queued disassoc timer: %u sec for STA %s \n", disassoc_timer, util::mac_to_string(sta_info->id).c_str());
+     } else if ((req_mode & 0x01) == em_steering_opportunity_t && steer_opp_win > 0) {
+         em_sta_timer_t start_steer_opp_timer_params;
+ 
++        if(sta_info->sta_timer_active == em_sta_timer_type_steer_opp || sta_info->sta_timer_active == em_sta_timer_type_disassoc) {
++            em_printfout("%s:%d Timer already active for STA %s type:%d\n", __func__, __LINE__, util::mac_to_string(sta_info->id).c_str(), sta_info->sta_timer_active);
++            return 0;
++        }
+         memset(&start_steer_opp_timer_params, 0, sizeof(start_steer_opp_timer_params));
+         start_steer_opp_timer_params.type = em_sta_timer_type_steer_opp;
+         memcpy(start_steer_opp_timer_params.sta_mac, sta_info->id, sizeof(mac_address_t));
+@@ -920,6 +930,7 @@ int em_steering_t::handle_client_steering_req(unsigned char *buff, unsigned int
+ 
+         em_printfout("Starting steer opportunity window: %u sec for STA %s\n", steer_opp_win, util::mac_to_string(sta_info->id).c_str());
+         get_mgr()->io_process(em_bus_event_type_start_sta_timer, reinterpret_cast<unsigned char *>(&start_steer_opp_timer_params), sizeof(em_sta_timer_t));
++        sta_info->sta_timer_active = em_sta_timer_type_steer_opp;
+     }
+ 
+     return 0;

@@ -901,17 +901,27 @@ int em_steering_t::handle_client_steering_req(unsigned char *buff, unsigned int 
     if (req_mode == 0x01 && disassoc_imminent && disassoc_timer > 0) {
         em_sta_timer_t start_disassoc_timer_params;
 
+        if(sta_info->sta_timer_active == em_sta_timer_type_disassoc) {
+            em_printfout("%s:%d Disassoc timer already active for STA %s\n", __func__, __LINE__, util::mac_to_string(sta_info->id).c_str());
+            return 0;
+        }
         memset(&start_disassoc_timer_params, 0, sizeof(start_disassoc_timer_params));
         start_disassoc_timer_params.type = em_sta_timer_type_disassoc;
         memcpy(start_disassoc_timer_params.sta_mac, sta_info->id, sizeof(mac_address_t));
         memcpy(start_disassoc_timer_params.source_bssid, source_bssid, sizeof(bssid_t));
-        start_disassoc_timer_params.duration_ms = (unsigned int)(disassoc_timer * 102);
+        start_disassoc_timer_params.duration_ms = (unsigned int)(disassoc_timer * 1.024);
 
         get_mgr()->io_process(em_bus_event_type_start_sta_timer, reinterpret_cast<unsigned char *>(&start_disassoc_timer_params), sizeof(em_sta_timer_t));
+        sta_info->sta_timer_active = em_sta_timer_type_disassoc;
+
         em_printfout("Queued disassoc timer: %u sec for STA %s \n", disassoc_timer, util::mac_to_string(sta_info->id).c_str());
     } else if ((req_mode & 0x01) == em_steering_opportunity_t && steer_opp_win > 0) {
         em_sta_timer_t start_steer_opp_timer_params;
 
+        if(sta_info->sta_timer_active == em_sta_timer_type_steer_opp || sta_info->sta_timer_active == em_sta_timer_type_disassoc) {
+            em_printfout("%s:%d Timer already active for STA %s type:%d\n", __func__, __LINE__, util::mac_to_string(sta_info->id).c_str(), sta_info->sta_timer_active);
+            return 0;
+        }
         memset(&start_steer_opp_timer_params, 0, sizeof(start_steer_opp_timer_params));
         start_steer_opp_timer_params.type = em_sta_timer_type_steer_opp;
         memcpy(start_steer_opp_timer_params.sta_mac, sta_info->id, sizeof(mac_address_t));
@@ -920,6 +930,7 @@ int em_steering_t::handle_client_steering_req(unsigned char *buff, unsigned int 
 
         em_printfout("Starting steer opportunity window: %u sec for STA %s\n", steer_opp_win, util::mac_to_string(sta_info->id).c_str());
         get_mgr()->io_process(em_bus_event_type_start_sta_timer, reinterpret_cast<unsigned char *>(&start_steer_opp_timer_params), sizeof(em_sta_timer_t));
+        sta_info->sta_timer_active = em_sta_timer_type_steer_opp;
     }
 
     return 0;

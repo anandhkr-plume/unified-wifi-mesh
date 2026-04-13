@@ -383,6 +383,7 @@ void em_agent_t::handle_btm_request_action_frame(em_bus_event_t *evt)
        printf("descriptor is null");
     }
 
+    m_data_model.dialog_token++;
     for(int i = 0; i < EM_MAX_BTM_REQ_COUNT; i++) {
         if(al_node != NULL) {
             state = al_node->get_state();
@@ -915,9 +916,16 @@ void em_agent_t::add_sta_timer(em_sta_timer_t *sta_timer_params)
 void em_agent_t::remove_sta_timer(unsigned int idx)
 {
     unsigned int sta_timer_count = m_data_model.m_sta_timer_count, last_entry_idx = m_data_model.m_sta_timer_count - 1;
+    em_sta_info_t *sta_info = NLL;
     if (sta_timer_count == 0 || idx >= sta_timer_count) {
         em_printfout("Invalid index for removing sta timer: %u\n", idx);
         return;
+    }
+
+    sta_info = m_data_model.get_sta_info(m_data_model.m_sta_timers[idx]->sta_mac);
+    if(sta_info != NULL) {
+        em_printfout("Removed timer type %d for STA %s\n", m_data_model.m_sta_timers[idx]->type, util::mac_to_string(m_data_model.m_sta_timers[idx]->sta_mac).c_str());
+        sta_info->sta_timer_active = 0;
     }
 
     if(idx != last_entry_idx) {
@@ -947,7 +955,7 @@ void em_agent_t::cancel_sta_timer(em_sta_timer_type_t type, mac_address_t sta_ma
 {
     for (int i = (int)m_data_model.m_sta_timer_count - 1; i >= 0; i--) {
         em_sta_timer_t *sta_timer = m_data_model.m_sta_timers[i];
-        if (sta_timer->type == type && memcmp(sta_timer->sta_mac, sta_mac, sizeof(mac_address_t)) == 0) {
+        if ((sta_timer->type & type) && memcmp(sta_timer->sta_mac, sta_mac, sizeof(mac_address_t)) == 0) {
             em_printfout("Cancelled timer type %d for STA %s\n", type, util::mac_to_string(sta_mac).c_str());
             remove_sta_timer((unsigned int)i);
             return;
@@ -1568,6 +1576,10 @@ int em_agent_t::mgmt_action_frame_cb(char *event_name, bus_data_prop_t *data, vo
         switch (mgmt_frame->u.action.u.bss_tm_resp.action) {
             case WLAN_WNM_BTM_RESPONSE:
                 g_agent.io_process(em_bus_event_type_btm_response, mgmt_frame_data, mgmt_hdr_len);
+                if(mgmt_frame->u.action.u.bss_tm_resp.status_code == BTM_STATUS_ACCEPT) {
+                    em_printfout("%s:%d BTM Response accepted for STA %s, cancelling timers\n", __func__, __LINE__, util::mac_to_string(mgmt_frame->sa).c_str());
+                    cancel_sta_timer(em_sta_timer_type_disassoc | em_sta_timer_type_steer_opp, mgmt_frame->sa);
+                }
                 return 1;
 
             case WLAN_WNM_BTM_QUERY:

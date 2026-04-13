@@ -770,7 +770,7 @@ int dm_easy_mesh_agent_t::analyze_btm_request_action_frame(em_bus_event_t *evt, 
     } else {
         steer_req = reinterpret_cast<em_steering_req_t *>(&evt->u.raw_buff);
     }
-    disassoc_timer = (is_profile2 ? ntohs(steer_req_p2->btm_dissoc_timer) : ntohs(steer_req->btm_dissoc_timer));
+    disassoc_timer = (is_profile2 ? ntohs(steer_req_p2->btm_dissoc_timer) : ntohs(steer_req->btm_dissoc_timer))/100;
 
     int num_candidates = is_profile2 ? steer_req_p2->target_bssid_list_count : 1;
     len = sizeof(ieeeframe->u.action.category) + sizeof(ieeeframe->u.action.u.bss_tm_req)
@@ -817,7 +817,7 @@ int dm_easy_mesh_agent_t::analyze_btm_request_action_frame(em_bus_event_t *evt, 
 
     ieeeframe->u.action.category = WLAN_ACTION_WNM;
     ieeeframe->u.action.u.bss_tm_req.action = WLAN_WNM_BTM_REQUEST;
-    ieeeframe->u.action.u.bss_tm_req.dialog_token = 1;
+    ieeeframe->u.action.u.bss_tm_req.dialog_token =  (unsigned short)(dm->dialog_token & 0xff);
 
     em_80211_btm_req_reqmode_t req_mode;
     req_mode.pref_candidate_list_inc = EM_BSS_TRANS_PREFER_CAND_LIST_INC;
@@ -1050,8 +1050,12 @@ int dm_easy_mesh_agent_t::analyze_btm_response_action_frame(em_bus_event_t *evt,
     em_steering_btm_rprt_t btm;
     mac_addr_str_t mac_str;
     struct ieee80211_mgmt *btm_frame = (struct ieee80211_mgmt *)&evt->u.raw_buff;
-
     em_cmd_btm_report_params_t  btm_report_param;
+
+    if(btm_frame->u.action.u.bss_tm_resp.dialog_token <= dialog_token) {
+        em_printfout("%s:%d BTM Response dialog token does not match with expected dialog token", __func__, __LINE__);
+        return 0;
+    }
 
     memset(&btm_report_param, 0, sizeof(em_cmd_btm_report_params_t));
     memcpy(btm_report_param.source, btm_frame->bssid, sizeof(mac_addr_t));
@@ -1061,6 +1065,7 @@ int dm_easy_mesh_agent_t::analyze_btm_response_action_frame(em_bus_event_t *evt,
     // Per IEEE 802.11-2020: Target BSSID is only present in variable[] when status_code == 0
     if (btm_report_param.status_code == BTM_STATUS_ACCEPT) {
         memcpy(btm_report_param.target, &btm_frame->u.action.u.bss_tm_resp.variable, sizeof(mac_addr_t));
+        em_printfout("%s:%d BTM Response accepted for STA %s\n", __func__, __LINE__, util::mac_to_string(btm_report_param.sta_mac).c_str());
     }
 
     pcmd[num] = new em_cmd_btm_report_t(btm_report_param);
