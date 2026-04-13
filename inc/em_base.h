@@ -2419,7 +2419,8 @@ typedef struct {
 } em_disassoc_timer_t;
 
 typedef enum {
-    em_sta_timer_type_disassoc = 1,
+    em_sta_timer_type_none,
+    em_sta_timer_type_disassoc,
     em_sta_timer_type_steer_opp,
 } em_sta_timer_type_t;
 

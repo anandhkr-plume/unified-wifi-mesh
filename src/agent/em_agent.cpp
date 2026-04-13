@@ -922,10 +922,10 @@ void em_agent_t::remove_sta_timer(unsigned int idx)
         return;
     }
 
-    sta_info = m_data_model.get_sta_info(m_data_model.m_sta_timers[idx]->sta_mac);
+    sta_info = m_data_model.find_sta(m_data_model.m_sta_timers[idx]->sta_mac, m_data_model.m_sta_timers[idx]->source_bssid);
     if(sta_info != NULL) {
         em_printfout("Removed timer type %d for STA %s\n", m_data_model.m_sta_timers[idx]->type, util::mac_to_string(m_data_model.m_sta_timers[idx]->sta_mac).c_str());
-        sta_info->sta_timer_active = 0;
+        sta_info->sta_timer_active = em_sta_timer_type_none;
     }
 
     if(idx != last_entry_idx) {
@@ -953,11 +953,18 @@ void em_agent_t::remove_sta_timer(unsigned int idx)
 
 void em_agent_t::cancel_sta_timer(em_sta_timer_type_t type, mac_address_t sta_mac)
 {
+    em_sta_info_t *sta_info = NULL;
+    sta_info = m_data_model.find_sta(m_data_model.m_sta_timers[idx]->sta_mac, m_data_model.m_sta_timers[idx]->source_bssid);
+
     for (int i = (int)m_data_model.m_sta_timer_count - 1; i >= 0; i--) {
         em_sta_timer_t *sta_timer = m_data_model.m_sta_timers[i];
         if ((sta_timer->type & type) && memcmp(sta_timer->sta_mac, sta_mac, sizeof(mac_address_t)) == 0) {
             em_printfout("Cancelled timer type %d for STA %s\n", type, util::mac_to_string(sta_mac).c_str());
             remove_sta_timer((unsigned int)i);
+            if((sta_info != NULL) && (sta_info->sta_timer_active == (em_sta_timer_type_disassoc | em_sta_timer_type_steer_opp))) {
+                sta_info->sta_timer_active -= sta_timer->type;
+                continue;
+            }
             return;
         }
     }
@@ -1578,7 +1585,7 @@ int em_agent_t::mgmt_action_frame_cb(char *event_name, bus_data_prop_t *data, vo
                 g_agent.io_process(em_bus_event_type_btm_response, mgmt_frame_data, mgmt_hdr_len);
                 if(mgmt_frame->u.action.u.bss_tm_resp.status_code == BTM_STATUS_ACCEPT) {
                     em_printfout("%s:%d BTM Response accepted for STA %s, cancelling timers\n", __func__, __LINE__, util::mac_to_string(mgmt_frame->sa).c_str());
-                    cancel_sta_timer(em_sta_timer_type_disassoc | em_sta_timer_type_steer_opp, mgmt_frame->sa);
+                    g_agent.cancel_sta_timer(em_sta_timer_type_disassoc | em_sta_timer_type_steer_opp, mgmt_frame->sa);
                 }
                 return 1;
 
