@@ -6136,17 +6136,28 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
     }
 
     em_printfout("%s:%d Get sta info from subdoc\n", __func__, __LINE__);
-    cJSON_ArrayForEach(dev_item, device_list_obj) {
+    for (int d_idx = cJSON_GetArraySize(device_list_obj) - 1; d_idx >= 0; d_idx--) {
+        dev_item = cJSON_GetArrayItem(device_list_obj, d_idx);
         cJSON *radio_list = cJSON_GetObjectItem(dev_item, "RadioList");
-        if (!cJSON_IsArray(radio_list)) continue;
-        cJSON *radio_item = NULL;
-        cJSON_ArrayForEach(radio_item, radio_list) {
+        if (!cJSON_IsArray(radio_list))
+            continue;
+
+        for (int r_idx = cJSON_GetArraySize(radio_list) - 1; r_idx >= 0; r_idx--) {
+            cJSON *radio_item = cJSON_GetArrayItem(radio_list, r_idx);
             cJSON *bss_list = cJSON_GetObjectItem(radio_item, "BSSList");
-            if (!cJSON_IsArray(bss_list)) continue;
-            cJSON *bss_item = NULL;
-            cJSON_ArrayForEach(bss_item, bss_list) {
+            if (!cJSON_IsArray(bss_list))
+                continue;
+
+            for (int b_idx = cJSON_GetArraySize(bss_list) - 1; b_idx >= 0; b_idx--) {
+                cJSON *bss_item = cJSON_GetArrayItem(bss_list, b_idx);
                 cJSON *sta_list = cJSON_GetObjectItem(bss_item, "STAList");
-                if (!cJSON_IsArray(sta_list)) continue;
+
+                if (!cJSON_IsArray(sta_list)) {
+                    if (found_sta_entry == NULL)
+                        cJSON_DeleteItemFromArray(bss_list, b_idx);
+                    continue;
+                }
+
                 cJSON *sta_json_found = tr_181_t::find_target_sta(sta_list, sta_mac);
                 if (sta_json_found != NULL && found_sta_entry == NULL) {
                     char *sta_printf_str = cJSON_Print(sta_json_found);
@@ -6158,11 +6169,19 @@ bus_error_t dm_easy_mesh_ctrl_t::ctrl_cmd_client_steer_inner(const char *method_
                     detached_sta_entry = cJSON_DetachItemViaPointer(sta_list, found_sta_entry);
                     cJSON_AddItemToArray(found_sta_entry_array, detached_sta_entry);
                     cJSON_ReplaceItemInObject(bss_item, "STAList", found_sta_entry_array);
+                } else if (found_sta_entry == NULL) {
+                    cJSON_DeleteItemFromArray(bss_list, b_idx);
                 } else {
                     cJSON_ReplaceItemInObject(bss_item, "STAList", cJSON_CreateArray());
                 }
             }
+
+            if (cJSON_GetArraySize(bss_list) == 0)
+                cJSON_DeleteItemFromArray(radio_list, r_idx);
         }
+
+        if (cJSON_GetArraySize(radio_list) == 0)
+            cJSON_DeleteItemFromArray(device_list_obj, d_idx);
     }
 
     if (found_sta_entry == NULL) {
