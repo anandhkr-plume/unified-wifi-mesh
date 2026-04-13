@@ -956,10 +956,12 @@ void em_agent_t::remove_sta_timer(unsigned int idx)
 void em_agent_t::cancel_sta_timer(em_sta_timer_type_t type, mac_address_t sta_mac)
 {
     em_sta_info_t *sta_info = NULL;
+    dm_sta_t *sta = NULL;
 
     for (int idx = (int)m_data_model.m_sta_timer_count - 1; idx >= 0; idx--) {
         em_sta_timer_t *sta_timer = m_data_model.m_sta_timers[idx];
-        sta_info = m_data_model.find_sta(m_data_model.m_sta_timers[idx]->sta_mac, m_data_model.m_sta_timers[idx]->source_bssid);
+        sta = m_data_model.find_sta(m_data_model.m_sta_timers[idx]->sta_mac, m_data_model.m_sta_timers[idx]->source_bssid);
+        sta_info = &sta->m_sta_info;
         if ((sta_timer->type & type) && memcmp(sta_timer->sta_mac, sta_mac, sizeof(mac_address_t)) == 0) {
             em_printfout("Cancelled timer type %d for STA %s\n", type, util::mac_to_string(sta_mac).c_str());
             remove_sta_timer((unsigned int)idx);
