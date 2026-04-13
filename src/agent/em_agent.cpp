@@ -916,7 +916,7 @@ void em_agent_t::add_sta_timer(em_sta_timer_t *sta_timer_params)
 void em_agent_t::remove_sta_timer(unsigned int idx)
 {
     unsigned int sta_timer_count = m_data_model.m_sta_timer_count, last_entry_idx = m_data_model.m_sta_timer_count - 1;
-    em_sta_info_t *sta_info = NLL;
+    em_sta_info_t *sta_info = NULL;
     if (sta_timer_count == 0 || idx >= sta_timer_count) {
         em_printfout("Invalid index for removing sta timer: %u\n", idx);
         return;

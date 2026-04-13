@@ -2408,16 +2408,6 @@ typedef struct {
 	em_cac_comp_rprt_pair_t	detected_pairs[EM_MAX_CAC_METHODS];
 } em_cac_comp_info_t;
 
-typedef struct {
-    bool            active;
-    unsigned int    remaining_ticks;
-} em_steering_opportunity_timer_t;
-
-typedef struct {
-    bool            active;
-    unsigned int    remaining_ticks;
-} em_disassoc_timer_t;
-
 typedef enum {
     em_sta_timer_type_none,
     em_sta_timer_type_disassoc,
