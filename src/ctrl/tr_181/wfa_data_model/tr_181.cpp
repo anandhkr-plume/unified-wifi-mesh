@@ -336,17 +336,24 @@ int tr_181_t::wfa_bus_register_namespace(char *full_namespace, bus_element_type_
 
     if (element_type == bus_element_type_table) {
         uint32_t num_of_table_rows = 0;
-        wifi_bus_desc_t *desc = get_bus_descriptor();
         if (wifi_elem_num_of_table_row(full_namespace, &num_of_table_rows) == bus_error_success) {
             dataElements.num_of_table_row = num_of_table_rows;
         } else {
             dataElements.num_of_table_row = static_cast<uint32_t>(num_of_rows);
         }
-        
+    }
+
+    uint32_t num_elements = 1;
+    bus_error_t rc = get_bus_descriptor()->bus_reg_data_element_fn(&m_bus_handle, &dataElements, num_elements);
+    if (rc != bus_error_success) {
+        em_printfout("bus: bus_regDataElements failed:%s\n", full_namespace);
+        return RETURN_ERR;
+    }
+    em_printfout("bus: bus_regDataElements success:%s", full_namespace);
+
+    if (element_type == bus_element_type_table && dataElements.num_of_table_row > 0) {
+        wifi_bus_desc_t *desc = get_bus_descriptor();
         if (desc != NULL && desc->bus_reg_table_row_fn != NULL) {
-            // full_namespace is e.g. "Device.WiFi.DataElements.Network.SSID.{i}"
-            // bus_reg_table_row_fn expects the base path ending with ".",
-            // e.g. "Device.WiFi.DataElements.Network.SSID."
             std::string table_base(full_namespace);
             const std::string inst_suffix = "{i}";
             if (table_base.size() >= inst_suffix.size() &&
@@ -362,17 +369,10 @@ int tr_181_t::wfa_bus_register_namespace(char *full_namespace, bus_element_type_
                         table_base.c_str(), i, row_rc);
                 }
             }
-            em_printfout("bus: registered %d table rows for %s", num_of_rows, full_namespace);
+            em_printfout("bus: registered %u table rows for %s",
+                dataElements.num_of_table_row, full_namespace);
         }
     }
-
-    uint32_t num_elements = 1;
-    bus_error_t rc = get_bus_descriptor()->bus_reg_data_element_fn(&m_bus_handle, &dataElements, num_elements);
-    if (rc != bus_error_success) {
-        em_printfout("bus: bus_regDataElements failed:%s\n", full_namespace);
-        return RETURN_ERR;
-    }
-    em_printfout("bus: bus_regDataElements success:%s", full_namespace);
 
     return RETURN_OK;
 }
@@ -1008,24 +1008,42 @@ bus_error_t tr_181_t::policy_config(char *event_name, raw_data_t *p_data, bus_us
 
 bus_error_t tr_181_t::wifi_elem_num_of_table_row(char* event_name, uint32_t* table_row_size)
 {
-    em_ctrl_t *em_ctrl = em_ctrl_t::get_em_ctrl_instance();
-    dm_easy_mesh_ctrl_t *dm_ctrl;
+    if (table_row_size == NULL) {
+        return bus_error_invalid_input;
+    }
 
-    if (em_ctrl == NULL || dm_ctrl == NULL) {
+    *table_row_size = 0;
+
+    em_ctrl_t *em_ctrl = em_ctrl_t::get_em_ctrl_instance();
+    if (em_ctrl == NULL) {
+        return bus_error_success;
+    }
+    dm_easy_mesh_ctrl_t *dm_ctrl = em_ctrl->get_dm_ctrl();
+    if (dm_ctrl == NULL) {
         return bus_error_success;
     }
 
-    dm_ctrl = em_ctrl->get_dm_ctrl();
+    dm_easy_mesh_t *first_dm = dm_ctrl->get_first_dm();
+    if (first_dm == NULL) {
+        em_printfout("%s:%d: dm is NULL \n", __func__, __LINE__);
+        return bus_error_success;
+    }
+
+    unsigned int dev_count = 0;
+    dm_easy_mesh_t *dm = first_dm;
+    while (dm != NULL) {
+        dev_count++;
+        dm = dm_ctrl->get_next_dm(dm);
+    }
+
     if (strcmp(event_name, DE_SSID_TABLE) == 0) {
-        *table_row_size = dm_ctrl->get_num_network_ssid();
+        *table_row_size = first_dm->get_num_network_ssid();
     } else if (strcmp(event_name, DE_DEVICE_TABLE) == 0) {
-        *table_row_size = dm_ctrl->get_num_devices();
+        *table_row_size = dev_count;
     } else if (strcmp(event_name, DE_RADIO_TABLE) == 0) {
-        *table_row_size = dm_ctrl->get_num_radios();
+        *table_row_size = first_dm->get_num_radios();
     } else if (strcmp(event_name, DE_BSS_TABLE) == 0) {
-        *table_row_size = dm_ctrl->get_num_bss();
-    } else {
-        *table_row_size = 0;
+        *table_row_size = first_dm->get_num_bss();
     }
 
     return bus_error_success;
