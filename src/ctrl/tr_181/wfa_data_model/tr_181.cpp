@@ -1009,14 +1009,13 @@ bus_error_t tr_181_t::policy_config(char *event_name, raw_data_t *p_data, bus_us
 bus_error_t tr_181_t::wifi_elem_num_of_table_row(char* event_name, uint32_t* table_row_size)
 {
     em_ctrl_t *em_ctrl = em_ctrl_t::get_em_ctrl_instance();
-    if (em_ctrl == NULL) {
-        return bus_error_success;
-    }
-    dm_easy_mesh_ctrl_t *dm_ctrl = em_ctrl->get_dm_ctrl();
-    if (dm_ctrl == NULL) {
+    dm_easy_mesh_ctrl_t *dm_ctrl;
+
+    if (em_ctrl == NULL || dm_ctrl == NULL) {
         return bus_error_success;
     }
 
+    dm_ctrl = em_ctrl->get_dm_ctrl();
     if (strcmp(event_name, DE_SSID_TABLE) == 0) {
         *table_row_size = dm_ctrl->get_num_network_ssid();
     } else if (strcmp(event_name, DE_DEVICE_TABLE) == 0) {
@@ -1025,16 +1024,8 @@ bus_error_t tr_181_t::wifi_elem_num_of_table_row(char* event_name, uint32_t* tab
         *table_row_size = dm_ctrl->get_num_radios();
     } else if (strcmp(event_name, DE_BSS_TABLE) == 0) {
         *table_row_size = dm_ctrl->get_num_bss();
-    } else if (strcmp(event_name, DE_STA_TABLE) == 0) {
-        *table_row_size = dm_ctrl->get_num_sta();
-    } else if (strcmp(event_name, DE_APMLD_TABLE) == 0) {
-        *table_row_size = dm_ctrl->get_num_apmld();
-    } else if (strcmp(event_name, DE_STAMLD_TABLE) == 0) {
-        *table_row_size = dm_ctrl->get_num_stamld();
-    } else if (strcmp(event_name, DE_BSTAMLD_TABLE) == 0) {
-        *table_row_size = dm_ctrl->get_num_bstamld();
-    } else if (strcmp(event_name, DE_AFFSTA_TABLE) == 0) {
-        *table_row_size = dm_ctrl->get_num_affsta();
+    } else {
+        *table_row_size = 0;
     }
 
     return bus_error_success;
