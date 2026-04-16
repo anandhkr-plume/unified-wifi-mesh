@@ -335,11 +335,34 @@ int tr_181_t::wfa_bus_register_namespace(char *full_namespace, bus_element_type_
     dataElements.data_model_prop = data_model_value;
 
     if (element_type == bus_element_type_table) {
-        uint32_t num_of_table_rows;
+        uint32_t num_of_table_rows = 0;
+        wifi_bus_desc_t *desc = get_bus_descriptor();
         if (wifi_elem_num_of_table_row(full_namespace, &num_of_table_rows) == bus_error_success) {
             dataElements.num_of_table_row = num_of_table_rows;
         } else {
             dataElements.num_of_table_row = static_cast<uint32_t>(num_of_rows);
+        }
+        
+        if (desc != NULL && desc->bus_reg_table_row_fn != NULL) {
+            // full_namespace is e.g. "Device.WiFi.DataElements.Network.SSID.{i}"
+            // bus_reg_table_row_fn expects the base path ending with ".",
+            // e.g. "Device.WiFi.DataElements.Network.SSID."
+            std::string table_base(full_namespace);
+            const std::string inst_suffix = "{i}";
+            if (table_base.size() >= inst_suffix.size() &&
+                table_base.compare(table_base.size() - inst_suffix.size(),
+                                   inst_suffix.size(), inst_suffix) == 0) {
+                table_base.erase(table_base.size() - inst_suffix.size());
+            }
+            for (uint32_t i = 1; i <= dataElements.num_of_table_row; i++) {
+                bus_error_t row_rc = desc->bus_reg_table_row_fn(
+                    &m_bus_handle, table_base.c_str(), i, NULL);
+                if (row_rc != bus_error_success) {
+                    em_printfout("bus: bus_reg_table_row_fn failed for %s row %u, rc=%d",
+                        table_base.c_str(), i, row_rc);
+                }
+            }
+            em_printfout("bus: registered %d table rows for %s", num_of_rows, full_namespace);
         }
     }
 
@@ -985,9 +1008,33 @@ bus_error_t tr_181_t::policy_config(char *event_name, raw_data_t *p_data, bus_us
 
 bus_error_t tr_181_t::wifi_elem_num_of_table_row(char* event_name, uint32_t* table_row_size)
 {
-    // Return 0 rows for all tables for now
-    if (table_row_size != NULL) {
-        *table_row_size = 0;
+    em_ctrl_t *em_ctrl = em_ctrl_t::get_em_ctrl_instance();
+    if (em_ctrl == NULL) {
+        return bus_error_success;
+    }
+    dm_easy_mesh_ctrl_t *dm_ctrl = em_ctrl->get_dm_ctrl();
+    if (dm_ctrl == NULL) {
+        return bus_error_success;
+    }
+
+    if (strcmp(event_name, DE_SSID_TABLE) == 0) {
+        *table_row_size = dm_ctrl->get_num_network_ssid();
+    } else if (strcmp(event_name, DE_DEVICE_TABLE) == 0) {
+        *table_row_size = dm_ctrl->get_num_devices();
+    } else if (strcmp(event_name, DE_RADIO_TABLE) == 0) {
+        *table_row_size = dm_ctrl->get_num_radios();
+    } else if (strcmp(event_name, DE_BSS_TABLE) == 0) {
+        *table_row_size = dm_ctrl->get_num_bss();
+    } else if (strcmp(event_name, DE_STA_TABLE) == 0) {
+        *table_row_size = dm_ctrl->get_num_sta();
+    } else if (strcmp(event_name, DE_APMLD_TABLE) == 0) {
+        *table_row_size = dm_ctrl->get_num_apmld();
+    } else if (strcmp(event_name, DE_STAMLD_TABLE) == 0) {
+        *table_row_size = dm_ctrl->get_num_stamld();
+    } else if (strcmp(event_name, DE_BSTAMLD_TABLE) == 0) {
+        *table_row_size = dm_ctrl->get_num_bstamld();
+    } else if (strcmp(event_name, DE_AFFSTA_TABLE) == 0) {
+        *table_row_size = dm_ctrl->get_num_affsta();
     }
 
     return bus_error_success;

@@ -6301,7 +6301,6 @@ int dm_easy_mesh_ctrl_t::init(const char *data_model_path, em_mgr_t *mgr)
     m_nb_pipe_rd = pipefd[0];
     m_nb_pipe_wr = pipefd[1];
 
-    tr_181_t::init(this);
     rc = load_tables();
 
     //Database is empty and need to fill it, then load tables with data again
@@ -6318,6 +6317,7 @@ int dm_easy_mesh_ctrl_t::init(const char *data_model_path, em_mgr_t *mgr)
         printf("%s:%d: Load operation failed, err: %s\n", __func__, __LINE__, em_cmd_t::get_orch_op_str(static_cast<dm_orch_type_t> (rc)));
         return -1;
     }
+    tr_181_t::init(this);
 
     return 0;
 }
