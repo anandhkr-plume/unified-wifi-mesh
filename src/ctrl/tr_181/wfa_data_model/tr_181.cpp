@@ -26,6 +26,7 @@
 #include <map>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdlib.h>
 #include "tr_181.h"
 // #include "wfa_data_model_parser.h"
 // #include "wfa_data_model.h"
@@ -70,7 +71,7 @@ int tr_181_t::wfa_set_bus_callbackfunc_pointers(const char *full_namespace, bus_
         ELEMENT(DE_NETWORK_COLAGTID,      CALLBACK_GETTER(network_get)),
         ELEMENT(DE_NETWORK_DEVNOE,        CALLBACK_GETTER(network_get)),
         ELEMENT(DE_NETWORK_TIMESTAMP,     CALLBACK_GETTER(network_get)),
-        ELEMENT(DE_SSID_TABLE,            CALLBACK_GETTER(ssid_tget)),
+        ELEMENT(DE_SSID_TABLE,            CALLBACK_TABLE_GETTER(ssid_tget, ssid_table_add_row_handler, ssid_table_remove_row_handler)),
         ELEMENT(DE_SSID_SSID,             CALLBACK_GETTER(ssid_get)),
         ELEMENT(DE_SSID_BAND,             CALLBACK_GETTER(ssid_get)),
         ELEMENT(DE_SSID_ENABLE,           CALLBACK_GETTER(ssid_get)),
@@ -80,7 +81,7 @@ int tr_181_t::wfa_set_bus_callbackfunc_pointers(const char *full_namespace, bus_
         ELEMENT(DE_SSID_MFPCONFIG,        CALLBACK_GETTER(ssid_get)),
         ELEMENT(DE_SSID_MOBDOMAIN,        CALLBACK_GETTER(ssid_get)),
         ELEMENT(DE_SSID_HAULTYPE,         CALLBACK_GETTER(ssid_get)),
-        ELEMENT(DE_DEVICE_TABLE,          CALLBACK_GETTER(device_tget)),
+        ELEMENT(DE_DEVICE_TABLE,          CALLBACK_TABLE_GETTER(device_tget, device_table_add_row_handler, device_table_remove_row_handler)),
         ELEMENT(DE_DEVICE_ID,                     CALLBACK_GETTER(device_get)),
         ELEMENT(DE_DEVICE_MAPCAP,                 CALLBACK_GETTER(device_get)),
         ELEMENT(DE_DEVICE_COLLINT,                CALLBACK_GETTER(device_get)),
@@ -124,7 +125,7 @@ int tr_181_t::wfa_set_bus_callbackfunc_pointers(const char *full_namespace, bus_
         ELEMENT(DE_DEVICE_RADIONOE,               CALLBACK_GETTER(device_get)),
         ELEMENT(DE_DEVICE_CACSTATNOE,             CALLBACK_GETTER(device_get)),
         ELEMENT(DE_DEVICE_BHDOWNNOE,              CALLBACK_GETTER(device_get)),
-        ELEMENT(DE_RADIO_TABLE,            CALLBACK_GETTER(radio_tget)),
+        ELEMENT(DE_RADIO_TABLE,            CALLBACK_TABLE_GETTER(radio_tget, radio_table_add_row_handler, radio_table_remove_row_handler)),
         ELEMENT(DE_RADIO_ID,               CALLBACK_GETTER(radio_get)),
         ELEMENT(DE_RADIO_ENABLED,          CALLBACK_GETTER(radio_get)),
         ELEMENT(DE_RADIO_NOISE,            CALLBACK_GETTER(radio_get)),
@@ -173,7 +174,7 @@ int tr_181_t::wfa_set_bus_callbackfunc_pointers(const char *full_namespace, bus_
         ELEMENT(DE_CUROP_CLASS,            CALLBACK_GETTER(curops_get)),
         ELEMENT(DE_CUROP_CHANNEL,          CALLBACK_GETTER(curops_get)),
         ELEMENT(DE_CUROP_TXPOWER,          CALLBACK_GETTER(curops_get)),
-        ELEMENT(DE_BSS_TABLE,              CALLBACK_GETTER(bss_tget)),
+        ELEMENT(DE_BSS_TABLE,              CALLBACK_TABLE_GETTER(bss_tget, bss_table_add_row_handler, bss_table_remove_row_handler)),
         ELEMENT(DE_BSS_BSSID,              CALLBACK_GETTER(bss_get)),
         ELEMENT(DE_BSS_SSID,               CALLBACK_GETTER(bss_get)),
         ELEMENT(DE_BSS_ENABLED,            CALLBACK_GETTER(bss_get)),
@@ -334,16 +335,15 @@ int tr_181_t::wfa_bus_register_namespace(char *full_namespace, bus_element_type_
     dataElements.bus_speed       = slow_speed;
     dataElements.data_model_prop = data_model_value;
 
+    uint32_t num_of_table_rows = 0;
     if (element_type == bus_element_type_table) {
-        uint32_t num_of_table_rows;
-        if (wifi_elem_num_of_table_row(full_namespace, &num_of_table_rows) == bus_error_success) {
-            dataElements.num_of_table_row = num_of_table_rows;
-        } else {
-            dataElements.num_of_table_row = static_cast<uint32_t>(num_of_rows);
+        if (wifi_elem_num_of_table_row(full_namespace, &num_of_table_rows) != bus_error_success) {
+            num_of_table_rows = static_cast<uint32_t>(num_of_rows);
         }
     }
 
     uint32_t num_elements = 1;
+    dataElements.num_of_table_row = num_of_table_rows;
     bus_error_t rc = get_bus_descriptor()->bus_reg_data_element_fn(&m_bus_handle, &dataElements, num_elements);
     if (rc != bus_error_success) {
         em_printfout("bus: bus_regDataElements failed:%s\n", full_namespace);
@@ -351,7 +351,36 @@ int tr_181_t::wfa_bus_register_namespace(char *full_namespace, bus_element_type_
     }
     em_printfout("bus: bus_regDataElements success:%s", full_namespace);
 
-    return RETURN_OK;
+    /*if (element_type == bus_element_type_table && num_of_table_rows > 0) {
+        wifi_bus_desc_t *desc = get_bus_descriptor();
+        if (desc != NULL) {
+            std::string table_base(full_namespace);
+            const std::string inst_suffix = "{i}";
+            if (table_base.size() >= inst_suffix.size() &&
+                table_base.compare(table_base.size() - inst_suffix.size(),
+                                   inst_suffix.size(), inst_suffix) == 0) {
+                table_base.erase(table_base.size() - inst_suffix.size());
+            }
+            em_printfout("%s:%d: table_base:%s num_of_rows:%u full_namespace:%s",
+                __func__, __LINE__, table_base.c_str(), num_of_table_rows, full_namespace);
+            for (uint32_t i = 0; i < num_of_table_rows; i++) {
+                uint32_t inst_num = 0;
+                bus_error_t row_rc = desc->bus_add_table_row_fn(
+                    &m_bus_handle, table_base.c_str(), NULL, &inst_num);
+                if (row_rc != bus_error_success) {
+                    em_printfout("%s:%d bus: bus_add_table_row_fn failed for %s row %u, rc=%d",
+                        __func__, __LINE__, table_base.c_str(), i + 1, row_rc);
+                } else {
+                    em_printfout("%s:%d bus: added table row %u for %s",
+                        __func__, __LINE__, inst_num, table_base.c_str());
+                }
+            }
+            em_printfout("%s:%d bus: added %u table rows for %s",
+                __func__, __LINE__, num_of_table_rows, full_namespace);
+        }
+    }*/
+
+   return RETURN_OK;
 }
 
 bus_error_t tr_181_t::raw_data_set(raw_data_t *p_data, bool b)
@@ -516,6 +545,283 @@ bus_error_t tr_181_t::default_event_sub_handler(char* eventName, bus_event_sub_a
     return bus_error_success;
 }
 
+bus_error_t parse_dev_radio_from_path(const char *path, bool need_radio, int *dev_id_out, int *radio_id_out)
+{
+    if (path == NULL || dev_id_out == NULL) {
+        return bus_error_invalid_input;
+    }
+
+    em_ctrl_t *em_ctrl = em_ctrl_t::get_em_ctrl_instance();
+    dm_easy_mesh_ctrl_t *dm_ctrl = em_ctrl ? em_ctrl->get_dm_ctrl() : nullptr;
+    if (dm_ctrl == nullptr) {
+        return bus_error_invalid_input;
+    }
+
+    char instance[MAX_INSTANCE_LEN] = { 0 };
+    bool is_num = false;
+
+    const char *name = path + sizeof(DATAELEMS_NETWORK);
+    name = dm_ctrl->get_table_instance(name, instance, MAX_INSTANCE_LEN, &is_num);
+
+    dm_easy_mesh_t *dm = dm_ctrl->get_dm_easy_mesh(instance, is_num);
+    if (dm == nullptr) {
+        return bus_error_invalid_namespace;
+    }
+
+    int dev_id = dm->get_id();
+    if (dev_id < 1 || dev_id > EM_MAX_DEVICES) {
+        return bus_error_invalid_namespace;
+    }
+    *dev_id_out = dev_id;
+
+    if (!need_radio) {
+        return bus_error_success;
+    }
+
+    name = dm_ctrl->get_table_instance(name, instance, MAX_INSTANCE_LEN, &is_num);
+    int radio_id = is_num ? atoi(instance) : 0;
+    if (radio_id < 1 || radio_id > EM_MAX_RADIO_PER_AGENT) {
+        return bus_error_invalid_namespace;
+    }
+    if (radio_id_out != NULL) {
+        *radio_id_out = radio_id;
+    }
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::ssid_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum)
+{
+    (void)aliasName;
+    if (instNum == NULL) {
+        return bus_error_invalid_input;
+    }
+    *instNum = ++num_of_vaps;
+    em_printfout("%s:%d: table_name:%s instNum:%u\n", __FUNCTION__, __LINE__, tableName, *instNum);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::device_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum)
+{
+    (void)aliasName;
+    if (instNum == NULL) {
+        return bus_error_invalid_input;
+    }
+    *instNum = ++num_of_devices;
+    em_printfout("%s:%d: table_name:%s instNum:%u\n", __FUNCTION__, __LINE__, tableName, *instNum);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::radio_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum)
+{
+    (void)aliasName;
+    if (tableName == NULL || instNum == NULL) {
+        em_printfout("%s:%d: invalid args\n", __FUNCTION__, __LINE__);
+        return bus_error_invalid_input;
+    }
+
+    int dev_id = 0;
+    bus_error_t rc = parse_dev_radio_from_path(tableName, false, &dev_id, NULL);
+    if (rc != bus_error_success) {
+        em_printfout("%s:%d: could not resolve device from %s (rc=%d)\n",
+            __FUNCTION__, __LINE__, tableName, rc);
+        return rc;
+    }
+
+    *instNum = ++bus_row_counters.radio[dev_id - 1];
+    em_printfout("%s:%d: table_name:%s dev_id:%d instNum:%u\n",
+        __FUNCTION__, __LINE__, tableName, dev_id, *instNum);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::bss_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum)
+{
+    (void)aliasName;
+    if (tableName == NULL || instNum == NULL) {
+        em_printfout("%s:%d: invalid args\n", __FUNCTION__, __LINE__);
+        return bus_error_invalid_input;
+    }
+
+    int dev_id = 0, radio_id = 0;
+    bus_error_t rc = parse_dev_radio_from_path(tableName, true, &dev_id, &radio_id);
+    if (rc != bus_error_success) {
+        em_printfout("%s:%d: could not resolve device/radio from %s (rc=%d)\n",
+            __FUNCTION__, __LINE__, tableName, rc);
+        return rc;
+    }
+
+    *instNum = ++bus_row_counters.bss[dev_id - 1][radio_id - 1];
+    em_printfout("%s:%d: table_name:%s dev_id:%d radio_id:%d instNum:%u\n",
+        __FUNCTION__, __LINE__, tableName, dev_id, radio_id, *instNum);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::ssid_table_remove_row_handler(char const *rowName)
+{
+    if (num_of_vaps > 0) {
+        num_of_vaps--;
+    }
+    em_printfout("%s:%d: rowName:%s num_of_vaps:%u\n", __FUNCTION__, __LINE__, rowName, num_of_vaps);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::device_table_remove_row_handler(char const *rowName)
+{
+    if (num_of_devices > 0) {
+        num_of_devices--;
+    }
+    em_printfout("%s:%d: rowName:%s num_of_devices:%u\n", __FUNCTION__, __LINE__, rowName, num_of_devices);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::radio_table_remove_row_handler(char const *rowName)
+{
+    if (rowName == NULL) {
+        return bus_error_invalid_input;
+    }
+
+    int dev_id = 0;
+    bus_error_t rc = parse_dev_radio_from_path(rowName, false, &dev_id, NULL);
+    if (rc != bus_error_success) {
+        em_printfout("%s:%d: could not resolve device from %s (rc=%d)\n",
+            __FUNCTION__, __LINE__, rowName, rc);
+        return rc;
+    }
+
+    if (bus_row_counters.radio[dev_id - 1] > 0) {
+        bus_row_counters.radio[dev_id - 1]--;
+    }
+    em_printfout("%s:%d: rowName:%s dev_id:%d radio_rows:%u\n",
+        __FUNCTION__, __LINE__, rowName, dev_id, bus_row_counters.radio[dev_id - 1]);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::bss_table_remove_row_handler(char const *rowName)
+{
+    if (rowName == NULL) {
+        return bus_error_invalid_input;
+    }
+
+    int dev_id = 0, radio_id = 0;
+    bus_error_t rc = parse_dev_radio_from_path(rowName, true, &dev_id, &radio_id);
+    if (rc != bus_error_success) {
+        em_printfout("%s:%d: could not resolve device/radio from %s (rc=%d)\n",
+            __FUNCTION__, __LINE__, rowName, rc);
+        return rc;
+    }
+
+    if (bus_row_counters.bss[dev_id - 1][radio_id - 1] > 0) {
+        bus_row_counters.bss[dev_id - 1][radio_id - 1]--;
+    }
+    em_printfout("%s:%d: rowName:%s dev_id:%d radio_id:%d bss_rows:%u\n",
+        __FUNCTION__, __LINE__, rowName, dev_id, radio_id,
+        bus_row_counters.bss[dev_id - 1][radio_id - 1]);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::sta_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum)
+{
+    (void)aliasName;
+    if (instNum == NULL) {
+        return bus_error_invalid_input;
+    }
+    *instNum = ++num_of_stas;
+    em_printfout("%s:%d: table_name:%s instNum:%u\n", __FUNCTION__, __LINE__, tableName, *instNum);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::sta_table_remove_row_handler(char const *rowName)
+{
+    if (num_of_stas > 0) {
+        num_of_stas--;
+    }
+    em_printfout("%s:%d: rowName:%s num_of_stas:%u\n", __FUNCTION__, __LINE__, rowName, num_of_stas);
+    return bus_error_success;
+}
+
+int tr_181_t::sync_table_rows(em_bus_table_type_t table_type, mac_address_t al_mac)
+{
+    wifi_bus_desc_t *desc = get_bus_descriptor();
+    if (desc == NULL || desc->bus_add_table_row_fn == NULL) {
+        em_printfout("%s:%d: bus descriptor or handle not available", __func__, __LINE__);
+        return RETURN_ERR;
+    }
+
+    em_ctrl_t *em_ctrl = em_ctrl_t::get_em_ctrl_instance();
+    if (em_ctrl == NULL) {
+        return RETURN_ERR;
+    }
+    dm_easy_mesh_ctrl_t *dm_ctrl = em_ctrl->get_dm_ctrl();
+    if (dm_ctrl == NULL) {
+        return RETURN_ERR;
+    }
+
+    dm_easy_mesh_t *dm = dm_ctrl->get_first_dm();
+    while (dm != NULL) {
+        dm_device_t *dev = dm->get_device();
+        if (dev != NULL) {
+            em_device_info_t *di = dev->get_device_info();
+            if (memcmp(di->id.dev_mac, al_mac, sizeof(mac_address_t)) == 0) {
+                break;
+            }
+        }
+        dm = dm_ctrl->get_next_dm(dm);
+    }
+
+    if (dm == NULL) {
+        em_printfout("%s:%d: DM not found for given AL MAC", __func__, __LINE__);
+        return RETURN_ERR;
+    }
+
+    int dev_id = dm->get_id();
+    if (dev_id < 0) {
+        em_printfout("%s:%d: invalid device id %d", __func__, __LINE__, dev_id);
+        return RETURN_ERR;
+    }
+
+    char table_path[256];
+
+    em_printfout("%s:%d: table_type:%d dev_id:%d al_mac:%s", __func__, __LINE__, table_type, dev_id, util::mac_to_string(al_mac).c_str());
+    if (table_type == em_bus_table_type_radio) {
+        snprintf(table_path, sizeof(table_path), DATAELEMS_NETWORK "Device.%d.Radio.", dev_id);
+        unsigned int dm_radios = dm->get_num_radios();
+        for (unsigned int i = 0; i < dm_radios; i++) {
+            uint32_t inst_num = 0;
+            bus_error_t rc = desc->bus_add_table_row_fn(&m_bus_handle, table_path, NULL, &inst_num);
+            if (rc != bus_error_success) {
+                em_printfout("%s:%d: radio bus_add_table_row_fn failed for %s (rc=%d)",
+                    __func__, __LINE__, table_path, rc);
+                continue;
+            }
+            em_printfout("%s:%d: added radio row instNum:%u for %s",
+                __func__, __LINE__, inst_num, table_path);
+        }
+    } else if (table_type == em_bus_table_type_bss) {
+        unsigned int dm_radios = dm->get_num_radios();
+        for (unsigned int r = 1; r <= dm_radios; r++) {
+            dm_radio_t *radio = dm->get_radio(r - 1);
+            if (radio == NULL) {
+                continue;
+            }
+            unsigned int num_bss = radio->get_radio_info()->number_of_bss;
+            snprintf(table_path, sizeof(table_path), DATAELEMS_NETWORK "Device.%d.Radio.%d.BSS.", dev_id, r);
+            for (unsigned int b = 0; b < num_bss; b++) {
+                uint32_t inst_num = 0;
+                bus_error_t rc = desc->bus_add_table_row_fn(&m_bus_handle, table_path, NULL, &inst_num);
+                if (rc != bus_error_success) {
+                    em_printfout("%s:%d: bss bus_add_table_row_fn failed for %s (rc=%d)",
+                        __func__, __LINE__, table_path, rc);
+                    continue;
+                }
+                em_printfout("%s:%d: added bss row instNum:%u for %s",
+                    __func__, __LINE__, inst_num, table_path);
+            }
+        }
+    } else if (table_type == em_bus_table_type_sta) {
+        em_printfout("%s:%d: sta table sync not yet implemented", __func__, __LINE__);
+    }
+
+    return RETURN_OK;
+}
 
 bus_error_t tr_181_t::network_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
@@ -985,10 +1291,42 @@ bus_error_t tr_181_t::policy_config(char *event_name, raw_data_t *p_data, bus_us
 
 bus_error_t tr_181_t::wifi_elem_num_of_table_row(char* event_name, uint32_t* table_row_size)
 {
-    // Return 0 rows for all tables for now
-    if (table_row_size != NULL) {
-        *table_row_size = 0;
+    unsigned int dev_count = 0;
+    em_ctrl_t *em_ctrl = em_ctrl_t::get_em_ctrl_instance();
+    dm_easy_mesh_ctrl_t *dm_ctrl;
+
+    *table_row_size = 0;
+
+    if (em_ctrl == NULL) {
+        return bus_error_success;
     }
+    dm_ctrl = em_ctrl->get_dm_ctrl();
+    if (dm_ctrl == NULL) {
+        return bus_error_success;
+    }
+
+    dm_easy_mesh_t *first_dm = dm_ctrl->get_first_dm();
+    if (first_dm == NULL) {
+        em_printfout("%s:%d: dm is NULL \n", __func__, __LINE__);
+        return bus_error_success;
+    }
+
+    dm_easy_mesh_t *dm = first_dm;
+    while (dm != NULL) {
+        dev_count++;
+        dm = dm_ctrl->get_next_dm(dm);
+    }
+
+    if (strcmp(event_name, DE_SSID_TABLE) == 0) {
+        *table_row_size = first_dm->get_num_network_ssid();
+    } else if (strcmp(event_name, DE_DEVICE_TABLE) == 0) {
+        *table_row_size = dev_count;
+    } else if (strcmp(event_name, DE_RADIO_TABLE) == 0) {
+        *table_row_size = first_dm->get_num_radios();
+    } else if (strcmp(event_name, DE_BSS_TABLE) == 0) {
+        *table_row_size = first_dm->get_num_bss();
+    }
+    em_printfout("%s:%d: event_name:%s table_row_size:%u", __func__, __LINE__, event_name, *table_row_size);
 
     return bus_error_success;
 }
@@ -1103,6 +1441,50 @@ cJSON* tr_181_t::resolve_ref(cJSON* root, const char* refStr)
 // ------------------------------------------------------------
 // Extract min/max range, type, read/write from leaf node
 // ------------------------------------------------------------
+void tr_181_t::parse_data_type(cJSON* schemaNode, data_model_properties_t& props)
+{
+    cJSON* data_type = cJSON_GetObjectItem(schemaNode, "type");
+    if (data_type && cJSON_IsString(data_type)) {
+        if(strcmp(data_type->valuestring, "string") == 0) {
+            props.data_format = bus_data_type_string;
+        } else if(strcmp(data_type->valuestring, "object") == 0) {
+            props.data_format = bus_data_type_object;
+        } else if(strcmp(data_type->valuestring, "boolean") == 0) {
+            props.data_format = bus_data_type_boolean;
+        } else if(strcmp(data_type->valuestring, "integer") == 0) {
+            cJSON* jmin = cJSON_GetObjectItem(schemaNode, "minimum");
+            cJSON* jmax = cJSON_GetObjectItem(schemaNode, "maximum");
+            if (jmin && cJSON_IsNumber(jmin) && jmax && cJSON_IsNumber(jmax)) {
+                double lo = jmin->valuedouble;
+                double hi = jmax->valuedouble;
+                if (lo >= 0) {
+                    if (hi <= 255.0)
+                        props.data_format = bus_data_type_uint8;
+                    else if (hi <= 65535.0)
+                        props.data_format = bus_data_type_uint16;
+                    else if (hi <= 4294967295.0)
+                        props.data_format = bus_data_type_uint32;
+                    else
+                        props.data_format = bus_data_type_uint64;
+                } else {
+                    if (lo >= -128.0 && hi <= 127.0)
+                        props.data_format = bus_data_type_int8;
+                    else if (lo >= -32768.0 && hi <= 32767.0)
+                        props.data_format = bus_data_type_int16;
+                    else if (lo >= -2147483648.0 && hi <= 2147483647.0)
+                        props.data_format = bus_data_type_int32;
+                    else
+                        props.data_format = bus_data_type_init64;
+                }
+            } else {
+                props.data_format = bus_data_type_uint32;
+            }
+        } else if(strcmp(data_type->valuestring, "null") == 0) {
+            props.data_format = bus_data_type_none;
+        }
+    }
+}
+
 void tr_181_t::parse_property_constraints(cJSON* schemaNode, data_model_properties_t& props)
 {
     // min / max from JSON schema
@@ -1197,11 +1579,13 @@ void tr_181_t::handle_property_node(cJSON* root, const std::string& fullPath, cJ
 
             // reset and fill constraints for the array property itself
             memset(&data_model_value, 0, sizeof(data_model_value));
+            //em_printfout("%s:%d Print list of properites: %s for object:%s \n", __func__, __LINE__, cJSON_Print(itemsEff), effective->string);
+            parse_data_type(effective, data_model_value);
             parse_property_constraints(effective, data_model_value);
             parse_readwrite(effective, data_model_value);
             std::string tr181Path = yang_to_tr181_path(tableName);
             wfa_set_bus_callbackfunc_pointers(tr181Path.c_str(), &cbTable);
-            wfa_bus_register_namespace(const_cast<char*>(tr181Path.c_str()), bus_element_type_table, cbTable, data_model_value, 1);
+            wfa_bus_register_namespace(const_cast<char*>(tr181Path.c_str()), bus_element_type_table, cbTable, data_model_value, 0);
 
             // expand row children under tableName
             traverse_schema(root, itemsEff, tableName);
@@ -1210,6 +1594,7 @@ void tr_181_t::handle_property_node(cJSON* root, const std::string& fullPath, cJ
             memset(&data_model_value, 0, sizeof(data_model_value));
             parse_property_constraints(itemsEff, data_model_value);
             parse_readwrite(itemsEff, data_model_value);
+            em_printfout("%s:%d Print property for object:%s \n", __func__, __LINE__, cJSON_Print(itemsEff));
             std::string tr181Path = yang_to_tr181_path(fullPath);
             wfa_set_bus_callbackfunc_pointers(tr181Path.c_str(), &cbTable);
             wfa_bus_register_namespace(const_cast<char*>(tr181Path.c_str()), bus_element_type_property, cbTable, data_model_value, 1);
@@ -1222,8 +1607,10 @@ void tr_181_t::handle_property_node(cJSON* root, const std::string& fullPath, cJ
     if (schema_has_type(effective, "object")) {
         // we've already tried follow_ref_if_any at top-level; if still no properties, treat as leaf object
         memset(&data_model_value, 0, sizeof(data_model_value));
+        parse_data_type(effective, data_model_value);
         parse_property_constraints(effective, data_model_value);
         parse_readwrite(effective, data_model_value);
+        em_printfout("%s:%d Print object:%s \n", __func__, __LINE__, cJSON_Print(effective));
         std::string tr181Path = yang_to_tr181_path(fullPath);
         wfa_set_bus_callbackfunc_pointers(tr181Path.c_str(), &cbTable);
         wfa_bus_register_namespace(const_cast<char*>(tr181Path.c_str()), bus_element_type_property, cbTable, data_model_value, 1);

@@ -82,6 +82,12 @@ static const yang_to_tr181_map g_yang_map[] = {
     { nullptr, nullptr } // Default case
 };
 
+typedef enum {
+    em_bus_table_type_radio,
+    em_bus_table_type_bss,
+    em_bus_table_type_sta,
+} em_bus_table_type_t;
+
 #define DATAELEMS_NETWORK       "Device.WiFi.DataElements.Network."
 
 // pre-defined lengths for TR-181 method parameters and properties.
@@ -472,6 +478,7 @@ static const yang_to_tr181_map g_yang_map[] = {
 #define CALLBACK_ADD_ROW(f)          {NULL, NULL, f, NULL, NULL, NULL}
 #define CB(...)                      (bus_callback_table_t){ __VA_ARGS__ }
 #define CALLBACK_GETTER(f)           {f, NULL, NULL, NULL, NULL, NULL}
+#define CALLBACK_TABLE_GETTER(f, add, remove) {NULL, NULL, add, remove, NULL, NULL}
 #define ELEMENT(n, f)                {const_cast<char*>(n), f}
 #define ELEMENT_TABLE_ROW(n, f)      {const_cast<char*>(n), f}
 
@@ -480,6 +487,10 @@ class dm_easy_mesh_ctrl_t;
 class tr_181_t {
 private:
     bus_handle_t m_bus_handle;
+    static inline unsigned int num_of_vaps = 0;
+    static inline unsigned int num_of_devices = 0;
+    static inline unsigned int num_of_stas = 0;
+    static inline em_bus_row_counters_t bus_row_counters = {};
 
 public:
 
@@ -523,6 +534,7 @@ public:
     static bus_error_t add_table_row(char const *name, dm_easy_mesh_t *dm);
     bus_error_t reg_table_row(char *name, int index);
     int find_radio(dm_easy_mesh_t *dm);
+    int sync_table_rows(em_bus_table_type_t table_type, mac_address_t al_mac);
 
     // Bus callback handlers
     static bus_error_t default_get_param_value(char* event_name, raw_data_t* p_data, struct bus_user_data* user_data);
@@ -538,6 +550,7 @@ public:
     static bus_error_t ssid_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t ssid_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t ssid_table_add_row_handler(const char* table_name, const char* alias_name, uint32_t* instance_number);
+    static bus_error_t ssid_table_remove_row_handler(char const* rowName);
 
     /**!
      * @brief Handles the RBUS SetSSID method invocation.
@@ -689,6 +702,7 @@ public:
     static bus_error_t device_get(char* event_name, raw_data_t* p_data, struct bus_user_data* user_data);
     static bus_error_t device_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t device_table_add_row_handler(const char* table_name, const char* alias_name, uint32_t* instance_number);
+    static bus_error_t device_table_remove_row_handler(char const* rowName);
 
     //Policy Callbacks
     static bus_error_t policy_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
@@ -699,6 +713,7 @@ public:
     static bus_error_t radio_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t rbhsta_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t radio_table_add_row_handler(const char* table_name, const char* alias_name, uint32_t* instance_number);
+    static bus_error_t radio_table_remove_row_handler(char const* rowName);
     static bus_error_t rcaps_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t wf6ap_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t wf6ap_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
@@ -711,11 +726,13 @@ public:
     static bus_error_t bss_get(char* event_name, raw_data_t* p_data, struct bus_user_data* user_data);
     static bus_error_t bss_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t bss_table_add_row_handler(const char* table_name, const char* alias_name, uint32_t* instance_number);
+    static bus_error_t bss_table_remove_row_handler(char const* rowName);
 
     //STA
     static bus_error_t sta_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t sta_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t sta_table_add_row_handler(const char* table_name, const char* alias_name, uint32_t* instance_number);
+    static bus_error_t sta_table_remove_row_handler(char const* rowName);
 
     //APMLD
     static bus_error_t apmld_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
@@ -765,6 +782,7 @@ public:
     std::string yang_to_tr181_path(const std::string& in);
     cJSON* follow_ref_if_any(cJSON* root, cJSON* node);
     cJSON* resolve_ref(cJSON* root, const char* refStr);
+    void parse_data_type(cJSON* schemaNode, data_model_properties_t& props);
     void parse_property_constraints(cJSON* schemaNode, data_model_properties_t& props);
     void parse_readwrite(cJSON* schemaNode, data_model_properties_t& props);
     bool schema_has_type(cJSON* schema, const char* want);

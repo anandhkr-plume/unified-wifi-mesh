@@ -461,13 +461,12 @@ unsigned int em_orch_agent_t::build_candidates(em_cmd_t *pcmd)
 
             case em_cmd_type_btm_report:
                 if (!(em->is_al_interface_em())) {
-                    sta = em->get_data_model()->find_sta(pcmd->m_param.u.btm_report_params.sta_mac, pcmd->m_param.u.btm_report_params.source);
+                    sta = em->find_sta(pcmd->m_param.u.btm_report_params.sta_mac, pcmd->m_param.u.btm_report_params.source);
                     if (sta != NULL) {
                         dm_easy_mesh_t::macbytes_to_string(pcmd->m_param.u.btm_report_params.sta_mac, src_mac_str);
                         printf("%s:%d BTM report build candidate sta mac=%s\n", __func__, __LINE__, src_mac_str);
                         queue_push(pcmd->m_em_candidates, em);
                         count++;
-                        break;
                     }
                 }
                 break;
@@ -513,7 +512,6 @@ unsigned int em_orch_agent_t::build_candidates(em_cmd_t *pcmd)
                     em_printfout("%s:%d Sending steer opportunity complete message to \n", __func__, __LINE__);
                     queue_push(pcmd->m_em_candidates, em);
                     count++;
-                    break;
                 }
                 break;
 

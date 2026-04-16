@@ -3482,6 +3482,11 @@ static const SecurityTypeMap securityTypeMap[] = {
     { "WPA3 Transition", EM_AUTH_WPA3_TRANSITION }
 };
 
+typedef struct {
+    unsigned int radio[EM_MAX_DEVICES];
+    unsigned int bss[EM_MAX_DEVICES][EM_MAX_RADIO_PER_AGENT];
+} em_bus_row_counters_t;
+
 #ifndef SSL_KEY
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
 #define SSL_KEY EC_KEY
