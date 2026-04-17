@@ -70,7 +70,7 @@ int tr_181_t::wfa_set_bus_callbackfunc_pointers(const char *full_namespace, bus_
         ELEMENT(DE_NETWORK_COLAGTID,      CALLBACK_GETTER(network_get)),
         ELEMENT(DE_NETWORK_DEVNOE,        CALLBACK_GETTER(network_get)),
         ELEMENT(DE_NETWORK_TIMESTAMP,     CALLBACK_GETTER(network_get)),
-        ELEMENT(DE_SSID_TABLE,            CALLBACK_GETTER(ssid_tget)),
+        ELEMENT(DE_SSID_TABLE,            CALLBACK_TABLE_GETTER(ssid_tget, ssid_table_add_row_handler, ssid_table_remove_row_handler)),
         ELEMENT(DE_SSID_SSID,             CALLBACK_GETTER(ssid_get)),
         ELEMENT(DE_SSID_BAND,             CALLBACK_GETTER(ssid_get)),
         ELEMENT(DE_SSID_ENABLE,           CALLBACK_GETTER(ssid_get)),
@@ -80,7 +80,7 @@ int tr_181_t::wfa_set_bus_callbackfunc_pointers(const char *full_namespace, bus_
         ELEMENT(DE_SSID_MFPCONFIG,        CALLBACK_GETTER(ssid_get)),
         ELEMENT(DE_SSID_MOBDOMAIN,        CALLBACK_GETTER(ssid_get)),
         ELEMENT(DE_SSID_HAULTYPE,         CALLBACK_GETTER(ssid_get)),
-        ELEMENT(DE_DEVICE_TABLE,          CALLBACK_GETTER(device_tget)),
+        ELEMENT(DE_DEVICE_TABLE,          CALLBACK_TABLE_GETTER(device_tget, device_table_add_row_handler, device_table_remove_row_handler)),
         ELEMENT(DE_DEVICE_ID,                     CALLBACK_GETTER(device_get)),
         ELEMENT(DE_DEVICE_MAPCAP,                 CALLBACK_GETTER(device_get)),
         ELEMENT(DE_DEVICE_COLLINT,                CALLBACK_GETTER(device_get)),
@@ -124,7 +124,7 @@ int tr_181_t::wfa_set_bus_callbackfunc_pointers(const char *full_namespace, bus_
         ELEMENT(DE_DEVICE_RADIONOE,               CALLBACK_GETTER(device_get)),
         ELEMENT(DE_DEVICE_CACSTATNOE,             CALLBACK_GETTER(device_get)),
         ELEMENT(DE_DEVICE_BHDOWNNOE,              CALLBACK_GETTER(device_get)),
-        ELEMENT(DE_RADIO_TABLE,            CALLBACK_GETTER(radio_tget)),
+        ELEMENT(DE_RADIO_TABLE,            CALLBACK_TABLE_GETTER(radio_tget, radio_table_add_row_handler, radio_table_remove_row_handler)),
         ELEMENT(DE_RADIO_ID,               CALLBACK_GETTER(radio_get)),
         ELEMENT(DE_RADIO_ENABLED,          CALLBACK_GETTER(radio_get)),
         ELEMENT(DE_RADIO_NOISE,            CALLBACK_GETTER(radio_get)),
@@ -173,7 +173,7 @@ int tr_181_t::wfa_set_bus_callbackfunc_pointers(const char *full_namespace, bus_
         ELEMENT(DE_CUROP_CLASS,            CALLBACK_GETTER(curops_get)),
         ELEMENT(DE_CUROP_CHANNEL,          CALLBACK_GETTER(curops_get)),
         ELEMENT(DE_CUROP_TXPOWER,          CALLBACK_GETTER(curops_get)),
-        ELEMENT(DE_BSS_TABLE,              CALLBACK_GETTER(bss_tget)),
+        ELEMENT(DE_BSS_TABLE,              CALLBACK_TABLE_GETTER(bss_tget, bss_table_add_row_handler, bss_table_remove_row_handler)),
         ELEMENT(DE_BSS_BSSID,              CALLBACK_GETTER(bss_get)),
         ELEMENT(DE_BSS_SSID,               CALLBACK_GETTER(bss_get)),
         ELEMENT(DE_BSS_ENABLED,            CALLBACK_GETTER(bss_get)),
@@ -539,6 +539,63 @@ bus_error_t tr_181_t::default_event_sub_handler(char* eventName, bus_event_sub_a
     return bus_error_success;
 }
 
+bus_error_t tr_181_t::ssid_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum) {
+
+    *instNum = ++num_of_vaps;
+    em_printfout("%s:%d: table_name:%s instNum:%d\n", __FUNCTION__, __LINE__, tableName, *instNum);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::device_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum) {
+
+    *instNum = ++num_of_devices;
+    em_printfout("%s:%d: table_name:%s instNum:%d\n", __FUNCTION__, __LINE__, tableName, *instNum);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::radio_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum) {
+    *instNum = ++num_of_radios;
+    em_printfout("%s:%d: table_name:%s instNum:%d\n", __FUNCTION__, __LINE__, tableName, *instNum);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::bss_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum) {
+    *instNum = ++num_of_bss;
+    em_printfout("%s:%d: table_name:%s instNum:%d\n", __FUNCTION__, __LINE__, tableName, *instNum);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::ssid_table_remove_row_handler(char const *rowName) {
+    if (num_of_vaps > 0) {
+        num_of_vaps--;
+    }
+    em_printfout("%s:%d: rowName:%s num_of_vaps:%u\n", __FUNCTION__, __LINE__, rowName, num_of_vaps);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::device_table_remove_row_handler(char const *rowName) {
+    if (num_of_devices > 0) {
+        num_of_devices--;
+    }
+    em_printfout("%s:%d: rowName:%s num_of_devices:%u\n", __FUNCTION__, __LINE__, rowName, num_of_devices);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::radio_table_remove_row_handler(char const *rowName) {
+    if (num_of_radios > 0) {
+        num_of_radios--;
+    }
+    em_printfout("%s:%d: rowName:%s num_of_radios:%u\n", __FUNCTION__, __LINE__, rowName, num_of_radios);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::bss_table_remove_row_handler(char const *rowName) {
+    if (num_of_bss > 0) {
+        num_of_bss--;
+    }
+    em_printfout("%s:%d: rowName:%s num_of_bss:%u\n", __FUNCTION__, __LINE__, rowName, num_of_bss);
+    return bus_error_success;
+}
 
 bus_error_t tr_181_t::network_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
@@ -1158,6 +1215,50 @@ cJSON* tr_181_t::resolve_ref(cJSON* root, const char* refStr)
 // ------------------------------------------------------------
 // Extract min/max range, type, read/write from leaf node
 // ------------------------------------------------------------
+void tr_181_t::parse_data_type(cJSON* schemaNode, data_model_properties_t& props)
+{
+    cJSON* data_type = cJSON_GetObjectItem(schemaNode, "type");
+    if (data_type && cJSON_IsString(data_type)) {
+        if(strcmp(data_type->valuestring, "string") == 0) {
+            props.data_format = bus_data_type_string;
+        } else if(strcmp(data_type->valuestring, "object") == 0) {
+            props.data_format = bus_data_type_object;
+        } else if(strcmp(data_type->valuestring, "boolean") == 0) {
+            props.data_format = bus_data_type_boolean;
+        } else if(strcmp(data_type->valuestring, "integer") == 0) {
+            cJSON* jmin = cJSON_GetObjectItem(schemaNode, "minimum");
+            cJSON* jmax = cJSON_GetObjectItem(schemaNode, "maximum");
+            if (jmin && cJSON_IsNumber(jmin) && jmax && cJSON_IsNumber(jmax)) {
+                double lo = jmin->valuedouble;
+                double hi = jmax->valuedouble;
+                if (lo >= 0) {
+                    if (hi <= 255.0)
+                        props.data_format = bus_data_type_uint8;
+                    else if (hi <= 65535.0)
+                        props.data_format = bus_data_type_uint16;
+                    else if (hi <= 4294967295.0)
+                        props.data_format = bus_data_type_uint32;
+                    else
+                        props.data_format = bus_data_type_uint64;
+                } else {
+                    if (lo >= -128.0 && hi <= 127.0)
+                        props.data_format = bus_data_type_int8;
+                    else if (lo >= -32768.0 && hi <= 32767.0)
+                        props.data_format = bus_data_type_int16;
+                    else if (lo >= -2147483648.0 && hi <= 2147483647.0)
+                        props.data_format = bus_data_type_int32;
+                    else
+                        props.data_format = bus_data_type_init64;
+                }
+            } else {
+                props.data_format = bus_data_type_uint32;
+            }
+        } else if(strcmp(data_type->valuestring, "null") == 0) {
+            props.data_format = bus_data_type_none;
+        }
+    }
+}
+
 void tr_181_t::parse_property_constraints(cJSON* schemaNode, data_model_properties_t& props)
 {
     // min / max from JSON schema
@@ -1277,6 +1378,7 @@ void tr_181_t::handle_property_node(cJSON* root, const std::string& fullPath, cJ
     if (schema_has_type(effective, "object")) {
         // we've already tried follow_ref_if_any at top-level; if still no properties, treat as leaf object
         memset(&data_model_value, 0, sizeof(data_model_value));
+        parse_data_type(effective, data_model_value);
         parse_property_constraints(effective, data_model_value);
         parse_readwrite(effective, data_model_value);
         std::string tr181Path = yang_to_tr181_path(fullPath);
