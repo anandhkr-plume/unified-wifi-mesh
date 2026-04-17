@@ -343,14 +343,6 @@ int tr_181_t::wfa_bus_register_namespace(char *full_namespace, bus_element_type_
         }
     }
 
-    uint32_t num_elements = 1;
-    bus_error_t rc = get_bus_descriptor()->bus_reg_data_element_fn(&m_bus_handle, &dataElements, num_elements);
-    if (rc != bus_error_success) {
-        em_printfout("bus: bus_regDataElements failed:%s\n", full_namespace);
-        return RETURN_ERR;
-    }
-    em_printfout("bus: bus_regDataElements success:%s", full_namespace);
-
     if (element_type == bus_element_type_table && dataElements.num_of_table_row > 0) {
         wifi_bus_desc_t *desc = get_bus_descriptor();
         if (desc != NULL && desc->bus_reg_table_row_fn != NULL) {
@@ -371,6 +363,14 @@ int tr_181_t::wfa_bus_register_namespace(char *full_namespace, bus_element_type_
             em_printfout("%s:%d bus: registered %u table rows for %s", __func__, __LINE__, dataElements.num_of_table_row, full_namespace);
         }
     }
+
+    uint32_t num_elements = 1;
+    bus_error_t rc = get_bus_descriptor()->bus_reg_data_element_fn(&m_bus_handle, &dataElements, num_elements);
+    if (rc != bus_error_success) {
+        em_printfout("bus: bus_regDataElements failed:%s\n", full_namespace);
+        return RETURN_ERR;
+    }
+    em_printfout("bus: bus_regDataElements success:%s", full_namespace);
 
     return RETURN_OK;
 }
