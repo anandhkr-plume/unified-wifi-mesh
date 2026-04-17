@@ -351,7 +351,7 @@ int tr_181_t::wfa_bus_register_namespace(char *full_namespace, bus_element_type_
 
     if (element_type == bus_element_type_table && num_of_table_rows > 0) {
         wifi_bus_desc_t *desc = get_bus_descriptor();
-        if (desc != NULL && desc->bus_reg_table_row_fn != NULL) {
+        if (desc != NULL) {
             std::string table_base(full_namespace);
             const std::string inst_suffix = "{i}";
             if (table_base.size() >= inst_suffix.size() &&
@@ -361,15 +361,19 @@ int tr_181_t::wfa_bus_register_namespace(char *full_namespace, bus_element_type_
             }
             em_printfout("%s:%d: table_base:%s num_of_rows:%u full_namespace:%s",
                 __func__, __LINE__, table_base.c_str(), num_of_table_rows, full_namespace);
-            for (uint32_t i = 1; i <= num_of_table_rows; i++) {
-                bus_error_t row_rc = desc->bus_reg_table_row_fn(
-                    &m_bus_handle, table_base.c_str(), i, NULL);
+            for (uint32_t i = 0; i < num_of_table_rows; i++) {
+                uint32_t inst_num = 0;
+                bus_error_t row_rc = desc->bus_add_table_row_fn(
+                    &m_bus_handle, table_base.c_str(), NULL, &inst_num);
                 if (row_rc != bus_error_success) {
-                    em_printfout("%s:%d bus: bus_reg_table_row_fn failed for %s row %u, rc=%d",
-                        __func__, __LINE__, table_base.c_str(), i, row_rc);
+                    em_printfout("%s:%d bus: bus_add_table_row_fn failed for %s row %u, rc=%d",
+                        __func__, __LINE__, table_base.c_str(), i + 1, row_rc);
+                } else {
+                    em_printfout("%s:%d bus: added table row %u for %s",
+                        __func__, __LINE__, inst_num, table_base.c_str());
                 }
             }
-            em_printfout("%s:%d bus: registered %u table rows for %s",
+            em_printfout("%s:%d bus: added %u table rows for %s",
                 __func__, __LINE__, num_of_table_rows, full_namespace);
         }
     }
