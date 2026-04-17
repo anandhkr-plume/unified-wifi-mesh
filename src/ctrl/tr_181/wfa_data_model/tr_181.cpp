@@ -342,6 +342,7 @@ int tr_181_t::wfa_bus_register_namespace(char *full_namespace, bus_element_type_
     }
 
     uint32_t num_elements = 1;
+    dataElements.num_of_table_row = num_of_table_rows;
     bus_error_t rc = get_bus_descriptor()->bus_reg_data_element_fn(&m_bus_handle, &dataElements, num_elements);
     if (rc != bus_error_success) {
         em_printfout("bus: bus_regDataElements failed:%s\n", full_namespace);
