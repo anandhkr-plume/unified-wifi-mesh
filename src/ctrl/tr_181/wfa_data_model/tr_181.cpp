@@ -334,33 +334,10 @@ int tr_181_t::wfa_bus_register_namespace(char *full_namespace, bus_element_type_
     dataElements.bus_speed       = slow_speed;
     dataElements.data_model_prop = data_model_value;
 
+    uint32_t num_of_table_rows = 0;
     if (element_type == bus_element_type_table) {
-        uint32_t num_of_table_rows = 0;
-        if (wifi_elem_num_of_table_row(full_namespace, &num_of_table_rows) == bus_error_success) {
-            dataElements.num_of_table_row = num_of_table_rows;
-        } else {
-            dataElements.num_of_table_row = static_cast<uint32_t>(num_of_rows);
-        }
-    }
-
-    if (element_type == bus_element_type_table && dataElements.num_of_table_row > 0) {
-        wifi_bus_desc_t *desc = get_bus_descriptor();
-        if (desc != NULL && desc->bus_reg_table_row_fn != NULL) {
-            std::string table_base(full_namespace);
-            const std::string inst_suffix = ".{i}";
-            if (table_base.size() >= inst_suffix.size() &&
-                table_base.compare(table_base.size() - inst_suffix.size(),
-                                   inst_suffix.size(), inst_suffix) == 0) {
-                table_base.erase(table_base.size() - inst_suffix.size());
-            }
-            em_printfout("%s:%d: table_base:%s num_of_rows:%u full_namespace:%s", __func__, __LINE__, table_base.c_str(), dataElements.num_of_table_row, full_namespace);
-            for (uint32_t i = 1; i <= dataElements.num_of_table_row; i++) {
-                bus_error_t row_rc = desc->bus_reg_table_row_fn(&m_bus_handle, table_base.c_str(), i, NULL);
-                if (row_rc != bus_error_success) {
-                    em_printfout("%s:%d bus: bus_reg_table_row_fn failed for %s row %u, rc=%d", __func__, __LINE__, table_base.c_str(), i, row_rc);
-                }
-            }
-            em_printfout("%s:%d bus: registered %u table rows for %s", __func__, __LINE__, dataElements.num_of_table_row, full_namespace);
+        if (wifi_elem_num_of_table_row(full_namespace, &num_of_table_rows) != bus_error_success) {
+            num_of_table_rows = static_cast<uint32_t>(num_of_rows);
         }
     }
 
@@ -371,6 +348,31 @@ int tr_181_t::wfa_bus_register_namespace(char *full_namespace, bus_element_type_
         return RETURN_ERR;
     }
     em_printfout("bus: bus_regDataElements success:%s", full_namespace);
+
+    if (element_type == bus_element_type_table && num_of_table_rows > 0) {
+        wifi_bus_desc_t *desc = get_bus_descriptor();
+        if (desc != NULL && desc->bus_reg_table_row_fn != NULL) {
+            std::string table_base(full_namespace);
+            const std::string inst_suffix = "{i}";
+            if (table_base.size() >= inst_suffix.size() &&
+                table_base.compare(table_base.size() - inst_suffix.size(),
+                                   inst_suffix.size(), inst_suffix) == 0) {
+                table_base.erase(table_base.size() - inst_suffix.size());
+            }
+            em_printfout("%s:%d: table_base:%s num_of_rows:%u full_namespace:%s",
+                __func__, __LINE__, table_base.c_str(), num_of_table_rows, full_namespace);
+            for (uint32_t i = 1; i <= num_of_table_rows; i++) {
+                bus_error_t row_rc = desc->bus_reg_table_row_fn(
+                    &m_bus_handle, table_base.c_str(), i, NULL);
+                if (row_rc != bus_error_success) {
+                    em_printfout("%s:%d bus: bus_reg_table_row_fn failed for %s row %u, rc=%d",
+                        __func__, __LINE__, table_base.c_str(), i, row_rc);
+                }
+            }
+            em_printfout("%s:%d bus: registered %u table rows for %s",
+                __func__, __LINE__, num_of_table_rows, full_namespace);
+        }
+    }
 
     return RETURN_OK;
 }
