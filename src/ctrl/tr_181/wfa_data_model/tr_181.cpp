@@ -616,11 +616,11 @@ bus_error_t tr_181_t::sta_table_remove_row_handler(char const *rowName) {
     return bus_error_success;
 }
 
-int tr_181_t::sync_table_rows(em_bus_table_type_t table_type)
+int tr_181_t::sync_table_rows(em_bus_table_type_t table_type, mac_address_t al_mac)
 {
     wifi_bus_desc_t *desc = get_bus_descriptor();
-    if (desc == NULL || desc->bus_reg_table_row_fn == NULL || desc->bus_unreg_table_row_fn == NULL) {
-        em_printfout("%s:%d: bus descriptor or table row fns are NULL", __func__, __LINE__);
+    if (desc == NULL || desc->bus_reg_table_row_fn == NULL) {
+        em_printfout("%s:%d: bus descriptor or bus_reg_table_row_fn is NULL", __func__, __LINE__);
         return RETURN_ERR;
     }
 
@@ -633,100 +633,75 @@ int tr_181_t::sync_table_rows(em_bus_table_type_t table_type)
         return RETURN_ERR;
     }
 
-    unsigned int dm_count = 0;
     dm_easy_mesh_t *dm = dm_ctrl->get_first_dm();
     while (dm != NULL) {
-        switch (table_type) {
-            case em_bus_table_type_radio:
-                dm_count += dm->get_num_radios();
+        dm_device_t *dev = dm->get_device();
+        if (dev != NULL) {
+            em_device_info_t *di = dev->get_device_info();
+            if (memcmp(di->id.dev_mac, al_mac, sizeof(mac_address_t)) == 0) {
                 break;
-            case em_bus_table_type_bss:
-                dm_count += dm->get_num_bss();
-                break;
-            case em_bus_table_type_sta:
-                break;
-            default:
-                break;
+            }
         }
         dm = dm_ctrl->get_next_dm(dm);
     }
 
-    unsigned int *registered = NULL;
-    const char *table_base = NULL;
-    const char *table_name = NULL;
-
-    switch (table_type) {
-        case em_bus_table_type_radio:
-            registered = &num_of_radios;
-            table_name = DE_RADIO_TABLE;
-            table_base = DE_NETWORK_DEVICE "Radio.";
-            break;
-        case em_bus_table_type_bss:
-            registered = &num_of_bss;
-            table_name = DE_BSS_TABLE;
-            table_base = DE_DEVICE_RADIO "BSS.";
-            break;
-        case em_bus_table_type_sta:
-            registered = &num_of_stas;
-            table_name = DE_STA_TABLE;
-            table_base = DE_RADIO_BSS "STA.";
-            break;
-        default:
-            return RETURN_ERR;
+    if (dm == NULL) {
+        em_printfout("%s:%d: DM not found for given AL MAC", __func__, __LINE__);
+        return RETURN_ERR;
     }
 
-    while (*registered < dm_count) {
-        uint32_t inst_num = 0;
-        switch (table_type) {
-            case em_bus_table_type_radio:
-                radio_table_add_row_handler(table_name, NULL, &inst_num);
-                break;
-            case em_bus_table_type_bss:
-                bss_table_add_row_handler(table_name, NULL, &inst_num);
-                break;
-            case em_bus_table_type_sta:
-                sta_table_add_row_handler(table_name, NULL, &inst_num);
-                break;
-            default:
-                return RETURN_ERR;
-        }
-
-        bus_error_t rc = desc->bus_reg_table_row_fn(&m_bus_handle, table_base, inst_num, NULL);
-        if (rc != bus_error_success) {
-            em_printfout("%s:%d: bus_reg_table_row_fn failed for %s row %u, rc=%d",
-                __func__, __LINE__, table_base, inst_num, rc);
-            break;
-        }
-        em_printfout("%s:%d: added %s row %u (registered=%u, target=%u)",
-            __func__, __LINE__, table_name, inst_num, *registered, dm_count);
+    int dev_id = dm->get_id();
+    if (dev_id < 0) {
+        em_printfout("%s:%d: invalid device id %d", __func__, __LINE__, dev_id);
+        return RETURN_ERR;
     }
 
-    while (*registered > dm_count) {
-        char row_name[256];
-        snprintf(row_name, sizeof(row_name), "%s%u", table_base, *registered);
+    char table_path[256];
 
-        bus_error_t rc = desc->bus_unreg_table_row_fn(&m_bus_handle, row_name);
-        if (rc != bus_error_success) {
-            em_printfout("%s:%d: bus_unreg_table_row_fn failed for %s, rc=%d",
-                __func__, __LINE__, row_name, rc);
+    if (table_type == em_bus_table_type_radio) {
+        snprintf(table_path, sizeof(table_path),
+            DATAELEMS_NETWORK "Device.%d.Radio.", dev_id);
+
+        unsigned int dm_radios = dm->get_num_radios();
+        for (unsigned int i = 0; i < dm_radios; i++) {
+            uint32_t inst_num = 0;
+            bus_error_t rc = desc->bus_add_table_row_fn(&m_bus_handle, table_path, NULL, &inst_num);
+            if (rc != bus_error_success) {
+                em_printfout("%s:%d: radio bus_add_table_row_fn failed for %s (rc=%d)",
+                    __func__, __LINE__, table_path, rc);
+                continue;
+            }
+            em_printfout("%s:%d: added radio row instNum:%u for %s",
+                __func__, __LINE__, inst_num, table_path);
         }
 
-        switch (table_type) {
-            case em_bus_table_type_radio:
-                radio_table_remove_row_handler(row_name);
-                break;
-            case em_bus_table_type_bss:
-                bss_table_remove_row_handler(row_name);
-                break;
-            case em_bus_table_type_sta:
-                sta_table_remove_row_handler(row_name);
-                break;
-            default:
-                break;
+    } else if (table_type == em_bus_table_type_bss) {
+        unsigned int dm_radios = dm->get_num_radios();
+        for (unsigned int r = 1; r <= dm_radios; r++) {
+            dm_radio_t *radio = dm->get_radio(r - 1);
+            if (radio == NULL) {
+                continue;
+            }
+            unsigned int num_bss = radio->get_radio_info()->number_of_bss;
+
+            snprintf(table_path, sizeof(table_path),
+                DATAELEMS_NETWORK "Device.%d.Radio.%d.BSS.", dev_id, r);
+
+            for (unsigned int b = 0; b < num_bss; b++) {
+                uint32_t inst_num = 0;
+                bus_error_t rc = desc->bus_add_table_row_fn(&m_bus_handle, table_path, NULL, &inst_num);
+                if (rc != bus_error_success) {
+                    em_printfout("%s:%d: bss bus_add_table_row_fn failed for %s (rc=%d)",
+                        __func__, __LINE__, table_path, rc);
+                    continue;
+                }
+                em_printfout("%s:%d: added bss row instNum:%u for %s",
+                    __func__, __LINE__, inst_num, table_path);
+            }
         }
 
-        em_printfout("%s:%d: removed %s (registered=%u, target=%u)",
-            __func__, __LINE__, row_name, *registered, dm_count);
+    } else if (table_type == em_bus_table_type_sta) {
+        em_printfout("%s:%d: sta table sync not yet implemented", __func__, __LINE__);
     }
 
     return RETURN_OK;

@@ -510,6 +510,9 @@ int dm_easy_mesh_ctrl_t::analyze_m2_tx(em_bus_event_t *evt, em_cmd_t *pcmd[])
     dm_easy_mesh_t::macbytes_to_string(params->radio, radio_str);
     printf("%s:%d: Radio: %s AL MAC: %s\n", __func__, __LINE__, radio_str, al_str);
 
+    sync_table_rows(em_bus_table_type_radio, params->al);
+    sync_table_rows(em_bus_table_type_bss, params->al);
+
     evt->params.u.args.num_args = 2;
     strncpy(evt->params.u.args.args[0], radio_str, sizeof(em_long_string_t));
     strncpy(evt->params.u.args.args[1], al_str, sizeof(em_long_string_t));

@@ -535,7 +535,7 @@ public:
     static bus_error_t add_table_row(char const *name, dm_easy_mesh_t *dm);
     bus_error_t reg_table_row(char *name, int index);
     int find_radio(dm_easy_mesh_t *dm);
-    int sync_table_rows(em_bus_table_type_t table_type);
+    int sync_table_rows(em_bus_table_type_t table_type, mac_address_t al_mac);
 
     // Bus callback handlers
     static bus_error_t default_get_param_value(char* event_name, raw_data_t* p_data, struct bus_user_data* user_data);
