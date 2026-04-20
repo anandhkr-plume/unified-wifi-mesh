@@ -487,10 +487,10 @@ class dm_easy_mesh_ctrl_t;
 class tr_181_t {
 private:
     bus_handle_t m_bus_handle;
-    static const unsigned int num_of_vaps = 0;
-    static const unsigned int num_of_devices = 0;
-    static const unsigned int num_of_stas = 0;
-    static const em_bus_row_counters_t bus_row_counters = {};
+    static inline unsigned int num_of_vaps = 0;
+    static inline unsigned int num_of_devices = 0;
+    static inline unsigned int num_of_stas = 0;
+    static inline em_bus_row_counters_t bus_row_counters = {};
 
 public:
 
