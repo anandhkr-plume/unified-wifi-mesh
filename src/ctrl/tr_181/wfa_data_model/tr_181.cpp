@@ -26,6 +26,7 @@
 #include <map>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdlib.h>
 #include "tr_181.h"
 // #include "wfa_data_model_parser.h"
 // #include "wfa_data_model.h"
@@ -544,33 +545,118 @@ bus_error_t tr_181_t::default_event_sub_handler(char* eventName, bus_event_sub_a
     return bus_error_success;
 }
 
-bus_error_t tr_181_t::ssid_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum) {
+bus_error_t parse_dev_radio_from_path(const char *path, bool need_radio, int *dev_id_out, int *radio_id_out)
+{
+    if (path == NULL || dev_id_out == NULL) {
+        return bus_error_invalid_input;
+    }
 
+    em_ctrl_t *em_ctrl = em_ctrl_t::get_em_ctrl_instance();
+    dm_easy_mesh_ctrl_t *dm_ctrl = em_ctrl ? em_ctrl->get_dm_ctrl() : nullptr;
+    if (dm_ctrl == nullptr) {
+        return bus_error_invalid_input;
+    }
+
+    char instance[MAX_INSTANCE_LEN] = { 0 };
+    bool is_num = false;
+
+    const char *name = path + sizeof(DATAELEMS_NETWORK);
+    name = dm_ctrl->get_table_instance(name, instance, MAX_INSTANCE_LEN, &is_num);
+
+    dm_easy_mesh_t *dm = dm_ctrl->get_dm_easy_mesh(instance, is_num);
+    if (dm == nullptr) {
+        return bus_error_invalid_namespace;
+    }
+
+    int dev_id = dm->get_id();
+    if (dev_id < 1 || dev_id > EM_MAX_DEVICES) {
+        return bus_error_invalid_namespace;
+    }
+    *dev_id_out = dev_id;
+
+    if (!need_radio) {
+        return bus_error_success;
+    }
+
+    name = dm_ctrl->get_table_instance(name, instance, MAX_INSTANCE_LEN, &is_num);
+    int radio_id = is_num ? atoi(instance) : 0;
+    if (radio_id < 1 || radio_id > EM_MAX_RADIO_PER_AGENT) {
+        return bus_error_invalid_namespace;
+    }
+    if (radio_id_out != NULL) {
+        *radio_id_out = radio_id;
+    }
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::ssid_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum)
+{
+    (void)aliasName;
+    if (instNum == NULL) {
+        return bus_error_invalid_input;
+    }
     *instNum = ++num_of_vaps;
-    em_printfout("%s:%d: table_name:%s instNum:%d\n", __FUNCTION__, __LINE__, tableName, *instNum);
+    em_printfout("%s:%d: table_name:%s instNum:%u\n", __FUNCTION__, __LINE__, tableName, *instNum);
     return bus_error_success;
 }
 
-bus_error_t tr_181_t::device_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum) {
-
+bus_error_t tr_181_t::device_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum)
+{
+    (void)aliasName;
+    if (instNum == NULL) {
+        return bus_error_invalid_input;
+    }
     *instNum = ++num_of_devices;
-    em_printfout("%s:%d: table_name:%s instNum:%d\n", __FUNCTION__, __LINE__, tableName, *instNum);
+    em_printfout("%s:%d: table_name:%s instNum:%u\n", __FUNCTION__, __LINE__, tableName, *instNum);
     return bus_error_success;
 }
 
-bus_error_t tr_181_t::radio_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum) {
-    *instNum = ++num_of_radios;
-    em_printfout("%s:%d: table_name:%s instNum:%d\n", __FUNCTION__, __LINE__, tableName, *instNum);
+bus_error_t tr_181_t::radio_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum)
+{
+    (void)aliasName;
+    if (tableName == NULL || instNum == NULL) {
+        em_printfout("%s:%d: invalid args\n", __FUNCTION__, __LINE__);
+        return bus_error_invalid_input;
+    }
+
+    int dev_id = 0;
+    bus_error_t rc = parse_dev_radio_from_path(tableName, false, &dev_id, NULL);
+    if (rc != bus_error_success) {
+        em_printfout("%s:%d: could not resolve device from %s (rc=%d)\n",
+            __FUNCTION__, __LINE__, tableName, rc);
+        return rc;
+    }
+
+    *instNum = ++bus_row_counters.radio[dev_id - 1];
+    em_printfout("%s:%d: table_name:%s dev_id:%d instNum:%u\n",
+        __FUNCTION__, __LINE__, tableName, dev_id, *instNum);
     return bus_error_success;
 }
 
-bus_error_t tr_181_t::bss_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum) {
-    *instNum = ++num_of_bss;
-    em_printfout("%s:%d: table_name:%s instNum:%d\n", __FUNCTION__, __LINE__, tableName, *instNum);
+bus_error_t tr_181_t::bss_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum)
+{
+    (void)aliasName;
+    if (tableName == NULL || instNum == NULL) {
+        em_printfout("%s:%d: invalid args\n", __FUNCTION__, __LINE__);
+        return bus_error_invalid_input;
+    }
+
+    int dev_id = 0, radio_id = 0;
+    bus_error_t rc = parse_dev_radio_from_path(tableName, true, &dev_id, &radio_id);
+    if (rc != bus_error_success) {
+        em_printfout("%s:%d: could not resolve device/radio from %s (rc=%d)\n",
+            __FUNCTION__, __LINE__, tableName, rc);
+        return rc;
+    }
+
+    *instNum = ++bus_row_counters.bss[dev_id - 1][radio_id - 1];
+    em_printfout("%s:%d: table_name:%s dev_id:%d radio_id:%d instNum:%u\n",
+        __FUNCTION__, __LINE__, tableName, dev_id, radio_id, *instNum);
     return bus_error_success;
 }
 
-bus_error_t tr_181_t::ssid_table_remove_row_handler(char const *rowName) {
+bus_error_t tr_181_t::ssid_table_remove_row_handler(char const *rowName)
+{
     if (num_of_vaps > 0) {
         num_of_vaps--;
     }
@@ -578,7 +664,8 @@ bus_error_t tr_181_t::ssid_table_remove_row_handler(char const *rowName) {
     return bus_error_success;
 }
 
-bus_error_t tr_181_t::device_table_remove_row_handler(char const *rowName) {
+bus_error_t tr_181_t::device_table_remove_row_handler(char const *rowName)
+{
     if (num_of_devices > 0) {
         num_of_devices--;
     }
@@ -586,29 +673,64 @@ bus_error_t tr_181_t::device_table_remove_row_handler(char const *rowName) {
     return bus_error_success;
 }
 
-bus_error_t tr_181_t::radio_table_remove_row_handler(char const *rowName) {
-    if (num_of_radios > 0) {
-        num_of_radios--;
+bus_error_t tr_181_t::radio_table_remove_row_handler(char const *rowName)
+{
+    if (rowName == NULL) {
+        return bus_error_invalid_input;
     }
-    em_printfout("%s:%d: rowName:%s num_of_radios:%u\n", __FUNCTION__, __LINE__, rowName, num_of_radios);
+
+    int dev_id = 0;
+    bus_error_t rc = parse_dev_radio_from_path(rowName, false, &dev_id, NULL);
+    if (rc != bus_error_success) {
+        em_printfout("%s:%d: could not resolve device from %s (rc=%d)\n",
+            __FUNCTION__, __LINE__, rowName, rc);
+        return rc;
+    }
+
+    if (bus_row_counters.radio[dev_id - 1] > 0) {
+        bus_row_counters.radio[dev_id - 1]--;
+    }
+    em_printfout("%s:%d: rowName:%s dev_id:%d radio_rows:%u\n",
+        __FUNCTION__, __LINE__, rowName, dev_id, bus_row_counters.radio[dev_id - 1]);
     return bus_error_success;
 }
 
-bus_error_t tr_181_t::bss_table_remove_row_handler(char const *rowName) {
-    if (num_of_bss > 0) {
-        num_of_bss--;
+bus_error_t tr_181_t::bss_table_remove_row_handler(char const *rowName)
+{
+    if (rowName == NULL) {
+        return bus_error_invalid_input;
     }
-    em_printfout("%s:%d: rowName:%s num_of_bss:%u\n", __FUNCTION__, __LINE__, rowName, num_of_bss);
+
+    int dev_id = 0, radio_id = 0;
+    bus_error_t rc = parse_dev_radio_from_path(rowName, true, &dev_id, &radio_id);
+    if (rc != bus_error_success) {
+        em_printfout("%s:%d: could not resolve device/radio from %s (rc=%d)\n",
+            __FUNCTION__, __LINE__, rowName, rc);
+        return rc;
+    }
+
+    if (bus_row_counters.bss[dev_id - 1][radio_id - 1] > 0) {
+        bus_row_counters.bss[dev_id - 1][radio_id - 1]--;
+    }
+    em_printfout("%s:%d: rowName:%s dev_id:%d radio_id:%d bss_rows:%u\n",
+        __FUNCTION__, __LINE__, rowName, dev_id, radio_id,
+        bus_row_counters.bss[dev_id - 1][radio_id - 1]);
     return bus_error_success;
 }
 
-bus_error_t tr_181_t::sta_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum) {
+bus_error_t tr_181_t::sta_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum)
+{
+    (void)aliasName;
+    if (instNum == NULL) {
+        return bus_error_invalid_input;
+    }
     *instNum = ++num_of_stas;
-    em_printfout("%s:%d: table_name:%s instNum:%d\n", __FUNCTION__, __LINE__, tableName, *instNum);
+    em_printfout("%s:%d: table_name:%s instNum:%u\n", __FUNCTION__, __LINE__, tableName, *instNum);
     return bus_error_success;
 }
 
-bus_error_t tr_181_t::sta_table_remove_row_handler(char const *rowName) {
+bus_error_t tr_181_t::sta_table_remove_row_handler(char const *rowName)
+{
     if (num_of_stas > 0) {
         num_of_stas--;
     }
@@ -619,8 +741,8 @@ bus_error_t tr_181_t::sta_table_remove_row_handler(char const *rowName) {
 int tr_181_t::sync_table_rows(em_bus_table_type_t table_type, mac_address_t al_mac)
 {
     wifi_bus_desc_t *desc = get_bus_descriptor();
-    if (desc == NULL || desc->bus_reg_table_row_fn == NULL) {
-        em_printfout("%s:%d: bus descriptor or bus_reg_table_row_fn is NULL", __func__, __LINE__);
+    if (desc == NULL || desc->bus_add_table_row_fn == NULL) {
+        em_printfout("%s:%d: bus descriptor or handle not available", __func__, __LINE__);
         return RETURN_ERR;
     }
 
@@ -659,9 +781,7 @@ int tr_181_t::sync_table_rows(em_bus_table_type_t table_type, mac_address_t al_m
     char table_path[256];
 
     if (table_type == em_bus_table_type_radio) {
-        snprintf(table_path, sizeof(table_path),
-            DATAELEMS_NETWORK "Device.%d.Radio.", dev_id);
-
+        snprintf(table_path, sizeof(table_path), DATAELEMS_NETWORK "Device.%d.Radio.", dev_id);
         unsigned int dm_radios = dm->get_num_radios();
         for (unsigned int i = 0; i < dm_radios; i++) {
             uint32_t inst_num = 0;
@@ -674,7 +794,6 @@ int tr_181_t::sync_table_rows(em_bus_table_type_t table_type, mac_address_t al_m
             em_printfout("%s:%d: added radio row instNum:%u for %s",
                 __func__, __LINE__, inst_num, table_path);
         }
-
     } else if (table_type == em_bus_table_type_bss) {
         unsigned int dm_radios = dm->get_num_radios();
         for (unsigned int r = 1; r <= dm_radios; r++) {
@@ -683,10 +802,7 @@ int tr_181_t::sync_table_rows(em_bus_table_type_t table_type, mac_address_t al_m
                 continue;
             }
             unsigned int num_bss = radio->get_radio_info()->number_of_bss;
-
-            snprintf(table_path, sizeof(table_path),
-                DATAELEMS_NETWORK "Device.%d.Radio.%d.BSS.", dev_id, r);
-
+            snprintf(table_path, sizeof(table_path), DATAELEMS_NETWORK "Device.%d.Radio.%d.BSS.", dev_id, r);
             for (unsigned int b = 0; b < num_bss; b++) {
                 uint32_t inst_num = 0;
                 bus_error_t rc = desc->bus_add_table_row_fn(&m_bus_handle, table_path, NULL, &inst_num);
@@ -699,7 +815,6 @@ int tr_181_t::sync_table_rows(em_bus_table_type_t table_type, mac_address_t al_m
                     __func__, __LINE__, inst_num, table_path);
             }
         }
-
     } else if (table_type == em_bus_table_type_sta) {
         em_printfout("%s:%d: sta table sync not yet implemented", __func__, __LINE__);
     }
