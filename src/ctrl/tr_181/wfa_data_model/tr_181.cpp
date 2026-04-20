@@ -350,7 +350,7 @@ int tr_181_t::wfa_bus_register_namespace(char *full_namespace, bus_element_type_
     }
     em_printfout("bus: bus_regDataElements success:%s", full_namespace);
 
-    if (element_type == bus_element_type_table && num_of_table_rows > 0) {
+    /*if (element_type == bus_element_type_table && num_of_table_rows > 0) {
         wifi_bus_desc_t *desc = get_bus_descriptor();
         if (desc != NULL) {
             std::string table_base(full_namespace);
@@ -377,9 +377,9 @@ int tr_181_t::wfa_bus_register_namespace(char *full_namespace, bus_element_type_
             em_printfout("%s:%d bus: added %u table rows for %s",
                 __func__, __LINE__, num_of_table_rows, full_namespace);
         }
-    }
+    }*/
 
-    return RETURN_OK;
+   return RETURN_OK;
 }
 
 bus_error_t tr_181_t::raw_data_set(raw_data_t *p_data, bool b)
@@ -1358,11 +1358,13 @@ void tr_181_t::handle_property_node(cJSON* root, const std::string& fullPath, cJ
 
             // reset and fill constraints for the array property itself
             memset(&data_model_value, 0, sizeof(data_model_value));
+            //em_printfout("%s:%d Print list of properites: %s for object:%s \n", __func__, __LINE__, cJSON_Print(itemsEff), effective->string);
+            parse_data_type(effective, data_model_value);
             parse_property_constraints(effective, data_model_value);
             parse_readwrite(effective, data_model_value);
             std::string tr181Path = yang_to_tr181_path(tableName);
             wfa_set_bus_callbackfunc_pointers(tr181Path.c_str(), &cbTable);
-            wfa_bus_register_namespace(const_cast<char*>(tr181Path.c_str()), bus_element_type_table, cbTable, data_model_value, 1);
+            wfa_bus_register_namespace(const_cast<char*>(tr181Path.c_str()), bus_element_type_table, cbTable, data_model_value, 0);
 
             // expand row children under tableName
             traverse_schema(root, itemsEff, tableName);
@@ -1371,6 +1373,7 @@ void tr_181_t::handle_property_node(cJSON* root, const std::string& fullPath, cJ
             memset(&data_model_value, 0, sizeof(data_model_value));
             parse_property_constraints(itemsEff, data_model_value);
             parse_readwrite(itemsEff, data_model_value);
+            em_printfout("%s:%d Print property for object:%s \n", __func__, __LINE__, cJSON_Print(itemsEff));
             std::string tr181Path = yang_to_tr181_path(fullPath);
             wfa_set_bus_callbackfunc_pointers(tr181Path.c_str(), &cbTable);
             wfa_bus_register_namespace(const_cast<char*>(tr181Path.c_str()), bus_element_type_property, cbTable, data_model_value, 1);
@@ -1386,6 +1389,7 @@ void tr_181_t::handle_property_node(cJSON* root, const std::string& fullPath, cJ
         parse_data_type(effective, data_model_value);
         parse_property_constraints(effective, data_model_value);
         parse_readwrite(effective, data_model_value);
+        em_printfout("%s:%d Print object:%s \n", __func__, __LINE__, cJSON_Print(effective));
         std::string tr181Path = yang_to_tr181_path(fullPath);
         wfa_set_bus_callbackfunc_pointers(tr181Path.c_str(), &cbTable);
         wfa_bus_register_namespace(const_cast<char*>(tr181Path.c_str()), bus_element_type_property, cbTable, data_model_value, 1);

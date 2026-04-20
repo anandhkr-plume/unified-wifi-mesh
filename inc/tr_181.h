@@ -472,7 +472,7 @@ static const yang_to_tr181_map g_yang_map[] = {
 #define CALLBACK_ADD_ROW(f)          {NULL, NULL, f, NULL, NULL, NULL}
 #define CB(...)                      (bus_callback_table_t){ __VA_ARGS__ }
 #define CALLBACK_GETTER(f)           {f, NULL, NULL, NULL, NULL, NULL}
-#define CALLBACK_TABLE_GETTER(f, add, remove) {f, NULL, add, remove, NULL, NULL}
+#define CALLBACK_TABLE_GETTER(f, add, remove) {NULL, NULL, add, remove, NULL, NULL}
 #define ELEMENT(n, f)                {const_cast<char*>(n), f}
 #define ELEMENT_TABLE_ROW(n, f)      {const_cast<char*>(n), f}
 
