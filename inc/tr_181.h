@@ -82,6 +82,12 @@ static const yang_to_tr181_map g_yang_map[] = {
     { nullptr, nullptr } // Default case
 };
 
+typedef enum {
+    em_bus_table_type_radio,
+    em_bus_table_type_bss,
+    em_bus_table_type_sta,
+} em_bus_table_type_t;
+
 #define DATAELEMS_NETWORK       "Device.WiFi.DataElements.Network."
 
 // pre-defined lengths for TR-181 method parameters and properties.
@@ -485,6 +491,7 @@ private:
     static inline unsigned int num_of_devices = 0;
     static inline unsigned int num_of_radios = 0;
     static inline unsigned int num_of_bss = 0;
+    static inline unsigned int num_of_stas = 0;
 
 public:
 
@@ -528,6 +535,7 @@ public:
     static bus_error_t add_table_row(char const *name, dm_easy_mesh_t *dm);
     bus_error_t reg_table_row(char *name, int index);
     int find_radio(dm_easy_mesh_t *dm);
+    int sync_table_rows(em_bus_table_type_t table_type);
 
     // Bus callback handlers
     static bus_error_t default_get_param_value(char* event_name, raw_data_t* p_data, struct bus_user_data* user_data);
@@ -725,6 +733,7 @@ public:
     static bus_error_t sta_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t sta_tget(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);
     static bus_error_t sta_table_add_row_handler(const char* table_name, const char* alias_name, uint32_t* instance_number);
+    static bus_error_t sta_table_remove_row_handler(char const* rowName);
 
     //APMLD
     static bus_error_t apmld_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data);

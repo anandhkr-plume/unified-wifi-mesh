@@ -602,6 +602,136 @@ bus_error_t tr_181_t::bss_table_remove_row_handler(char const *rowName) {
     return bus_error_success;
 }
 
+bus_error_t tr_181_t::sta_table_add_row_handler(char const *tableName, char const *aliasName, uint32_t *instNum) {
+    *instNum = ++num_of_stas;
+    em_printfout("%s:%d: table_name:%s instNum:%d\n", __FUNCTION__, __LINE__, tableName, *instNum);
+    return bus_error_success;
+}
+
+bus_error_t tr_181_t::sta_table_remove_row_handler(char const *rowName) {
+    if (num_of_stas > 0) {
+        num_of_stas--;
+    }
+    em_printfout("%s:%d: rowName:%s num_of_stas:%u\n", __FUNCTION__, __LINE__, rowName, num_of_stas);
+    return bus_error_success;
+}
+
+int tr_181_t::sync_table_rows(em_bus_table_type_t table_type)
+{
+    wifi_bus_desc_t *desc = get_bus_descriptor();
+    if (desc == NULL || desc->bus_reg_table_row_fn == NULL || desc->bus_unreg_table_row_fn == NULL) {
+        em_printfout("%s:%d: bus descriptor or table row fns are NULL", __func__, __LINE__);
+        return RETURN_ERR;
+    }
+
+    em_ctrl_t *em_ctrl = em_ctrl_t::get_em_ctrl_instance();
+    if (em_ctrl == NULL) {
+        return RETURN_ERR;
+    }
+    dm_easy_mesh_ctrl_t *dm_ctrl = em_ctrl->get_dm_ctrl();
+    if (dm_ctrl == NULL) {
+        return RETURN_ERR;
+    }
+
+    unsigned int dm_count = 0;
+    dm_easy_mesh_t *dm = dm_ctrl->get_first_dm();
+    while (dm != NULL) {
+        switch (table_type) {
+            case em_bus_table_type_radio:
+                dm_count += dm->get_num_radios();
+                break;
+            case em_bus_table_type_bss:
+                dm_count += dm->get_num_bss();
+                break;
+            case em_bus_table_type_sta:
+                break;
+            default:
+                break;
+        }
+        dm = dm_ctrl->get_next_dm(dm);
+    }
+
+    unsigned int *registered = NULL;
+    const char *table_base = NULL;
+    const char *table_name = NULL;
+
+    switch (table_type) {
+        case em_bus_table_type_radio:
+            registered = &num_of_radios;
+            table_name = DE_RADIO_TABLE;
+            table_base = DE_NETWORK_DEVICE "Radio.";
+            break;
+        case em_bus_table_type_bss:
+            registered = &num_of_bss;
+            table_name = DE_BSS_TABLE;
+            table_base = DE_DEVICE_RADIO "BSS.";
+            break;
+        case em_bus_table_type_sta:
+            registered = &num_of_stas;
+            table_name = DE_STA_TABLE;
+            table_base = DE_RADIO_BSS "STA.";
+            break;
+        default:
+            return RETURN_ERR;
+    }
+
+    while (*registered < dm_count) {
+        uint32_t inst_num = 0;
+        switch (table_type) {
+            case em_bus_table_type_radio:
+                radio_table_add_row_handler(table_name, NULL, &inst_num);
+                break;
+            case em_bus_table_type_bss:
+                bss_table_add_row_handler(table_name, NULL, &inst_num);
+                break;
+            case em_bus_table_type_sta:
+                sta_table_add_row_handler(table_name, NULL, &inst_num);
+                break;
+            default:
+                return RETURN_ERR;
+        }
+
+        bus_error_t rc = desc->bus_reg_table_row_fn(&m_bus_handle, table_base, inst_num, NULL);
+        if (rc != bus_error_success) {
+            em_printfout("%s:%d: bus_reg_table_row_fn failed for %s row %u, rc=%d",
+                __func__, __LINE__, table_base, inst_num, rc);
+            break;
+        }
+        em_printfout("%s:%d: added %s row %u (registered=%u, target=%u)",
+            __func__, __LINE__, table_name, inst_num, *registered, dm_count);
+    }
+
+    while (*registered > dm_count) {
+        char row_name[256];
+        snprintf(row_name, sizeof(row_name), "%s%u", table_base, *registered);
+
+        bus_error_t rc = desc->bus_unreg_table_row_fn(&m_bus_handle, row_name);
+        if (rc != bus_error_success) {
+            em_printfout("%s:%d: bus_unreg_table_row_fn failed for %s, rc=%d",
+                __func__, __LINE__, row_name, rc);
+        }
+
+        switch (table_type) {
+            case em_bus_table_type_radio:
+                radio_table_remove_row_handler(row_name);
+                break;
+            case em_bus_table_type_bss:
+                bss_table_remove_row_handler(row_name);
+                break;
+            case em_bus_table_type_sta:
+                sta_table_remove_row_handler(row_name);
+                break;
+            default:
+                break;
+        }
+
+        em_printfout("%s:%d: removed %s (registered=%u, target=%u)",
+            __func__, __LINE__, row_name, *registered, dm_count);
+    }
+
+    return RETURN_OK;
+}
+
 bus_error_t tr_181_t::network_get(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
 {
     em_ctrl_t *em_ctrl = em_ctrl_t::get_em_ctrl_instance();
