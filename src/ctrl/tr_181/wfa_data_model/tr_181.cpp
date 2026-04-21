@@ -780,6 +780,7 @@ int tr_181_t::sync_table_rows(em_bus_table_type_t table_type, mac_address_t al_m
 
     char table_path[256];
 
+    em_printfout("%s:%d: table_type:%d dev_id:%d al_mac:%s", __func__, __LINE__, table_type, dev_id, util::mac_to_string(al_mac).c_str());
     if (table_type == em_bus_table_type_radio) {
         snprintf(table_path, sizeof(table_path), DATAELEMS_NETWORK "Device.%d.Radio.", dev_id);
         unsigned int dm_radios = dm->get_num_radios();
